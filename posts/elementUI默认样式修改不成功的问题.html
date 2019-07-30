@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>elementUI默认样式修改不成功的问题 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">elementUI默认样式修改不成功的问题</h1>
+          <p class="post-date">2018-04-04</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>问题</h1>
+<p>filter.vue文件中的样式表中写入了如下样式</p>
+<pre class="hljs"><code>&lt;style scoped&gt;
+.el-input__inner {
+  background-color: <span class="hljs-comment">#F5F5F5;</span>
+  border: none;
+}
+&lt;/scope&gt;
+</code></pre>
+<p>但设置el-input的样式并没有效果。</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/38290647-dd38eb50-380e-11e8-90af-4c7c7d475121.png" alt="image"></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/38290659-e931ad16-380e-11e8-8dac-4e9ec572de06.png" alt="image"></p>
+<h1>原因和解决方法</h1>
+<p>是因为scoped的原因，去掉scoped就可以显示样式</p>
+<p>但此时会污染全局样式，所以可以将该样式放在控制全局样式的文件里（比如app.css），或者在该样式表的外面再写一个全局样式</p>
+<pre class="hljs"><code>&lt;style&gt;
+.el-input__inner {
+  background-color: <span class="hljs-comment">#F5F5F5;</span>
+  border: none;
+}
+&lt;/style&gt;
+&lt;style scoped&gt;
+  ...
+&lt;/style&gt;
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/38290987-4b06f806-3810-11e8-91b5-5459a5102582.png" alt="image"></p>
+<p>如果不希望所有的el-input都变成相同样式，可以给需要修改的el-input添加一个类</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

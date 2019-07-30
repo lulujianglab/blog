@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>一篇文章教你快速了解 vuejs - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">一篇文章教你快速了解 vuejs</h1>
+          <p class="post-date">2019-02-23</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>前段时间一直在用 <code>react</code> 写项目，最近的新项目想用<code>vue</code> 来写，发现大多数属性已经有点混淆了，于是花点时间重新梳理了下~</p>
+<p>配合对应的 <a href="https://github.com/lulujianglab/vue-demo">vue-demo</a> 看更容易理解哦</p>
+<h1>vue 基础</h1>
+<p>在讲<code>vue</code> 之前，我们先提一下框架和库的区别</p>
+<p><strong>库</strong> — 类似于<code>jQuery</code> 这样的库，是操作 <code>DOM</code> 元素，发起<code>ajax</code> 请求等，中间还会用到一些其他的库，用来做模板引擎</p>
+<p><strong>框架</strong> — 全方位功能齐全，请求获取数据，模板渲染，框架就是一个简易的 <code>DOM</code> 操作 + 发请求 + 模板引擎 + 路由功能</p>
+<p>所以，框架就是更为全面的功能，库就是单一的层面</p>
+<p>从代码层面上讲，一般使用库的代码，是调用某个函数，我们自己把控库的代码；而使用框架，是框架在帮我们运行我们编写好的代码</p>
+<p>比如，框架运行时，一般会初始化自身的代码，然后执行你所编写的代码，最后释放一些资源，其中初始化代码和释放资源都是框架自身的功能</p>
+<p>作为框架来讲，基本是大而全，而库就比较专一</p>
+<p>从运行层面上讲，对于框架来说，是我们把代码给框架运行，库是我们调用库</p>
+<h2>插值表达式</h2>
+<ul>
+<li>{{表达式}}，表达式可以是：</li>
+</ul>
+<ol>
+<li>对象(不要连接3个{{ {name:'jack'} }})</li>
+<li>字符串{{ 'xxx' }}</li>
+<li>判断后的布尔值 {{ true }}</li>
+<li>三元表达式 {{ true? '是正确':'错误' }}</li>
+</ol>
+<ul>
+<li>
+<p>可以用于页面中简单粗暴的调试</p>
+</li>
+<li>
+<p>注意：必须在 <code>data</code> 这个函数中返回的对象中声明</p>
+</li>
+</ul>
+<h2>什么是指令</h2>
+<ul>
+<li>比如在 <code>angular</code> 中以 <code>ng-xxx</code> 开头的就叫做指令</li>
+<li>在 <code>vue</code> 中以<code>v-xxx</code> 开头的就叫做指令</li>
+<li>指令中封装了一些 <code>DOM</code> 行为，提供不同的功能，框架会进行相关<code>DOM</code> 操作的绑定</li>
+</ul>
+<h2>vue 中常见的 v- 指令演示</h2>
+<p>*<code>v-text</code> 元素的<code>innerText</code> 属性必须是双标签，只能用在双标签中，本质就是给元素的 <code>innerText</code> 赋值</p>
+<ul>
+<li><code>v-html</code> 元素的 <code>innerHTML</code>，本质就是给元素的 <code>innerHTML</code> 赋值</li>
+<li><code>v-if</code> 判断是否插入这个元素</li>
+<li><code>v-else-if</code><br>
+*<code>v-else</code> 移出和插入的问题，移出后是 <code>&lt;!----&gt;</code></li>
+<li><code>v-show</code> 隐藏元素，如果确定隐藏，会给元素的 <code>style</code> 加上 <code>display:none</code>，本质是隐藏与否的问题</li>
+</ul>
+<p>注意， <code>v-if</code> 如果值为 <code>false</code>，会留下一个 <code>&lt;!----&gt;</code> 作为标记，万一未来<code>v-if</code> 的值是 <code>true</code> 了，就是这里插入元素，如果有<code>if</code> 和<code>else</code> 就不需要单独留坑了</p>
+<h2>v-bind 使用</h2>
+<ul>
+<li>给元素的属性赋值</li>
+</ul>
+<ol>
+<li>可以给已经存在的属性赋值</li>
+<li>也可以给自定义属性赋值</li>
+</ol>
+<ul>
+<li>
+<p>语法：在元素上 <code>v-bind:原属性名=&quot;变量||变量名&quot;</code></p>
+</li>
+<li>
+<p>简写形式 <code>:属性名=“变量名”</code></p>
+</li>
+</ul>
+<h2>v-on 的使用</h2>
+<ul>
+<li>处理自定义原生事件，给按钮添加 <code>click</code> 并让使用变量的样式改变</li>
+<li>在元素上 <code>v-on:原生事件名=“给变量进行操作||函数名”</code></li>
+<li>简写形式：<code>@原生事件名=“给变量进行操作”</code></li>
+</ul>
+<p>value 的值是根据 value 内部的变量，点击按钮，改变了 vue 内部的变量，vue 察觉到页面中使用的变量更改了，所以重新渲染了视图的更改部分</p>
+<h2>小结：</h2>
+<p>*<code>input</code> 输入框中的 <code>value</code> 属性改变，显示就改变</p>
+<ul>
+<li>
+<p><code>input</code> 元素<code>.value = myValue = 'abc'</code></p>
+</li>
+<li>
+<p>vue 会实时监控 myValue 属性，当其改变，重新执行。将 vue 中的数据同步到页面，也是 <code>v-bind</code>单向的功能</p>
+</li>
+<li>
+<p>同时，当用户的输入值发生改变时，vue 就知道了让页面中凸显一个元素出来。页面的改变，影响 vue</p>
+<p>这就是双向数据绑定(流)，<code>v-model=&quot;myValue&quot;</code>，当元素的 <code>value</code> 值改变以后，就会给 vue 中的属性赋值</p>
+</li>
+</ul>
+<p><code>v-bind</code> 可以给任何属性赋值，是从 vue 到页面的单向数据流<br>
+<code>v-model</code> 只能给具备 value 属性的元素进行双向数据绑定(必须使用的是有 value 属性的元素)</p>
+<h2>v-model</h2>
+<ul>
+<li>
+<p>双向数据绑定</p>
+<ol>
+<li>视图改变影响数据 ( js )</li>
+<li>数据 ( js ) 改变影响视图</li>
+</ol>
+</li>
+</ul>
+<h3>v-bind 和 v-model 的区别</h3>
+<ul>
+<li>
+<p><code>input v-model=&quot;name&quot;</code></p>
+<ol>
+<li>双向数据绑定页面对于 input 的 value 改变，能影响内存中 name 变量</li>
+<li>内存 js 改变 name 的值，会影响页面重新渲染最新值</li>
+</ol>
+</li>
+<li>
+<p><code>input :value=&quot;name&quot;</code></p>
+<ol>
+<li>单向数据绑定 内存改变影响页面改变</li>
+</ol>
+</li>
+<li>
+<p><code>v-model</code>: 其的改变影响其他<code>v-bind:</code>其的改变不影响其他</p>
+</li>
+<li>
+<p><code>v-bind</code>就是对属性的简单赋值，当内存中值改变，还是会触发重新渲染</p>
+</li>
+</ul>
+<h2>v-for 的使用</h2>
+<ul>
+<li>基本语法 <code>v-for=&quot;item in arr&quot;</code></li>
+<li>对象的操作 <code>v-for=&quot;item in obj&quot;</code></li>
+<li>如果是数组没有id<br>
+<code>v-for=&quot;(item,index) in arr&quot; :class=&quot;index&quot;</code></li>
+<li>各中 <code>v-for</code> 的属性顺序<br>
+数组 <code>item</code>,<code>index</code><br>
+对象<code>value</code>,<code>key</code>,<code>index</code></li>
+</ul>
+<h2>关于对象内的 this</h2>
+<ul>
+<li><code>vue</code> 已经把以前 this 是 window 或者事件对象的问题搞定了</li>
+<li><code>methods</code> 和 <code>data</code> 本身是在同一个对象中的，所以在该对象中可以通过<code>this</code> 随意取</li>
+<li><code>this.xxx</code> 取 <code>data</code> 中的值，<code>this.xxxMethod</code> 调 <code>methods</code> 中的方法</li>
+</ul>
+<h2>渲染组件-父使用子组件</h2>
+<ol>
+<li>创建子组件(对象)<br>
+<code>var Header = { template: '模板', data是一个函数，methods: 功能，components:子组件们}</code></li>
+<li>在父组件中声明，根属性 <code>components: {组件名: 组件对象}</code></li>
+<li>在父组件要用的地方使用 <code>&lt;组件名&gt;&lt;/组件名&gt;</code><br>
+注意：在不同框架中，有的不支持大写字母，用的时候
+<ul>
+<li>组件名 MyHeader</li>
+<li>使用 my-headers</li>
+</ul>
+</li>
+</ol>
+<h2>父子组件传值(父传子)</h2>
+<ol>
+<li>父用子的时候通过属性传递</li>
+<li>子要声明 props:['属性名']来接收</li>
+<li>收到就是自己的了，随便使用
+<ul>
+<li>在 <code>template</code> 中直接用</li>
+<li>在 js 中 this 属性名用</li>
+</ul>
+</li>
+</ol>
+<p>小补充：常量传递直接用，变量传递加冒号</p>
+<h2>注册全局组件</h2>
+<ul>
+<li>应用场景：多处使用的公共性功能组件，就可以注册成全局组件，减少冗余代码</li>
+<li>全局API：<code>Vue.component('组件名'，组件对象)</code></li>
+</ul>
+<h2>附加功能：过滤器&amp;监视改动</h2>
+<ol>
+<li>filter
+<ul>
+<li>将数据进行添油加醋的操作</li>
+<li>过滤器分为两种
+<ul>
+<li>组件内的过滤器（组件内有效）</li>
+<li>全局过滤器（所有组件共享）</li>
+</ul>
+</li>
+<li>先注册，后使用</li>
+<li>组件内 <code>filter:{过滤器名: 过滤器fn}</code>,最终 fn 内通过 return 产出最终的数据</li>
+<li>使用方式是 <code>{{原有数据|过滤器名}}</code></li>
+<li>需求
+<ul>
+<li>页面 <code>input</code> 框输入字符串，反字符串输出，按参数显示 <code>label</code>（中英文）</li>
+</ul>
+</li>
+<li>过滤器 <code>fn</code>
+<ul>
+<li>声明 <code>function(data,argv1,argv2...){}</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>watch</code> 监视单个</li>
+<li><code>computed</code> 监视多个<br>
+*<code>computed</code>: {监视的业务名: function(){ return 显示的一些内容 }}
+<ul>
+<li>使用 <code>计算属性的名称</code></li>
+</ul>
+</li>
+</ol>
+<h2>slot（ 传递 DOM ）</h2>
+<ul>
+<li>内置的组件</li>
+<li><code>slot</code> 就是子组件里给DOM留下的坑</li>
+<li><code>&lt;子组件&gt;DOM&lt;/子组件&gt;</code></li>
+<li><code>slot</code> 动态的 DOM，<code>props</code> 是动态的数据</li>
+</ul>
+<p>实质上，slot 其实就是父组件传递给 DOM 结构</p>
+<p>vue提供的内置组件 <code>&lt;slot&gt;&lt;/slot&gt;</code></p>
+<pre class="hljs"><code>&lt;my-li&gt;
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>111<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span></span>
+<span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">my-li</span>&gt;</span></span>
+</code></pre>
+<h2>生命周期函数（钩子函数）</h2>
+<p>Vue 实例从创建到销毁的过程，就是生命周期</p>
+<p>详细来说也就是从开始创建、初始化数据、编译模板、挂载 Dom、渲染→更新→渲染、卸载等一系列过程</p>
+<ul>
+<li><code>beforeCreate</code></li>
+<li><code>created</code></li>
+<li><code>beforeMount</code></li>
+<li><code>mounted</code></li>
+<li><code>beforeUpdate</code></li>
+<li><code>updated</code></li>
+<li><code>beforeDestroy</code></li>
+<li><code>destroyed</code></li>
+</ul>
+<ol>
+<li>
+<p>在 <code>beforeCreate</code> 和 <code>created</code> 钩子函数之间的生命周期</p>
+<p>进行<strong>初始化事件，进行数据的观测</strong>，在 <strong><code>created</code> 的时候数据已经和 data 属性进行绑定</strong><br>
+需要注意的是，<strong>此时还是没有 <code>el</code> 选项</strong></p>
+</li>
+<li>
+<p><code>created</code> 钩子函数和 <code>beforeMount</code> 间的生命周期</p>
+<p>首先会判断对象是否有 <strong><code>el</code> 选项</strong>。<strong>如果有的话就继续向下编译，如果没有</strong><code>el</code>选项，<strong>则停止编译</strong>，<strong>也就意味着停止了生命周期，直到在该 vue 实例上调用 <code>vm.$mount(el)</code></strong></p>
+<p>如果 vue 实例对象中有 <code>template</code> 参数选项，则将其作为模板编译成 <code>render</code> 函数，如果没有 <code>template</code> 选项，则将外部 HTML 作为模板编译<br>
+<strong><code>template</code> 中的模板优先级要高于 <code>outer HTML</code> 的优先级</strong></p>
+<p><code>render</code> 函数选项 &gt; <code>template</code> 选项 &gt; <code>outer HTML</code>.</p>
+</li>
+<li>
+<p><code>beforeMount</code> 和 <code>mounted</code> 钩子函数间的生命周期</p>
+<p>给 vue 实例对象添加 <strong><code>$el</code> 成员</strong>，并且替换掉挂在的 DOM 元素</p>
+<p>注意，<strong><code>beforeMount</code> 方法中 <code>$el</code> 还未被创建，这期间 VUE 先后生成两份模板，但是在 <code>beforeMount</code> 之前只是虚拟的，并未真实存在</strong></p>
+</li>
+<li>
+<p><code>mounted</code></p>
+</li>
+</ol>
+<p><code>id=&quot;app&quot;</code> 中的内容发生了变化</p>
+<ol start="5">
+<li>
+<p><code>beforeUpdate</code> 钩子函数和<code>updated</code> 钩子函数间的生命周期</p>
+<p>当 vue 发现 data 中的数据发生了改变，会<strong>触发对应组件的重新渲染</strong>，先后<strong>调用 <code>beforeUpdate</code> 和 <code>updated</code></strong> 钩子函数</p>
+<p>在 <strong><code>beforeUpdate</code></strong> 时,<strong>可以监听到 data 的变化但是 view 层没有被重新渲染</strong>，view 层的数据没有变化。等到 <strong><code>updated</code></strong> 的时候 <strong>view 层才被重新渲染，数据更新</strong></p>
+<p>需要注意的是，这里运行 <code>console.log</code>，在 <code>beforeUpdated</code> 钩子函数执行的时候里面的 DOM 元素就已经发生了变化，是因为还有 <code>virtual DOM</code> 这一层,实际上，我们打印 <code>document.body.innerHTML</code>，view 层是没有被重新渲染的</p>
+</li>
+<li>
+<p><code>beforeDestroy</code> 和 <code>destroyed</code> 钩子函数间的生命周期</p>
+<p><code>beforeDestroy</code> 钩子函数在实例销毁之前调用<br>
+<code>destroyed</code> 钩子函数在 Vue 实例销毁后调用</p>
+<p>需要注意的是，<strong>频繁的销毁和创建组件</strong>会影响页面性能，如果需要频繁的操作，我们<strong>可以使用 <code>&lt;keep-alive&gt;&lt;/keep-alive&gt;</code> 内置组件</strong>来控制组件的激活和停用，用法也就是包裹住需要销毁的组件的就好了</p>
+<pre class="hljs"><code>&lt;keep-alive&gt;
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">test</span> <span class="hljs-attr">v-if</span>=<span class="hljs-string">"isExist"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">test</span>&gt;</span></span>
+<span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">keep-alive</span>&gt;</span></span>
+</code></pre>
+<p>这个时候就用到了另一对<strong>钩子函数 <code>activated</code> 和 <code>deactivated</code></strong> ,分别在<strong>组件被激活和被停用时触发</strong></p>
+</li>
+</ol>
+<h2>获取 DOM 元素</h2>
+<ul>
+<li>
+<p>救命稻草，<code>document.querySelector</code></p>
+<ul>
+<li>在 <code>template</code> 中标识元素 <code>ref = &quot;xxx&quot;</code></li>
+<li>在要获取的时候，<code>this.$refs.xxx</code> 获取元素
+<ul>
+<li>创建组件，装载 DOM，用户点击按钮</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><code>ref</code> 在 DOM 上获取的是原生 DOM 对象</p>
+</li>
+<li>
+<p><code>ref</code> 在组件上获取的是组件对象</p>
+<ul>
+<li><code>$el</code> 是拿起 DOM</li>
+<li>这个对象就相当于我们平时玩的 this，也可以直接调用函数</li>
+</ul>
+</li>
+</ul>
+<h2><code>Vue.nextTick</code> 对异步函数的结果进行操作</h2>
+<blockquote>
+<p>在下次 DOM 更新循环结束之后执行延迟回调。在修改数据之后立即使用这个方法，获取更新后的 DOM。</p>
+</blockquote>
+<p>需要了解的是 <strong>Vue 实现响应式并不是数据发生变化之后 DOM 立即变化，而是按一定的策略进行 DOM 的更新</strong></p>
+<p>简单来说，Vue 在修改数据后，视图不会立刻更新，而是等同一事件循环中的所有数据变化完成之后，再统一进行视图更新</p>
+<pre class="hljs"><code><span class="hljs-comment">//改变数据</span>
+<span class="hljs-string">`vm.message = 'changed'`</span>
+
+<span class="hljs-comment">//想要立即使用更新后的 DOM。这样不行，因为设置 message 后 DOM 还没有更新</span>
+<span class="hljs-string">`console.log(vm.$el.textContent)`</span> <span class="hljs-comment">// 并不会得到 'changed'</span>
+
+<span class="hljs-comment">//这样可以，`nextTick` 里面的代码会在 DOM 更新后执行,有一定的延时</span>
+Vue.nextTick(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+    <span class="hljs-built_in">console</span>.log(vm.$el.textContent) <span class="hljs-comment">//可以得到 'changed'</span>
+})
+</code></pre>
+<p>需要注意的是，<strong>在 <code>created</code> 和 <code>mounted</code> 阶段，如果需要操作渲染后的视图，要使用 <code>nextTick</code> 方法</strong><br>
+比如刷新页面时在 <code>mouted</code> 事件中触发 input 元素的插入，并给 input 元素获取焦点</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> App = {
+  <span class="hljs-attr">template</span>: <span class="hljs-string">`&lt;div&gt;
+    &lt;input type="text" v-if="isShow" ref="input" /&gt;
+  &lt;/div&gt;`</span>,
+
+  data() {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">isShow</span>: <span class="hljs-literal">false</span>
+    }
+  },
+  mounted() {
+    <span class="hljs-comment">// 显示元素，并给与获取焦点</span>
+    <span class="hljs-keyword">this</span>.isShow = <span class="hljs-literal">true</span> <span class="hljs-comment">// 会触发 input 元素的插入,但这里并不会立马更新 DOM，最终代码更新完毕以后，vue才会根据实际的值，进行 DOM 的操作</span>
+
+    <span class="hljs-comment">// 我们希望在 vue 真正渲染 DOM 到页面以后，才操作如下事件</span>
+    <span class="hljs-keyword">this</span>.$nextTick(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.$refs.input.focus()
+    })
+  },
+}
+</code></pre>
+<blockquote>
+<p>注意 <code>mounted</code> 不会承诺所有的子组件也都一起被挂载。如果你希望等到整个视图都渲染完毕，可以用 <code>vm.$nextTick</code> 替换掉 <code>mounted</code></p>
+</blockquote>
+<pre class="hljs"><code>mounted: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">this</span>.$nextTick(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// Code that will run only after the</span>
+    <span class="hljs-comment">// entire view has been rendered</span>
+  })
+}
+</code></pre>
+<h2>路由</h2>
+<h3>路由原理</h3>
+<ul>
+<li>传统开发方式 url 改变后 立刻发起请求 响应整个页面 渲染整个页面 可能会出现白屏的问题</li>
+<li>SPA 锚点值改变后 不会发起请求 发起 ajax 请求 局部改变页面数据
+<ul>
+<li>页面不跳转 用户体验更好</li>
+</ul>
+</li>
+</ul>
+<h3>SPA</h3>
+<ul>
+<li><code>single page application</code> ( 单页应用程序 )</li>
+<li>前端路由
+<ul>
+<li>锚点值监视</li>
+<li>ajax 获取动态数据</li>
+<li>核心点是锚点值</li>
+</ul>
+</li>
+<li>前端框架 <code>Vue</code> / <code>angular</code> / <code>react</code></li>
+</ul>
+<h3>命名路由</h3>
+<ul>
+<li>
+<ol>
+<li>给路由对象一个名称 <code>{ name: 'home', path: '/home', component: Home}</code></li>
+</ol>
+</li>
+<li>
+<ol start="2">
+<li>在<code>router-link</code> 的 <code>to</code> 属性中描述这个规则
+<ul>
+<li><code>&lt;router-link :to=&quot;{name: 'home'}&quot;&gt;&lt;/router-link&gt;</code></li>
+<li>通过名称找路由对象，获取其 <code>path</code>，生成自己的 <code>href</code></li>
+</ul>
+</li>
+</ol>
+</li>
+<li>
+<p>大大降低维护成本，锚点值改变只用 main.js 中改变 path 属性即可</p>
+</li>
+</ul>
+<h3>小结</h3>
+<ul>
+<li><code>vue-router</code> 使用步骤：1.引入 2.安装插件 3.创建路由实例 4.配置路由规则 5.将路由对象关联 vue 6.留坑</li>
+<li><code>router-link to=&quot;/xxx&quot;</code> 命名路由
+<ol>
+<li>在路由规则对象中 加入 <code>name</code> 属性</li>
+<li>在<code>router-link</code> 中 <code>:to=&quot;{name:&quot;xxx&quot;}&quot;</code></li>
+</ol>
+</li>
+</ul>
+<h3>vue-router 中的对象</h3>
+<ul>
+<li><code>$router</code> 路由信息对象，只读对象</li>
+<li><code>$router</code> 路由操作对象，只写对象</li>
+</ul>
+<p>配置 <code>:to=&quot;{ name:'login', query:{id:1}}</code> ，获取 <code>this.$route.query.id</code>，生成 <code>&lt;a href=&quot;/detail?id=1&quot;&gt;</code></p>
+<p>配置 <code>:to=&quot;{ name:'register', params:{name:'abc'}</code>，获取 <code>this.$route.params.id</code>，生成 <code>&lt;a href=&quot;/detail/abc&quot;&gt;</code></p>
+<h3>嵌套路由</h3>
+<ul>
+<li>市面上所谓的用单页应用框架开发多页应用
+<ul>
+<li>嵌套路由</li>
+</ul>
+</li>
+<li>案例
+<ul>
+<li>进入我的主页显示；电影、歌曲等多部分内容</li>
+</ul>
+</li>
+<li>代码思想
+<ul>
+<li><code>router-view</code> 的部分
+<ul>
+<li><code>router-view</code> 第一层中，包含一个 <code>router-view</code></li>
+</ul>
+</li>
+<li>每一个坑挖好了，要对应单独的组件</li>
+</ul>
+</li>
+</ul>
+<h3>知识点介绍</h3>
+<ul>
+<li>路由 <code>meta</code> 元数据 =&gt; <code>meta</code> 是对于路由规则是否需要验证权限的配置
+<ul>
+<li>路由对象中和 <code>name</code> 属性同级 <code>{ meta:{isChecked: true} }</code></li>
+</ul>
+</li>
+<li>路由钩子 =&gt; 权限控制的函数执行时期
+<ul>
+<li>每次路由匹配后，渲染组件到 <code>router-view</code> 之前</li>
+<li><code>router.beforeEach(function(to,from,next){ })</code></li>
+</ul>
+</li>
+</ul>
+<h3>编程导航</h3>
+<ul>
+<li>
+<p>跳到指定的锚点，并显示页面 <code>this.$router.push({name: 'xxx',query:{id:1},params:{name:'abc'} })</code></p>
+</li>
+<li>
+<p>配置规则 <code>{name:'xxx',path:'/xxx/:name'}</code></p>
+</li>
+<li>
+<p>根据历史记录，前进或后退</p>
+<ul>
+<li><code>this.$router.go(-1|1)</code></li>
+<li>1代表进一步，-1是退一步</li>
+</ul>
+</li>
+</ul>
+<p>本质是锚点值的变化</p>
+<h2>axios</h2>
+<p>这里极度推荐使用 <code>axios</code> 发请求，可以看下 <code>axios</code> 的<a href="https://segmentfault.com/a/1190000008470355?utm_source=tuicool&amp;utm_medium=referral">中文文档</a></p>
+<blockquote>
+<p>浏览器端发起 <code>XMLHttpRequests</code> 请求<br>
+<code>node</code> 端发起  <code>http</code> 请求<br>
+支持 <code>Promise API</code><br>
+拦截请求和返回<br>
+转化请求和返回（数据）<br>
+取消请求<br>
+自动转化 <code>json</code> 数据<br>
+客户端支持抵御 <code>XSRF</code>（跨站请求伪造）</p>
+</blockquote>
+<p>不像 <code>jquery</code> 那样嵌套，而是用 <code>promise</code><br>
+只做 <code>ajax</code> 请求，不做其他的 DOM 之类的请求</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

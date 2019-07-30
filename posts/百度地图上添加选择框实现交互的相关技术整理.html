@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>百度地图上添加选择框实现交互的相关技术整理 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">百度地图上添加选择框实现交互的相关技术整理</h1>
+          <p class="post-date">2018-03-15</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>主要目的</h1>
+<p>在百度地图上添加一个矩形选择框（后面我们就用选择刷这个称号来代替），最终是要实现选择刷与百度地图的交互操作，能在地图上拖动选择刷时，实时读取到刷内的地图图元数据</p>
+<h1>方法介绍</h1>
+<p>在实现选择刷的过程中，主要尝试了两种方法</p>
+<h2>方法一</h2>
+<p>用jquery ui中的选择框实现，引用draggable</p>
+<ul>
+<li><code>npm install jquery-ui</code></li>
+<li><a href="http://jqueryui.com/draggable/">直接引入</a></li>
+</ul>
+<h3>主要步骤</h3>
+<ul>
+<li>计算矩形框西北角相对于地图的位置</li>
+<li>根据像素距离获取剩下三个角的坐标</li>
+<li>根据矩形框的范围判断图元是否在矩形框内</li>
+</ul>
+<h3>实现流程</h3>
+<ol>
+<li>获取可视区域内的坐标：用getBounds()函数获取可视区域四个角的经纬度坐标，取西北角的坐标转换为可视区域坐标</li>
+<li>使用drag(event,ui)事件获取选择刷相对地图的位置，当鼠标在拖放过程时触发</li>
+<li>获取选择刷四个角的像素坐标，利用PixelToPoint()函数转换为经纬度坐标</li>
+<li>根据Polygon()函数获取选择刷范围</li>
+<li>引入GeoUtils，根据isPointInPolygon()函数判断点是不是在选择刷内<br>
+6.将刷内的点存放在数组中，此数组就是刷内的地图图元数据</li>
+</ol>
+<h2>方法二</h2>
+<p>直接引用百度地图API上的函数</p>
+<h3>实现步骤</h3>
+<ul>
+<li>将可拖拽点修改为可拖拽矩形框，拖拽结束后再响应事件</li>
+<li>计算出x轴和y轴上的分辨率</li>
+<li>根据分辨率和像素距离计算地图图元的经纬度</li>
+<li>最后根据矩形框的范围判断图元是否在矩形框内</li>
+</ul>
+<h3>实现流程</h3>
+<ol>
+<li>将百度地图中可拖拽的点修改为可拖拽的矩形框</li>
+<li>修改选择刷的样式布局</li>
+<li>分别计算出选择刷左下角和右上角的地理经纬度坐标和像素坐标</li>
+<li>计算分辨率：实际距离（经纬度坐标差）/像素值（像素坐标差）</li>
+<li>根据经度方向和纬度方向的分辨率分别换算出拖拽结束后选择刷四个角的经纬度</li>
+<li>最后再将地图上图元数据的经纬度跟选择刷经纬度对比，过滤出符合条件的图元数据即可</li>
+</ol>
+<p><a href="https://lulujianglab.github.io/mapInteracting/">实现结果</a></p>
+<h2>相关知识点</h2>
+<p>源代码var bounds = map.getBounds() 得到的是一堆aa、bb、cc之类的值,类似运行结果图：<br>
+<img src="https://user-images.githubusercontent.com/26807227/37454209-eb32999e-2874-11e8-886d-d5038a023f15.jpg" alt="146632002745"></p>
+<p>矩形bounds放入坐标系中查看经纬度，一目了然：<br>
+<img src="https://user-images.githubusercontent.com/26807227/37454233-fb45ed7c-2874-11e8-92a5-e5b66b3d8e6c.jpg" alt="14663200839"></p>
+<h3>Bounds四个角点经纬度值分别为：</h3>
+<ul>
+<li>左上角点LTPoint:  ( bounds.Cf.lng, bounds.uf.lat) 　(<a href="http://bounds.cc">bounds.cc</a>, bounds.Zb)</li>
+<li>右上角点RTPoint: (bounds.uf.lng, bounds.uf.lat)    (bounds.$b, bounds.Zb)</li>
+<li>左下角点LBPoint:　(bounds.Cf.lng, bounds.Cf.lat)　 (<a href="http://bounds.cc">bounds.cc</a>, bounds.bc)</li>
+<li>右下角点RBPoint: (bounds.uf,lng,bounds.Cf.lat)     (bounds.$b,bounds.bc)</li>
+</ul>
+<h3>Bounds中含有获取两个角点坐标的实例方法：</h3>
+<ul>
+<li>
+<p>左上角点LTPoint:(bounds.getSouthWest().lng,bounds.getNorthEast().lat)</p>
+</li>
+<li>
+<p>右上角点RTPoint：bounds.getNorthEast()</p>
+</li>
+<li>
+<p>左下角点LBPoint：bounds.getSouthWest()</p>
+</li>
+<li>
+<p>右下角点RBPoint：(bounds.getNorthEast().lng,bounds.getSouthWest().lat)</p>
+</li>
+</ul>
+<h3>获取矩形框四个角的坐标（交互）</h3>
+<p>根据drag（event，ui）事件，当鼠标在拖动过程中移动时触发：<br>
+<img src="https://user-images.githubusercontent.com/26807227/37454402-6feffef6-2875-11e8-9c33-941c991fba5c.jpg" alt="146632013472"></p>
+<p>源代码</p>
+<pre class="hljs"><code>$(“#draggable”).draggable({
+   <span class="hljs-attr">Drag</span>:<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">event,ui</span>)</span>{
+   Console.log(ui.position) <span class="hljs-comment">//position是相对于父元素的位置</span>
+   Console.log(ui.offset) <span class="hljs-comment">//offset是相对于浏览器窗口}</span>
+})
+</code></pre>
+<p>根据构造函数BMap.Pixel(ui.position.top,ui.position.left)创建像素点对象实例，像素坐标的坐标原点为地图区域的左上角。</p>
+<p>百度地图使用经纬度地理坐标（lng，lat）和像素坐标（x，y）两种，同时有两种坐标转换的方法：</p>
+<h4>经纬度装换为地理坐标的方法为：</h4>
+<p>PointToPixel(point:point) 返回值：Pixel 描述：经纬度坐标转换为像素坐标</p>
+<h4>地理坐标转换为经纬度的方法为：</h4>
+<p>pixelToPoint(pixel:Pixel) 返回值：point 描述：像素坐标转换为经纬度坐标</p>
+<h3>判断点是否在多边形内</h3>
+<h4>引入BMapLib.GeoUtils静态类库</h4>
+<pre class="hljs"><code>&lt;script type=&quot;text/javascript&quot; src=&quot;http://api.map.baidu.com/library/GeoUtils/1.2/src/GeoUtils_min.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+<p><a href="http://api.map.baidu.com/library/GeoUtils/1.2/examples/simple.html">源代码</a></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37454741-50328c2c-2876-11e8-98b6-618dc6c571b3.jpg" alt="146632018435"></p>
+<p><a href="http://blog.csdn.net/hewusheng10/article/details/40425883">类BMapLib.GeoUtils方法介绍</a></p>
+<p>首先根据矩形框每个角的坐标确定多边形范围：<code>Var ply = new BMap.Polygon(polyPoints)</code>;再用forEach函数循环地图上存放的所有点数，将点逐个与矩形框范围作比较，判断结果为true时将该点存放在数组中</p>
+<h4>直接判断是否在矩形框的边线内</h4>
+<p>分别用覆盖点的纬度与东北点纬度、西南点纬度比较，覆盖点的经度与西南角经度、东北角经度比较</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

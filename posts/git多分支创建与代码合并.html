@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>git多分支创建与代码合并 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">git多分支创建与代码合并</h1>
+          <p class="post-date">2018-05-02</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>通常我们从github等远程版本库克隆一个全新的代码库，使用</p>
+<pre class="hljs"><code>git <span class="hljs-built_in">clone</span> username@xxx:/xxx/xxx.git
+</code></pre>
+<p>默认的克隆下来是master分支，没有其他分支</p>
+<p>我们可以使用<code>git branch -a</code>查看所有分支，包括本地和远程的</p>
+<p>（如果是只查看本地分支，使用<code>git branch</code>命令，只查看远程分支，使用<code>git branch -r</code>命令）</p>
+<p>在团队合作开发中，我们往往需要创建多个分支，各自在不同的分支上开发，然后再归并代码</p>
+<h2>建立远程分支</h2>
+<p>如果是团队管理者首先创建好分支，供团队成员使用</p>
+<p>也就是本地给远程创建分支</p>
+<p>可以直接先创建一个本地分支，假设分支名为dev</p>
+<pre class="hljs"><code>git branch dev
+</code></pre>
+<p>然后把本地dev分支提交到远程仓库</p>
+<pre class="hljs"><code>git push origin dev
+</code></pre>
+<p>接下来查看远程分支</p>
+<pre class="hljs"><code>git branch -a
+</code></pre>
+<p>远程分支创建好之后就是团队成员在各自分支上开发了</p>
+<h2>切换到远程分支并合并其他分支</h2>
+<p>首先在开发前，用<code>git branch -a</code>查看远程分支，然后切换到 origin/dev远程分支，并在本地新建分支 dev</p>
+<pre class="hljs"><code>git checkout -b dev origin/dev
+</code></pre>
+<p>同时建立了本地dev分支和远程dev分支的联系</p>
+<p>然后在本地dev的分支上开发，开发完后push到远程分支上（省略了add commit这些操作）</p>
+<pre class="hljs"><code>git push origin dev
+</code></pre>
+<p>现在比如要合并其他人的代码分支，如dev2，可以</p>
+<p>(在本地创建分支，然后拉取dev2的代码)</p>
+<pre class="hljs"><code>git checkout master
+git branch dev2
+git checkout dev2
+git pull origin dev2
+git add .
+git commit -m <span class="hljs-string">"合并分支"</span>
+</code></pre>
+<p>并不建议这种操作，因为是强行push了一个本地分支dev2到线上，并是不友好的关联</p>
+<p>或者<br>
+（直接拉取一个与远程分支关联的本地分支）</p>
+<pre class="hljs"><code>git checkout -b dev2 origin/dev2
+</code></pre>
+<p>然后切换回dev分支，如果线上dev2分支有改动，合并线上分支dev2的代码</p>
+<pre class="hljs"><code>git checkout dev2
+git pull origin dev2
+git checkout dev 
+git merge dev2
+</code></pre>
+<p>如果是更新dev的代码到dev2</p>
+<pre class="hljs"><code>git checkout dev
+git pull origin dev
+git checkout dev2
+git merge dev
+</code></pre>
+<h2>创建本地分支并更新到线上</h2>
+<pre class="hljs"><code>git branch dev3
+git push origin dev3
+</code></pre>
+<h2>git fetch</h2>
+<p>如果我们拉取线上分支并与本地分支做对比，确认无误后再合并代码，可以使用</p>
+<pre class="hljs"><code>git fetch origin master:tmp
+git diff tmp 
+git merge tmp
+</code></pre>
+<p>上面代码也就是先从master上拉取了tmp的一个本地分支，然后查看tmp分支跟本地已有分支的改动，再合并tmp分支</p>
+<p>类似于git pull 从远程获取最新版本并merge到本地</p>
+<pre class="hljs"><code>git pull origin master
+</code></pre>
+<p>如果线上临时创建了分支，需要查看远程分支的情况</p>
+<p>也可以使用<code>git fetch</code>  把远程服务器上所有的更新都拉取下来</p>
+<p>然后在本地使用<code>git branch -a</code>查看所有分支</p>
+<h2>删除分支</h2>
+<p>删除本地分支</p>
+<pre class="hljs"><code>git branch -r dev3
+</code></pre>
+<p>使用大写的D 强制删除，在有代码改动未提交的情况下删除该分支</p>
+<pre class="hljs"><code>  git branch -D dev3 
+</code></pre>
+<p>删除远程分支</p>
+<pre class="hljs"><code>git branch -r -d origin/dev3
+git push origin :dev3
+</code></pre>
+<h2>不提交commit切换分支</h2>
+<p>当我们同时开发两个功能块，用到两个分支的时候，可能需要随时切换</p>
+<p>而当前分支有改动，没有开发完的前提下，不想提交代码进行commit的操作，切换分支会失败</p>
+<p>如果开发完进行commit操作，也会将提交的改动带到另一分支，造成混乱</p>
+<p>这种情况下,最好的解决办法就是在当前分支上执行<code>git stash</code> 命令,将当前分支存起来</p>
+<p>执行后可以进行<code>git status</code>验证，看是否存储成功</p>
+<p>接着就可以在主分支master上创建并切换到新的分支去开发另一个功能了，在新分支上的功能开发完成后，我们再切换回上一个分支</p>
+<p>用<code>git stash list</code>命令去查看我们“存储”的列表</p>
+<p>然后用<code>git stash pop</code>命令恢复最近存储的列表，恢复的同时把 stash 存储列表的内容也删了</p>
+<h2>本地回滚</h2>
+<p>是指已经commit存储到了本地仓库，但未push到远程</p>
+<pre class="hljs"><code>git reset --hard   22f8aae
+</code></pre>
+<p>22f8aae为commit的版本号，可以用<code>git lig</code>查看</p>
+<h2>远程回滚</h2>
+<p>可以参考<a href="https://www.cnblogs.com/human/p/5128482.html">博客</a></p>
+<h2>bug fix</h2>
+<p>使用git的pull时报refusing to merge unrelated histories，push时报Push rejected: Push to origin/master was rejected</p>
+<p>使用如下命令进行pull操作</p>
+<p>git pull [你的远程仓库的地址] [要拉取的分支名] --allow-unrelated-histories</p>
+<p>如</p>
+<pre class="hljs"><code>git pull git@github.com:lulujianglab/react-router-demo.git master --allow-unrelated-histories
+</code></pre>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ant-design-pro初步入门 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">ant-design-pro初步入门</h1>
+          <p class="post-date">2018-07-23</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>由于项目需求，最近开始学习了ant-design-pro框架，整个框架的业务功能代码主要在四个文件夹中，分别是：</p>
+<p>routes：该文件夹下存放每个路由对应的页面组件代码。主要定义页面的基本结构和内容<br>
+components：组件文件夹。每个页面可能是由一些组件组成的，对于一些相对通用的组件，可以将该组件写入components文件夹中，并在routes文件夹中的文件引入来使用<br>
+models：用于组件的数据存储，接收请求返回的数据以及逻辑处理等<br>
+services：用于与后台交互、发送请求等</p>
+<p>下面通过具体实践步骤来介绍页面创建的整个流程</p>
+<h1>实践</h1>
+<h2>配置新的路由和菜单</h2>
+<p>路由的配置文件统一由src/common/router.js文件进行管理</p>
+<p>通过添加一个新路由并在前端页面中增加一个菜单来对应路由</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> routerConfig = {
+    <span class="hljs-string">'/'</span>: {
+      <span class="hljs-attr">component</span>: dynamicWrapper(app, [], () =&gt; <span class="hljs-keyword">import</span>(<span class="hljs-string">'../layouts/BasicLayout'</span>)),
+    },
+    <span class="hljs-string">'/dashboard/monitor'</span>: {
+      <span class="hljs-attr">component</span>: dynamicWrapper(app, [<span class="hljs-string">'monitor'</span>], () =&gt; <span class="hljs-keyword">import</span>(<span class="hljs-string">'../routes/Dashboard/NgMonitor'</span>)),
+    },
+    <span class="hljs-string">'/dashboard/workplace'</span>: {
+      <span class="hljs-attr">component</span>: dynamicWrapper(app, [<span class="hljs-string">'monitor'</span>], () =&gt; <span class="hljs-keyword">import</span>(<span class="hljs-string">'../routes/Dashboard/NgWorkSpace'</span>)),
+    },
+    <span class="hljs-string">'/testpage'</span>: {
+      <span class="hljs-attr">component</span>: dynamicWrapper(app, [<span class="hljs-string">'monitor'</span>], () =&gt; <span class="hljs-keyword">import</span>(<span class="hljs-string">'../routes/Test/Test'</span>)),
+    },
+}
+</code></pre>
+<p>路由/testpage对应的页面文件是Test/Test.js</p>
+<p>然后在侧边栏中填写一项来对应到我们添加的路由中</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> menuData = [{
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'dashboard'</span>,
+  <span class="hljs-attr">icon</span>: <span class="hljs-string">'dashboard'</span>,  <span class="hljs-comment">// https://demo.com/icon.png or &lt;icon type="dashboard"&gt;</span>
+  path: <span class="hljs-string">'dashboard'</span>,
+  <span class="hljs-attr">children</span>: [{
+    <span class="hljs-attr">name</span>: <span class="hljs-string">'分析页'</span>,
+    <span class="hljs-attr">path</span>: <span class="hljs-string">'analysis'</span>,
+  }, {
+    <span class="hljs-attr">name</span>: <span class="hljs-string">'监控页'</span>,
+    <span class="hljs-attr">path</span>: <span class="hljs-string">'monitor'</span>,
+  }, {
+    <span class="hljs-attr">name</span>: <span class="hljs-string">'工作台'</span>,
+    <span class="hljs-attr">path</span>: <span class="hljs-string">'workplace'</span>,
+  }, {
+    <span class="hljs-attr">name</span>: <span class="hljs-string">'测试页'</span>,
+    <span class="hljs-attr">path</span>: <span class="hljs-string">'testpage'</span>,
+  }],
+}, {
+  <span class="hljs-comment">// 更多配置</span>
+}];
+</code></pre>
+<h2>创建一个页面</h2>
+<p>在src/routes下创建对应的js文件，如testpage.js</p>
+<p>对应到我们添加的路由中</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React, { PureComponent } <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>;
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Testpage</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PureComponent</span> </span>{
+  render() {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Hello World!<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span></span>
+    );
+  }
+}
+</code></pre>
+<h2>新增一个组件</h2>
+<p>如果页面相对复杂，需要引入一个组件</p>
+<p>可以在components文件夹下创建一个组件，并在testpage.js引入并使用</p>
+<p>如创建components/ImageWrapper/index.js</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>;
+<span class="hljs-keyword">import</span> styles <span class="hljs-keyword">from</span> <span class="hljs-string">'./index.less'</span>;    <span class="hljs-comment">// 按照 CSS Modules 的方式引入样式文件。</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> ({ src, desc, style }) =&gt; (
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"{style}"</span> <span class="hljs-attr">classname</span>=<span class="hljs-string">"{styles.imageWrapper}"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">classname</span>=<span class="hljs-string">"{styles.img}"</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"{src}"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"{desc}"</span>&gt;</span>
+    {desc &amp;amp;&amp;amp; <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">classname</span>=<span class="hljs-string">"{styles.desc}"</span>&gt;</span>{desc}<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+);
+</span></code></pre>
+<p>然后修改pagetest.js</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>;
+<span class="hljs-keyword">import</span> ImageWrapper <span class="hljs-keyword">from</span> <span class="hljs-string">'../../components/ImageWrapper'</span>;  <span class="hljs-comment">// 注意保证引用路径的正确</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> () =&gt; (
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">imagewrapper</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"https://os.alipayobjects.com/rmsportal/mgesTPFxodmIwpi.png"</span> <span class="hljs-attr">desc</span>=<span class="hljs-string">"示意图"</span>&gt;</span>;
+)
+</span></code></pre>
+<h2>增加service和module</h2>
+<p>假设pagetest.js页面需要发送请求</p>
+<p>我们可以在组件加载时发送一个请求来获取数据</p>
+<pre class="hljs"><code>componentDidMount() {
+  <span class="hljs-keyword">const</span> { dispatch } = <span class="hljs-keyword">this</span>.props;
+  dispatch({
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'project/fetchtagA'</span>,
+  });
+  dispatch({
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'activities/fetchtagB'</span>,
+  });
+}
+</code></pre>
+<p>将会找到对应的models中的函数来发送请求</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">namespace</span>: <span class="hljs-string">'pagetest'</span>,
+  <span class="hljs-attr">state</span>: {
+    <span class="hljs-attr">ServicesA</span>: [],
+    <span class="hljs-attr">ServicesB</span>: [],
+  },
+  <span class="hljs-attr">effects</span>: {
+    *fetchtagA(_, { call, put }) {
+      <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">yield</span> call(getServiceAList);
+      <span class="hljs-keyword">yield</span> put({
+        <span class="hljs-attr">type</span>: <span class="hljs-string">'ServiceAList'</span>,
+        <span class="hljs-attr">tagAServices</span>: response.result,
+      });
+    },
+    *fetchtagB(_, { call, put }) {
+      <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">yield</span> call(getServiceBList);
+      <span class="hljs-keyword">yield</span> put({
+        <span class="hljs-attr">type</span>: <span class="hljs-string">'ServiceBList'</span>,
+        <span class="hljs-attr">tagBServices</span>: response.result,
+      });
+    },
+  },
+  <span class="hljs-attr">reducers</span>: {
+    ServiceAList(state, action) {
+      <span class="hljs-keyword">return</span> {
+        ...state,
+        <span class="hljs-attr">ServicesA</span>: action.tagAServices,
+      };
+    },
+    ServiceBList(state, action) {
+      <span class="hljs-keyword">return</span> {
+        ...state,
+        <span class="hljs-attr">ServicesB</span>: action.tagBServices,
+      };
+    },
+  },
+};
+</code></pre>
+<p>而真正发送请求的实际是service文件夹下的文件进行的</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getServiceAList</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> request(<span class="hljs-string">'/api/get_service_list'</span>, {
+    <span class="hljs-attr">method</span>: <span class="hljs-string">'POST'</span>,
+    <span class="hljs-attr">body</span>: {<span class="hljs-string">"type"</span>: <span class="hljs-string">"waiting"</span>},
+  });
+}
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getServiceBList</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> request(<span class="hljs-string">'/api/get_service_list'</span>, {
+    <span class="hljs-attr">method</span>: <span class="hljs-string">'POST'</span>,
+    <span class="hljs-attr">body</span>: {<span class="hljs-string">"type"</span>: <span class="hljs-string">"current"</span>},
+  });
+}
+</code></pre>
+<p>在routes文件夹中的pagetest.js中 ，我们可以直接在render部分使用应该得到的返回值进行渲染显示</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> { pagetest, loading } = <span class="hljs-keyword">this</span>.props;
+<span class="hljs-comment">// pagetest指的是相当于数据流</span>
+<span class="hljs-keyword">const</span> { ServicesA, ServicesB } = pagetest;
+<span class="hljs-comment">// 从数据流中取出了具体的变量</span>
+</code></pre>
+<p>上述就是快速创建一个页面的简单步骤</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

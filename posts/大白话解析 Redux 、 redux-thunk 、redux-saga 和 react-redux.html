@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>大白话解析 Redux 、 redux-thunk 、redux-saga 和 react-redux - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">大白话解析 Redux 、 redux-thunk 、redux-saga 和 react-redux</h1>
+          <p class="post-date">2018-11-21</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h2>Redux是什么</h2>
+<p>在介绍 <strong>redux</strong> 之前，我们先来了解下目前前端最火的框架之一 — <strong>react</strong></p>
+<p>在<a href="https://react.docschina.org/"> react 官网</a>上，我们可以看到其介绍是</p>
+<blockquote>
+<p>用于构建用户界面的 JavaScript 库</p>
+</blockquote>
+<p>也就是说 react 本质上是一个 JavaScript 的库，是创建UI接口的视图层框架</p>
+<p>（图一）</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48754075-6150c680-eccb-11e8-83ba-f3463b08e952.png" alt="image"></p>
+<p>如图一所示，假如蓝色组件需要和灰色组件通信，只使用 react 视图层框架，就需要调用父组件函数的形式通信，逐层往父级通信</p>
+<p>但对于大型应用来说，这样实现基本不太可能，过多的组件会造成维护困难，那应该怎么做呢？</p>
+<p>这个时候就应该在 react 视图层框架上配套一个数据层框架 — <strong>Redux</strong> ，结合应用</p>
+<p>redux 要求我们把数据都放在 store 公共存储空间，当绿色组件想要去传递数据时，只需要改变 store 里边对应的数据，灰色区域会自动感知到 store 有变化，就会重新去 store 取数据，从而灰色组件就能得到新的数据</p>
+<p>这样的操作流程对于深层次的组件是非常适用的，组件与组件之间的数据传递会变得非常简单</p>
+<p>组件改变，修改数据，其他组件再来取值。这就是 Redux 的基础设计理念</p>
+<h3>Redux = Reducer + Flux</h3>
+<p>在讲解这个式子之前，我们先来看看 redux 的起源</p>
+<p>react 在2013年开源的时候, facebook 团队除了放出 react 框架外，还放出了 flux 框架，是官方推出的最原始的辅助 react 使用的数据层框架</p>
+<p>后来在使用时发现了 flux 的很多缺点，比如公共数据存储区域可以有很多个 store 组成，这样数据存储操作就可能存在一个数据依赖的问题</p>
+<p>接着就有人对 flux 做了一个升级，也就是现在使用的 redux , redux 除了借鉴 flux 的设计理念外，还引入了一个新的概念 — <strong>Reducer</strong></p>
+<p>（图二）</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48756502-61a18f80-ecd4-11e8-9fef-f46741ea4c82.png" alt="image"></p>
+<p>图二就是 redux 的工作流程图，再次说明了其设计理念就是把所有数据放在 store 进行管理，一个组件改变了 store 里的数据内容，其他组件就能感知到 store 的变化，再来取数据，从而间接的实现了这些数据传递的功能</p>
+<h2>Redux的工作流程</h2>
+<p>根据图二的工作流程，可以举个实际的例子:假设 React Components 是借书的用户, Action Creactor 是借书时说的话(借什么书), Store 是图书馆管理员, Reducer 是记录本(借什么书，还什么书，在哪儿，需要查一下), state 是书籍信息</p>
+<p>整个流程就是借书的用户需要先存在，然后需要借书，需要一句话来描述借什么书，图书馆管理员听到后需要查一下记录本，了解图书的位置，最后图书馆管理员会把这本书给到这个借书人</p>
+<p>转换为代码是, <code>React Components</code> 需要获取一些数据, 然后它就告知 <code>Store</code> 需要获取数据，这就是就是 <code>Action Creactor</code> , <code>Store</code> 接收到之后去 <code>Reducer</code> 查一下, <code>Reducer</code> 会告诉 <code>Store</code> 应该给这个组件什么数据</p>
+<h3>Store的创建</h3>
+<p>我们已经了解到 redux 是解决数据传递问题的框架，把所有的数据都放在store中进行管理。所以 store 数据仓库是四个操作过程中最重要的，应该最先被创建</p>
+<p>接下来我们用 redux 来编写简易的 TodoList , 通过具体的例子进行说明</p>
+<p>假设你已经通过 <code>create-react-app</code> 创建了一个 react 项目, 这里首先直接引用 antd 进行布局,然后还得引入 redux</p>
+<pre class="hljs"><code>npm install redux --save
+
+npm install antd --save
+</code></pre>
+<p>创建 Store 文件夹, 接着在文件夹中创建 index.js</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span> <span class="hljs-comment">// 引入一个第三方的方法</span>
+
+<span class="hljs-keyword">const</span> store = createStore() <span class="hljs-comment">// 创建数据的公共存储区域（管理员）</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>这样就已经把 redux 引入到项目中了，以及创建了一个 store 的公共数据区域，还需要一个记录本去辅助管理数据，也就是 reducer</p>
+<p>继续创建一个 reducer.js ,这个文件需要返回一个函数，接收两个参数: <code>state</code> , <code>action</code> ;需要返回一个值，默认返回 state , state 可以理解为整个数据空间里存放的数据，可以设置一个默认值</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> defaultState = {}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> (state = defaultState, action) =&gt; {
+  <span class="hljs-keyword">return</span> state
+}
+</code></pre>
+<p>现在记录本有了，那最后怎么把笔记本传给 store 呢？继续修改 index.js 的代码</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> reducer <span class="hljs-keyword">from</span> <span class="hljs-string">'./reducer'</span>
+
+<span class="hljs-keyword">const</span> store = createStore(reducer)
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>这样就将 reducer 和 store建立了连接</p>
+<p>我们已经创建了一个 store ,负责存储项目应用中的所有数据, 一个 reducer ,负责整个项目应用中的数据处理，并且把 <code>reducer</code> 传给了 <code>store</code> ,这样就可以知道在 reducer 中查看数据并做处理了</p>
+<p>在创建 TodoList 组件时，有两项需要获取的数, <code>inputValue</code> 和 <code>list</code> ,可以在 <code>defaultState</code> 中对其设置初始值，由 reducer 来管理，由于 reducer 会传入到 store ,所以 store 也就知道数据空间里存在 inputValue 和 list 数据</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> defaultState = {
+  <span class="hljs-attr">inputValue</span>: <span class="hljs-string">'123'</span>,
+  <span class="hljs-attr">list</span>: [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>]
+}
+</code></pre>
+<p>组件的数据应该怎样从公用的数据空间获取呢？我们需要在 TodoList 组件中引入这个 store</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> store <span class="hljs-keyword">from</span> <span class="hljs-string">'./store'</span>
+
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TodoList</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  
+  <span class="hljs-keyword">constructor</span>(props) {
+    <span class="hljs-keyword">super</span>(props)
+    <span class="hljs-built_in">console</span>.log(store.getState())
+  }
+
+  render () {
+    ...
+  }
+}
+</code></pre>
+<p>很明显，这个值能传到组件中，接着就可以在组件中进行页面的数据渲染了</p>
+<pre class="hljs"><code>render () {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">{{marginTop:</span> '<span class="hljs-attr">10px</span>', <span class="hljs-attr">marginLeft:</span> '<span class="hljs-attr">10px</span>'}}&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">Input</span> <span class="hljs-attr">value</span>=<span class="hljs-string">{this.state.inputValue}</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">'todo info'</span> <span class="hljs-attr">style</span>=<span class="hljs-string">{{width:</span> '<span class="hljs-attr">300px</span>', <span class="hljs-attr">marginRight:</span> '<span class="hljs-attr">10px</span>'}}&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">Input</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">Button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"primary"</span>&gt;</span>提交<span class="hljs-tag">&lt;/<span class="hljs-name">Button</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">List</span>
+        <span class="hljs-attr">style</span>=<span class="hljs-string">{{marginTop:</span> '<span class="hljs-attr">10px</span>', <span class="hljs-attr">width:</span> '<span class="hljs-attr">300px</span>'}}
+        <span class="hljs-attr">bordered</span>
+        <span class="hljs-attr">dataSource</span>=<span class="hljs-string">{this.state.list}</span>
+        <span class="hljs-attr">renderItem</span>=<span class="hljs-string">{item</span> =&gt;</span> (<span class="hljs-tag">&lt;<span class="hljs-name">List.Item</span>&gt;</span>{item}<span class="hljs-tag">&lt;/<span class="hljs-name">List.Item</span>&gt;</span>)}
+      /&gt;
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+  )
+}
+</span></code></pre>
+<p>简单概括 store 的创建就是：</p>
+<ol>
+<li>
+<p>需要引入 redux 方法，叫做 <code>createStore</code></p>
+</li>
+<li>
+<p>不能单单的创建 store ,需要在创建 store 的时候把 <code>reducer</code> 传递进来</p>
+</li>
+</ol>
+<p>那 reducer 里边存放的内容呢？</p>
+<ol>
+<li>
+<p>reducer负责管理整个业务里边的数据，包括处理数据，存储数据等</p>
+</li>
+<li>
+<p>reducer 返回的必须是一个函数，这个函数里面接收两个参数，一个是 <code>state</code> ,另一个是 <code>action</code></p>
+</li>
+</ol>
+<p>看到这里，我相信有的小伙伴会有疑问, store 里边应该存什么数据呢？我们在 <code>state = defaultState</code> 这里设置了这个仓库的默认数据是什么？ action 有什么用呢？接着继续看下面的操作</p>
+<h3>Action 和 Reducer 的编写</h3>
+<p>上面已经完成 react 组件取数据这样一个过程，接下来我们继续改进：当 input 里的内容发生改变时, redux 里的数据 value 也可以相应发生变化</p>
+<p>可以再次回到图二，应该先创建一个 action , action 是个对象的形式，里边需要有个 <code>type</code> 向 redux 描述需要做的操作， 然后把 <code>value</code> 值传递进去</p>
+<p>组件创建完 action 后,接着就需要把这个 action 派发给 store</p>
+<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-keyword">this</span>.state = store.getState()
+  <span class="hljs-keyword">this</span>.handleInputChange = <span class="hljs-keyword">this</span>.handleInputChange.bind(<span class="hljs-keyword">this</span>)
+}
+
+... ...
+
+handleInputChange(e) {
+  <span class="hljs-keyword">const</span> action = {
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'change_input_value'</span>,
+    <span class="hljs-attr">value</span>: e.target.value
+  }
+  store.dispatch(action)
+}
+</code></pre>
+<p>但是 store 并不知道怎么处理这个数据，需要去 reducer 进行查找，所以需要把当前 store 里存在的数据和接收的 action 转给 reducer , reducer 处理好了之后再转给 store</p>
+<p>需要注意的是, <strong>react 里边的 store ,接收到 action 之后，会自动把之前的数据和 action 转发给 reducer</strong></p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> (state = defaultState, action) =&gt; {
+  <span class="hljs-built_in">console</span>.log(state, action)
+  <span class="hljs-keyword">return</span> state
+}
+</code></pre>
+<p>state 是上一次 store 中的数据集合，action 是 dispatch 传过来的对象</p>
+<p>reducer 已经接收到了数据，也拿到了 action ，接着就需要对这些数据进行处理，最后传给 store</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> (state = defaultState, action) =&gt; {
+  <span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'change_input_value'</span>) {
+    <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state)) <span class="hljs-comment">// 对之前的state做一次深拷贝</span>
+    newState.inputValue = action.value
+    <span class="hljs-keyword">return</span> newState
+  }
+  <span class="hljs-keyword">return</span> state
+}
+</code></pre>
+<p>注意, reducer 有一个限制, <strong>reducer 可以接收 state ,但是绝不能修改 state</strong> 。这就是为什么拿到 state 的时候需要去拷贝一份，再对拷贝的数据进行修改了</p>
+<p>最后 reducer 返回的 <code>newState</code> 给了谁呢？从图二中我们可以发现, reducer 将处理的新数据传给了 store , store用新数据替换成老数据，那页面是怎么进行更新的呢？</p>
+<p>这就需要用到 store 的另一个方法 - <code>store.subscribe()</code> ,意思是组件订阅了store，store里的数据只要发生改变，<code>subscribe()</code> 里边的函数就会执行</p>
+<p>但是 subscribe() 里边的函数应该怎样写，才能让 store 一改变，页面就跟着变化呢？</p>
+<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-keyword">this</span>.state = store.getState()
+  <span class="hljs-keyword">this</span>.handleInputChange = <span class="hljs-keyword">this</span>.handleInputChange.bind(<span class="hljs-keyword">this</span>)
+  <span class="hljs-keyword">this</span>.handleStoreChange = <span class="hljs-keyword">this</span>.handleStoreChange.bind(<span class="hljs-keyword">this</span>)
+  store.subscribe(<span class="hljs-keyword">this</span>.handleStoreChange) 
+}
+
+handleStoreChange() {
+  <span class="hljs-keyword">this</span>.setState(store.getState())
+}
+</code></pre>
+<p>也就是说，当组件感知到 store 里的数据发生变化时，就去调用 <code>store.getState()</code> 方法，从 store 里重新取数据，然后调用 <code>setState</code> 方法，替换掉当前组件里的数据，这样组件里的数据就和 store 里边的数据同步了</p>
+<p>接下来继续增加提交功能，当提交发生的时候, input 里的值需要存入公共数据里的 list，同样的逻辑</p>
+<ol>
+<li>
+<p>需要先给 button 绑定一个事件</p>
+</li>
+<li>
+<p>创建一个 action (对象)，指定一个类型，然后通过 dispatch 把 action 发给 store</p>
+</li>
+<li>
+<p>然后 store 把之前 store 里的数据和 action 发给 reducer , reducer 这个函数接收到 state 和 action 之后会对数据做一些处理，会返回一个新的 state到 store</p>
+</li>
+<li>
+<p>最后 store 会将新的 state 替换以前 store 的数据, react 组件会感知到 store 数据发生了变化，会从 store 里边重新取数据，更新组件的内容，页面就发生了变化</p>
+</li>
+</ol>
+<p>(TodoList.js)</p>
+<pre class="hljs"><code>&lt;Button type=<span class="hljs-string">"primary"</span> onClick={<span class="hljs-keyword">this</span>.handleBtnClick}&gt;提交&lt;<span class="hljs-regexp">/Button&gt;
+
+handleBtnClick() {
+  const action = {
+    type: 'add_todo_item',
+  }
+  store.dispatch(action)
+}
+</span></code></pre>
+<p>(reducer.js)</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> (state = defaultState, action) =&gt; {
+  <span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'change_input_value'</span>) {
+    <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+    newState.inputValue = action.value
+    <span class="hljs-keyword">return</span> newState
+  }
+  <span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'add_todo_item'</span>) {
+    <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+    newState.list.push(newState.inputValue)
+    newState.inputValue = <span class="hljs-string">''</span>
+    <span class="hljs-keyword">return</span> newState
+  }
+  <span class="hljs-keyword">return</span> state
+}
+</code></pre>
+<h3>使用 redux 完成 todolist 删除功能</h3>
+<p>先在每个 item 上设置点击事件</p>
+<pre class="hljs"><code> &lt;List
+  style={{<span class="hljs-attr">marginTop</span>: <span class="hljs-string">'10px'</span>, <span class="hljs-attr">width</span>: <span class="hljs-string">'300px'</span>}}
+  bordered
+  dataSource={<span class="hljs-keyword">this</span>.state.list}
+  renderItem={(item, index) =&gt; (<span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">List.Item</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleItemDelete.bind(this,</span> <span class="hljs-attr">index</span>)}&gt;</span>{item}<span class="hljs-tag">&lt;/<span class="hljs-name">List.Item</span>&gt;</span></span>)}
+/&gt;
+</code></pre>
+<p>接下来需要改变 store 里的数据，怎么改变呢？同样的，需要先创建一个 action ,然后传给 store</p>
+<pre class="hljs"><code>handleItemDelete(index) {
+  <span class="hljs-keyword">const</span> action = {
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'delete_todo_item'</span>,
+    index
+  }
+  store.dispatch(action)
+}
+</code></pre>
+<p>store 接收到这个 action 之后，就会把之前的数据和这个 action 一起传给 reducer 进行处理</p>
+<pre class="hljs"><code><span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'delete_todo_item'</span>) {
+  <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+  newState.list.splice(action.index, <span class="hljs-number">1</span>) <span class="hljs-comment">// 找到对应的下标，删除即可</span>
+  <span class="hljs-keyword">return</span> newState
+}
+</code></pre>
+<h3>actionTypes的拆分</h3>
+<p>如果经常操作 action ，可能会发现一个问题, action 的 type 这个字符串要是有一个字符写错了，程序就垮掉了，而且很难被排查出，那应该怎么避免这个问题呢？</p>
+<p>可以在 store 文件夹中新建一个文件 actionTypes.js ，然后设置每个 action 字符串的常量，用这些常量分别替换掉 action 的 type 字符串</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> CHANGE_INPUT_VALUE = <span class="hljs-string">'change_input_value'</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> ADD_TODO_ITEM = <span class="hljs-string">'add_todo_item'</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> DELETE_TODO_ITEM = <span class="hljs-string">'delete_todo_item'</span>
+</code></pre>
+<p>这样抽离的目的是因为如果常量或者变量写错的时候，是能报出详细异常的，可以迅速定位到问题</p>
+<h3>使用 actionCreator 统一创建 action</h3>
+<p>回到图二 redux 的工作流程图，在派发 action 的时候, action 不应该在我们的组件里直接被定义，一般会通过 actionCreator 来统一的管理页面上所有的 action ，然后通过 actionCreator 来创建 action ,这是一个比较标准、正规的流程。怎么做呢？</p>
+<p>在 store 文件夹下创建 actionCreator.js 的文件时,就可以创建一些方法</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { CHANGE_INPUT_VALUE, ADD_TODO_ITEM, DELETE_TODO_ITEM } <span class="hljs-keyword">from</span> <span class="hljs-string">'./actionTypes'</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> getInputChangeAction = <span class="hljs-function">(<span class="hljs-params">value</span>) =&gt;</span> ({
+  <span class="hljs-attr">type</span>: CHANGE_INPUT_VALUE,
+  value
+})
+</code></pre>
+<p>然后在 TodoList.js 组件中引入这个文件，更新方法</p>
+<pre class="hljs"><code>handleInputChange(e) {
+  <span class="hljs-keyword">const</span> action = getInputChangeAction(e.target.value)
+  store.dispatch(action)
+}
+</code></pre>
+<p>之所以将 action 的创建放在 actionCreator 这样一个统一的文件进行管理，主要的目的是提高代码的可维护性，而且前端会有自动化的测试工具，如果把 action 都放在一个文件里边，做测试的时候也会非常方便</p>
+<p>现在回到图二 redux 的流程图，是不是就非常清晰了~~~</p>
+<p>如果要改变 store 里的数据，就要先去调用 actionCreator ,创建一个 action ,然后 store 把这个 action 派发出去，这样流程就完全一致了</p>
+<h3>组件精炼</h3>
+<ol>
+<li>
+<p>实际项目中，最好将 UI 组件和容器组件拆分, UI 组件负责页面渲染，容器组件负责页面逻辑</p>
+</li>
+<li>
+<p>当组件中只有一个 render 函数时，就可以定义成无状态组件</p>
+</li>
+</ol>
+<p>比如 TodoListUI 组件</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TodoListUI</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  render() {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">{{marginTop:</span> '<span class="hljs-attr">10px</span>', <span class="hljs-attr">marginLeft:</span> '<span class="hljs-attr">10px</span>'}}&gt;</span>
+        // ... ...
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+    )
+  }
+}
+</code></pre>
+<p>就可以修改成无状态组件</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> TodoListUI = <span class="hljs-function">(<span class="hljs-params">props</span>) =&gt;</span> {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">{{marginTop:</span> '<span class="hljs-attr">10px</span>', <span class="hljs-attr">marginLeft:</span> '<span class="hljs-attr">10px</span>'}}&gt;</span>
+      // ... ...
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  )
+}
+</code></pre>
+<p>无状态组件的性能比较高，因为它就是一个函数，而 React 里边普通的组件是 JS 里边的一个类，这个类生成的对象里，还会有一些生命周期函数，所以它执行起来，既要执行生命周期函数，又要执行 render ,它要执行的东西远比函数执行的东西多的多，所以一个普通组件的性能是肯定赶不上无状态组件的</p>
+<h3>小结</h3>
+<h4>Redux 设计和使用的三项原则</h4>
+<ol>
+<li>
+<p>首先 store 要求必须是唯一的</p>
+</li>
+<li>
+<p>只有 store 能够改变自己的内容</p>
+</li>
+</ol>
+<p>有的小伙伴可能会疑惑，明明是 reducer 对数据进行了整理，其实 reducer 只是将原有数据和新的 action 进行了整理，最终还是需要把新的 state 返回给 store , store 拿到 reducer 的数据，再对自己的数据进行更新</p>
+<ol start="3">
+<li>reducer 必须是纯函数</li>
+</ol>
+<p>纯函数指的是，给定固定的输入，就一定会有固定的输出，而且不会有任何副作用，如果一个函数里边有 ajax 等异步操作,或者与日期相关的操作之后，他都不是一个纯函数，副作用是指对传入的参数进行修改</p>
+<h3>Redux 中核心的 API</h3>
+<ol>
+<li>
+<p><strong>createStore</strong> 可以帮助创建 store</p>
+</li>
+<li>
+<p><strong>store.dispatch</strong> 帮助派发 action , action 会传递给 store</p>
+</li>
+<li>
+<p><strong>store.getState</strong> 这个方法可以帮助获取 store 里边所有的数据内容</p>
+</li>
+<li>
+<p><strong>store.subscrible</strong> 方法可以让让我们订阅 store 的改变，只要 store 发生改变， store.subscrible 这个函数接收的这个回调函数就会被执行</p>
+</li>
+</ol>
+<h2>使用 Redux-thunk 中间件进行ajax请求发送</h2>
+<p>在讲解 <code>Redux-thunk</code> 这个中间件之前，我们先写一个在 react 中直接获取异步数据的例子</p>
+<h3>React中发送异步请求获取数据</h3>
+<p>先进行模拟数据的测试，假设你已经安装了 Charles ,打开 Charles ,然后找到 Tools 下面的 Mac Local ,选中，进行如图操作</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48769999-14371980-ecf8-11e8-8cc0-baa235657a7c.png" alt="image"></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48770056-3892f600-ecf8-11e8-9bef-32804a86e6be.png" alt="image"></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48770064-3f216d80-ecf8-11e8-9100-d23225c9478f.png" alt="image"></p>
+<p>当然，之前还得新建一个 list.json 文件，如</p>
+<pre class="hljs"><code>[<span class="hljs-string">"hello"</span>, <span class="hljs-string">"dell"</span>, <span class="hljs-string">"lee"</span>]
+</code></pre>
+<p>然后刷新页面，就可以看到打印出来请求的json数据了</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48770514-878d5b00-ecf9-11e8-9c14-94b58dc72456.png" alt="image"></p>
+<p>接下来，就可以进行创建 action , store 派发 action 的操作了</p>
+<p>首先在 actionCreator.js 里边创建一条 action 对象</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> initListAction = <span class="hljs-function">(<span class="hljs-params">data</span>) =&gt;</span> ({
+  <span class="hljs-attr">type</span>: INIT_LIST_ACTION,
+  data
+})
+</code></pre>
+<p>然后在 actionTypes 中申明这个 action type 常量</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> INIT_LIST_ACTION = <span class="hljs-string">'init_list_action'</span>
+</code></pre>
+<p>接着在 TodoList 组件中实例化生成 action，并 dispatch action 到 store , store 再连同之前 store 的数据一同派发给 reducer</p>
+<pre class="hljs"><code>componentDidMount() {
+  axios.get(<span class="hljs-string">'/list.json'</span>).then(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> data = res.data
+    <span class="hljs-keyword">const</span> action = initListAction(data)
+    store.dispatch(action)
+  })
+}
+</code></pre>
+<p>reducer 对数据进行整理，最后将整理好的数据返回给 store</p>
+<pre class="hljs"><code><span class="hljs-keyword">if</span> (action.type === INIT_LIST_ACTION) {
+  <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+  newState.list = action.data
+  <span class="hljs-keyword">return</span> newState
+}
+</code></pre>
+<h3>使用 Redux-thunk 中间件进行ajax请求发送</h3>
+<p>上面的 TodoList 组件代码, list 在 componentDidMount 做了一个ajax数据的请求，咋一看可能没有什么问题，但是，如果我们把这种异步的请求，或者把一些非常复杂的逻辑都放在组件里进行实现时，这个组件会显得过于臃肿</p>
+<p>所以遇到这种异步请求或者非常复杂的逻辑，最好是把它移出到其他页面进行统一的处理，可以移到哪里进行管理呢？</p>
+<p>这个时候 <code>Redux-thunk</code> 这个中间件就显得至关重要了，它可以将这些异步请求或者是复杂的逻辑放到 action 去处理，那如何使用 <code>Redux-thunk</code> 这个中间件呢？</p>
+<p>打开github,搜索 Redux-thunk ,star最多的项目，就是<a href="https://github.com/reduxjs/redux-thunk">Redux-thunk</a></p>
+<p>按照它的<a href="https://github.com/reduxjs/redux-thunk">使用说明</a>进行如下操作</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore, applyMiddleware } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> reducer <span class="hljs-keyword">from</span> <span class="hljs-string">'./reducer'</span>
+<span class="hljs-keyword">import</span> thunk <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-thunk'</span>
+
+<span class="hljs-keyword">const</span> store = createStore(
+  reducer,
+  applyMiddleware(thunk) <span class="hljs-comment">// applyMiddleware可以使用中间件模块</span>
+) 
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>需要注意的是：</p>
+<ol>
+<li>
+<p>中间件是通过创建 redux 的 store 时使用的，所以这个中间件是指的 redux 中间件，而不是 react 中间件</p>
+</li>
+<li>
+<p>原则上 action 返回的是一个对象，但当我们使用 <code>redux-thunk</code> 中间件后, action 就可以返回一个函数了，继而可以在函数里边进行异步操作，也就可以把 TodoList 获取数据的请求放入这个函数中了</p>
+</li>
+</ol>
+<p>接着操作，在 actionCreator 中创建 action 的函数，然后数据传给 store</p>
+<p>那问题来了，怎么传呢？本质还是调用 dipatch 方法，但是现在 actionCreactor 这个文件里并没有 store 这个数据仓库，也就没有 dispatch 这个方法，怎么办呢？</p>
+<p>实际上，当我们创建一个内容是函数的 action 时，返回的函数就会自动接收到 <code>store.dispatch</code> 这个方法，所以只要在返回的函数里调用 dispatch ,然后派发 action 就好了, store 判断接收的 action 是一个对象，就会接收并发送给 reducer 进行数据更新操作</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> getTodoList = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  <span class="hljs-keyword">return</span> <span class="hljs-function">(<span class="hljs-params">dispatch</span>) =&gt;</span> {
+    axios.get(<span class="hljs-string">'/list.json'</span>).then(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+      <span class="hljs-keyword">const</span> data = res.data
+      <span class="hljs-keyword">const</span> action = initListAction(data)
+      dispatch(action)
+    })
+  }
+}
+</code></pre>
+<p>在 TodoList 组件中引用这个创建内容是函数的 action</p>
+<pre class="hljs"><code>componentDidMount() {
+  <span class="hljs-keyword">const</span> action = getTodoList()
+  store.dispatch(action) <span class="hljs-comment">// 调用 store.dispatch()这个函数时，action这个函数就会被执行</span>
+}
+</code></pre>
+<p>有的小伙伴可能会有疑问，就一个ajax请求，放在 componentDidMount 会有影响吗?</p>
+<p>考虑到后期代码量的增加，如果把异步函数放在组件的生命周期里，这个生命周期函数会变得越来越复杂，组件就会变得越来越大</p>
+<p>所以，还是应该把这种复杂的业务逻辑或者异步函数拆分到一个地方进行管理，现在借助 <code>redux-thunk</code> ,就可以放在 actionCreactor 里边集中管理，除此之外，在做自动化测试的时候，测试 actionCreactor 这个方法，也会比测组件的生命周期函数要简单的多</p>
+<h3>到底什么是 Redux 中间件</h3>
+<p>（图三）</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48766973-94598100-ecf0-11e8-8409-2b620feb1877.png" alt="image"></p>
+<p>看到图三，我们先来回顾一个redux的标准流程：</p>
+<p>view 到 redux 的过程中会派发一个 action , action 通过 Store 的 dispatch 方法,会派发给 store , store接收到 action ,再连同之前的 state 一起传给 reducer , reducer 返回一个新的数据给 store , store 就可以去改变自己的 state ,组件接收到新的 state 就可以重新渲染页面了</p>
+<p>redux的中间件在这个流程里边，指的是谁和谁之间呢？指的是 action 和 store 中间</p>
+<p>继续看图三，action 通过 dispatch 方法被传递给 store ,那么 action 和 store 之间是不是就是 dispatch 这个方法呢？实际上，我们说的中间件就是指的 dispatch 方法的一个封装，或者是对 dispatch 方法的一个升级</p>
+<p>最原始的 dispatch 方法，接收到对象 action 后会传递给 store ,这就是没有中间件的情况</p>
+<p>对 dispatch 方法做了一个升级后，也就是使用中间件时，再调用 dispatch 方法，如何给 dispatch 传递的仍然是个对象, dispatch 就会把这个对象传给 store ,跟之前的方法没有任何区别；但是假如传的是个函数，就不会直接传递给 store 了，会让这个函数先执行，然后执行完之后需要调用 store ,这个函数再去调用 store</p>
+<p>dispatch方法会根据参数的不同，执行不同的事情，如果参数是对象，就直接传给store，如果是函数，那就把函数执行结束</p>
+<p>所以，redux的中间件原理很简单，就是对 store 的 dispatch 方法做一个升级，既可以接收对象，又可以接收函数了，那是用什么方法进行的升级的呢？就是用 <code>redux-thunk</code> 这个中间件进行升级的</p>
+<p>当然，redux的中间件还有 <code>redux-log</code> ,原理就是在派发 action 给 store 之前先 console.log 出来；还有 <code>redux-saga</code> ,接下来需要讲解的</p>
+<h2>Redux-saga 中间件的使用</h2>
+<p><code>redux-saga</code> 也是做异步代码拆分的，可以完全替代 <code>redux-thunk</code></p>
+<p>在 github 中搜索<a href="https://github.com/redux-saga/redux-saga"> redux-saga </a>，翻到文档部分，根据文档进行如下操作</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore, applyMiddleware } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> reducer <span class="hljs-keyword">from</span> <span class="hljs-string">'./reducer'</span>
+<span class="hljs-keyword">import</span> createSagaMiddleware <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-saga'</span>
+
+<span class="hljs-keyword">const</span> sagaMiddleware = createSagaMiddleware() <span class="hljs-comment">// 创建saga中间件</span>
+
+<span class="hljs-comment">// 创建数据的公共存储区域</span>
+<span class="hljs-keyword">const</span> store = createStore(
+  reducer,
+  applyMiddleware(sagaMiddleware)
+) 
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>这里还需要在store中建一个单独的文件- saga.js</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">mySaga</span>(<span class="hljs-params"></span>) </span>{
+  
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> mySaga
+</code></pre>
+<p><code>mySaga()</code> 是 ES6 的 generator 函数</p>
+<p>没有使用 <code>redux-saga</code> 时, action 只能给到 store , store 再把之前的数据和 action 给到 reducer ,所以我们只能在 reducer 里拿到 store 去做一些业务逻辑</p>
+<p>需要注意的是，有了<code>redux-saga</code>之后, saga.js 也可以接收这个 action了</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { takeEvery } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-saga/effects'</span>
+<span class="hljs-keyword">import</span> { GET_INIT_LIST } <span class="hljs-keyword">from</span> <span class="hljs-string">'./actionTypes'</span>
+<span class="hljs-keyword">import</span> { initListAction } <span class="hljs-keyword">from</span> <span class="hljs-string">'./actionCreator'</span>
+<span class="hljs-keyword">import</span> axios <span class="hljs-keyword">from</span> <span class="hljs-string">'axios'</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">getInitList</span>(<span class="hljs-params"></span>) </span>{
+  axios.get(<span class="hljs-string">'/list.json'</span>).then(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> data = res.data
+    <span class="hljs-keyword">const</span> action = initListAction(data)
+    <span class="hljs-built_in">console</span>.log(action)
+  })
+}
+
+<span class="hljs-comment">// generator 函数</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">mySaga</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">yield</span> takeEvery(GET_INIT_LIST, getInitList) <span class="hljs-comment">// takeEvery捕捉每一个派发出来的action type类型为GET_INIT_LIST的时候，就会执行getInitList方法</span>
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> mySaga
+</code></pre>
+<p>上面的代码是什么意思呢？首先，当 TodoList 这个容器组件加载完成后，会派发一个 action ,因为之前在创建 store 时使用了 <code>redux-saga</code> 这个中间件，做了基础的配置，所以这个 action 派发出来之后，不仅仅 reducer 会接收到这个 action , saga 文件中 mySaga 这个函数也能接收到，刚好通过 takeEvery 这个函数声明，一旦接收到 GET_INIT_LIST 这样类型的 action ,就执行 getInitList 这个方法，所以就可以把异步逻辑写到这个方法里了</p>
+<p>通过在异步函数中创建 action ,还需要把它派发出去，但是在 saga.js 这个文件中并没有 store 数据仓库，所以不能执行 <code>store.dispatch(action)</code> 这个操作，接下来我们会用到另一个方法 - <strong>put</strong></p>
+<p>继续看 github 上<a href="https://github.com/redux-saga/redux-saga"> redux-saga </a>的例子</p>
+<p>在 generator 函数里边我们可以不用 promise 来请求异步数据，可以这么来写</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { takeEvery, put  } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-saga/effects'</span>
+<span class="hljs-keyword">import</span> { GET_INIT_LIST } <span class="hljs-keyword">from</span> <span class="hljs-string">'./actionTypes'</span>
+<span class="hljs-keyword">import</span> { initListAction } <span class="hljs-keyword">from</span> <span class="hljs-string">'./actionCreator'</span>
+<span class="hljs-keyword">import</span> axios <span class="hljs-keyword">from</span> <span class="hljs-string">'axios'</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">getInitList</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">yield</span> axios.get(<span class="hljs-string">'/list.json'</span>)
+  <span class="hljs-keyword">const</span> action = initListAction(res.data)
+  <span class="hljs-keyword">yield</span> put(action)
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">mySaga</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">yield</span> takeEvery(GET_INIT_LIST, getInitList)
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> mySaga
+</code></pre>
+<p>整个执行流程就是：</p>
+<ol>
+<li>
+<p>首先在创建 store 的时候，根据官方文档的配置，需要把 redux-saga 的使用配置做好，这里需要注重的是：</p>
+<p>在引入 <code>createSagaMiddleware</code> 后,需要创建一个 <code>createSagaMiddleware</code> ,然后通过 <code>applyMiddleware</code> 使用这个中间件，接着创建 saga.js 这个文件，然后在 store 的 index 中引入这个文件,让这个文件通过 <code>sagaMiddleware</code> 来运行</p>
+</li>
+<li>
+<p>saga 里边要有一个 generator 函数，在这个 generator 函数里边写入一些逻辑，意思是当接收到 action 的类型是 GET_INIT_LIST 时，就执行 getInitList 方法，这个方法是一个 generator 函数，接着就可以在 getInitList 方法里进行数据的获取发送操作了</p>
+</li>
+</ol>
+<p>当我们获取ajax数据失败的时候，为了操作友好，最后做下容错处理</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">getInitList</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">yield</span> axios.get(<span class="hljs-string">'/list.json'</span>)
+    <span class="hljs-keyword">const</span> action = initListAction(res.data)
+    <span class="hljs-keyword">yield</span> put(action)
+  } <span class="hljs-keyword">catch</span>(e) {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'list.json 网络请求失败'</span>)
+  }
+}
+</code></pre>
+<p>通过上面的实践可以发现, <code>redux-saga</code> 远比 <code>redux-thunk</code> 复杂的多, <code>redux-saga</code> 里边有非常多的api，我们只用了 <code>takeEvery</code> 、 <code>put</code> ,文档中还有很多我们经常用到的 <code>call</code> 、 <code>takeLatest</code> 等</p>
+<p>在处理大型项目时, <code>redux-saga</code> 是要优于 <code>redux-thunk</code> 的；但是从另一角度来说， <code>redux-thunk</code> 几乎没有任何 api ,特点就是在 action 里面返回的内容不仅仅是个对象，还可以是个函数</p>
+<h2>React-Redux 的使用</h2>
+<p>目前我们已经了解了 react 和 redux ,那 <code>React-Redux</code> 是什么呢？它是一个第三方的模块，可以在 react 中非常方便是使用 redux</p>
+<p>重新来编写 todolist 功能，在 index 文件中引入 react-redux</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> ReactDOM <span class="hljs-keyword">from</span> <span class="hljs-string">'react-dom'</span>
+<span class="hljs-keyword">import</span> TodoList <span class="hljs-keyword">from</span> <span class="hljs-string">'./TodoList'</span>
+<span class="hljs-keyword">import</span> { Provider } <span class="hljs-keyword">from</span> <span class="hljs-string">'react-redux'</span>
+<span class="hljs-keyword">import</span> store <span class="hljs-keyword">from</span> <span class="hljs-string">'./store'</span>
+
+<span class="hljs-keyword">const</span> App = (
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Provider</span> <span class="hljs-attr">store</span>=<span class="hljs-string">{store}</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">TodoList</span> /&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">Provider</span>&gt;</span></span>
+)
+
+ReactDOM.render(App, <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'root'</span>))
+</code></pre>
+<p><code>Provider</code> 实质是一个组件,是一个提供器，是 <code>react-redux</code> 的一个核心API，连接着 store , <code>Provider</code> 里边所有的组件，都有能力获取到 store 里边的内容</p>
+<p><code>react-redux</code> 的另一个核心方法叫做 connect ,接收三个参数，最后一个参数是连接的组件，前面两个是连接的规则</p>
+<p>之前说 Provider 组件连接了 store , Provider 内部的组件有能力获取到 store ,是怎样获取的呢？就是通过 connect 这个方法获取到里面的数据的</p>
+<p>意思是让 TodoList 组件和 store 进行连接，所以 connect 方法的意思是做连接，在做连接时需要有一定的方式和规则,就是用 <code>mapStateToProps</code> 方法来做关联，翻译为中文就是把 store 里的数据 inputValue 映射到组件 inputValue 这个位置，为组件的 props 的数据</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React, { Component } <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> { connect } <span class="hljs-keyword">from</span> <span class="hljs-string">'react-redux'</span>
+
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TodoList</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">value</span>=<span class="hljs-string">{this.props.inputValue}</span> /&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>提交<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Dell<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+
+const mapStateToProps = (state) =&gt; {
+  return {
+    inputValue: state.inputValue,
+
+  }
+}
+
+export default connect(mapStateToProps, null)(TodoList)
+</span></code></pre>
+<p>如果需要对 store 的数据做修改，dispatch 是指的 <code>store.dispatch</code> ,可以通过 <code>mapDispatchToProps</code> 方法把 <code>store.dispatch</code> 挂载到props上，为什么呢？</p>
+<p>因为想要改变 store 里的内容，就要调用 dispatch 方法, dispatch 方法被映射到了 props 上，所以就可以通过 this.props.dispatch 方法去调用了</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React, { Component } <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> { connect } <span class="hljs-keyword">from</span> <span class="hljs-string">'react-redux'</span>
+
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TodoList</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">value</span>=<span class="hljs-string">{this.props.inputValue}</span> <span class="hljs-attr">onChange</span>=<span class="hljs-string">{this.props.handleInputChange}</span> /&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>提交<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Dell<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+
+const mapStateToProps = (state) =&gt; {
+  return {
+    inputValue: state.inputValue
+  }
+}
+const mapDispatchToProps = (dispatch) =&gt; {
+  return {
+    handleInputChange(e) {
+      const action = {
+        type: 'change_input_value',
+        value: e.target.value
+      }
+      dispatch(action)
+    }
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(TodoList)
+</span></code></pre>
+<p>现在在 input 里输入值的功能就完成了,那todolist的增加功能怎么实现呢？</p>
+<p>(TodoList.js)</p>
+<pre class="hljs"><code>&lt;button onClick={<span class="hljs-keyword">this</span>.props.handleClick}&gt;提交&lt;<span class="hljs-regexp">/button&gt;
+
+const mapDispatchToProps = (dispatch) =&gt; {
+  return {
+    handleInputChange(e) {
+      const action = {
+        type: 'change_input_value',
+        value: e.target.value
+      }
+      dispatch(action)
+    },
+
+    handleClick() {
+      const action = {
+        type: 'add_todo_item'
+      }
+      dispatch(action)
+    }
+  }
+} 
+</span></code></pre>
+<p>(reducer.js)</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> (state = defaultState, action) =&gt; {
+  <span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'change_input_value'</span>) {
+    <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+    newState.inputValue = action.value
+    <span class="hljs-keyword">return</span> newState
+  }
+  <span class="hljs-keyword">if</span> (action.type === <span class="hljs-string">'add_todo_item'</span>) {
+    <span class="hljs-keyword">const</span> newState = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(state))
+    newState.list.push(newState.inputValue)
+    newState.inputValue = <span class="hljs-string">''</span>
+    <span class="hljs-keyword">return</span> newState
+  }
+  <span class="hljs-keyword">return</span> state
+}
+</code></pre>
+<p>点击这个 button 的时候，会执行 handleClick 这个方法，这个方法会把创建出来的 action 传给 store ,再传给 reducer, reducer 接收到这个 action 之后，去处理数据，把新的数据返回出去，新的数据就包含列表项的新内容了，数据发生了改变，todolist 组件恰好又通过 connect 跟数据做了连接，所以这块是个自动的流程，数据一旦发生改变，这个组件自动就会跟的变</p>
+<p>以前还需要 <code>store.subscribe</code> 做订阅，现在连订阅都可以不用了，页面自动跟随数据发生变化</p>
+<p>这样写就实现了增加 item 的功能,后续还有一些功能的实现可以去我的 github 看<a href="(https://github.com/lulujianglab/redux-todolist)">完整代码</a></p>
+<p>比如 item 的删除操作, action 要通过 <code>actionCreator</code> 来创建,同时，还需要把 action 的 type 字符串放在 <code>actionType</code> 里面进行管理等等</p>
+<p>创建 TodoList 这个组件，正常来说都是 <code>export default TodoList</code> ，把这个组件导出出去，但是现在 export defalut 出的东西是通过 connect 方法执行的结果，connect 方法做了一件什么事呢？</p>
+<p>它把这些映射关系和业务逻辑集成到了 TodoList 这个 UI 组件之中，所以 connect 方法可以这样理解，TodoList 是一个 UI 组件，当你用 connect 把这个 UI 组件和一些数据和逻辑相结合时，返回的内容实际就是一个容器组件了，容器组件可以理解成数据处理包括派发这样的业务逻辑，对 UI 组件进行包装，去调用这些UI组件，数据和方法都准备好了</p>
+<p>有的小伙伴可能在网上看到过这样的描述，<code>react-redux</code> 组件既有 UI 组件，又有容器组件。UI 组件就是 TodoList 这个东西，而容器组件就是 connect 方法返回的结果，或者说 connect 方法执行生成的内容</p>
+<p>所以 <code>export default</code> 导出的内容就是 <code>connect</code> 方法执行的结果，是一个容器组件</p>
+<h2>代码</h2>
+<p>附完整版代码地址：<a href="https://github.com/lulujianglab/redux-todolist"><strong>redux-todolist</strong></a></p>
+<p>内含</p>
+<p><a href="https://github.com/lulujianglab/redux-todolist/tree/master/react-redux"><strong>react-redux</strong></a> 完整的 todolist 代码</p>
+<p><a href="https://github.com/lulujianglab/redux-todolist/tree/master/redux-saga"><strong>redux-saga</strong></a> 完整的 todolist 代码</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

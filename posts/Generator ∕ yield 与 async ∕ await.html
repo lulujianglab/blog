@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Generator ∕ yield 与 async ∕ await - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Generator ∕ yield 与 async ∕ await</h1>
+          <p class="post-date">2018-12-11</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>异步编程对JS的重要性应该是不言而喻了的，作为单线程的编程语言，如果没有异步编程，体验不要太酸爽</p>
+<p>比如我们有一个读取文件并进行处理的任务。如果有异步编程，先是向操作系统发出请求，要求读取文件。然后，程序会去执行其他任务，等到操作系统返回文件，再接着处理文件的任务</p>
+<p>相反的，如果没有异步函数，上述编程就变成了同步的执行方式。由于是连续执行，不能插入其他任务，所以操作系统从硬盘读取文件的这段时间，程序只能干等着</p>
+<h2>Promise</h2>
+<p>从 Promise 开始，JavaScript 就在引入新功能来实现更简单的方法处理异步编程，帮助我们远离回调地狱</p>
+<p>回调地狱也就是多个回调函数嵌套带来的问题。比如读取文件A之后，再读取文件B</p>
+<pre class="hljs"><code>fs.readFile(fileA, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err, data</span>) </span>{
+  fs.readFile(fileB, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err, data</span>) </span>{
+    <span class="hljs-comment">// ...</span>
+  })
+})
+</code></pre>
+<p>很明显，在读取多个文件的情况下，代码就会出现多重嵌套</p>
+<p>一个很明显的特点是，<strong>代码不是纵向发展，而是横向发展的</strong>，造成的结果是代码混乱，无法管理</p>
+<p>为了解决这个问题，就出现了 <strong>Promise</strong></p>
+<p>注意，<strong>它不是新的语法功能，而是一种新的写法</strong>，这里就不具体介绍它的实现了，有兴趣的小伙伴可以翻阅我的另一篇博客<a href="https://github.com/lulujianglab/blog/issues/30">分层解析 Promise 的实现原理</a></p>
+<p>Promise 允许<strong>将回调函数的横向加载，改成纵向加载</strong></p>
+<p>回到上面那个读取文件的问题，用 Promise 实现就会简洁很多</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> readFile = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fs-readfile-promise'</span>)
+
+readFile(fileA)
+.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(data.toString())
+})
+.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+  <span class="hljs-keyword">return</span> readFile(fileB)
+})
+.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(data.toString())
+})
+.catch(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">err</span>) </span>{
+  <span class="hljs-built_in">console</span>.log(err)
+})
+</code></pre>
+<p>Promise 提供 then 方法加载回调函数，catch方法捕捉执行过程中抛出的错误</p>
+<p>但 Promise 也有它的缺点，比如代码冗余，原来的函数需要被 Promise 包装，这样不管什么操作，都会出现一堆 then ，语义也不是明确</p>
+<p>那有没有更好的写法呢？</p>
+<h2>Generator / yield</h2>
+<p>ES6 推出了 Generator / yield 两个关键字，使用 Generator 可以很方便的帮助我们建立一个处理 Promise 的解释器，比较重要的是</p>
+<p><strong>第一，Generator （生成器）函数最大的特点就是可以交出函数的执行权（即暂停执行），yield 表达式就是暂停的标志</strong></p>
+<p><strong>第二，控制 Generator 函数的执行/暂停的方法是 next() 方法，它是由 Generator 函数返回的一个迭代器提供的</strong></p>
+<p>接下来我们对这两点进行详细说明</p>
+<h3>执行过程</h3>
+<p><strong>生成器函数的语法为 <code>function*</code>，在其函数体内部可以使用 <code>yield</code> 关键字</strong></p>
+<p>看到这里，有的小伙伴可能会有疑问，生成器函数也是函数，那他和普通函数有什么区别呢？我们先来看一个简单的例子</p>
+<p>假设你已经引入了fetch文件 <code>&lt;script src=&quot;https://cdn.bootcss.com/fetch/2.0.4/fetch.js&quot;&gt;&lt;/script&gt;</code></p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params">num</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'first'</span>)
+  <span class="hljs-keyword">var</span> result = <span class="hljs-keyword">yield</span> num + <span class="hljs-number">2</span>
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'second'</span>)
+  <span class="hljs-keyword">return</span> result
+}
+
+<span class="hljs-keyword">var</span> g = gen(<span class="hljs-number">1</span>)
+</code></pre>
+<p>当我们这样执行代码的时候，会发现控制台根本没有输出，为什么呢？这也就是<strong>生成器函数和普通函数的区别，它可以交出执行权，即暂停执行</strong>。yield 表达式就是暂停标志，再次强调上述第一点</p>
+<p>那应该怎样让暂停的代码继续执行了，也就是上述第二点，可以通过 next 方法。执行结果是一个包含 value 和 done 属性的对象</p>
+<p>接着上面的 demo，我们执行 <code>console.log(g.next())</code>,就会出现</p>
+<pre class="hljs"><code><span class="hljs-comment">// first</span>
+<span class="hljs-comment">// { value: 3, done: false }</span>
+</code></pre>
+<p>接着再执行 <code>console.log(g.next())</code></p>
+<pre class="hljs"><code><span class="hljs-comment">// second</span>
+<span class="hljs-comment">// { value: undefined, done: true }</span>
+</code></pre>
+<p>上面代码一共调用了两次 next 方法</p>
+<p>第一次调用， Generator 函数开始执行，直到遇到第一个 yield 表达式为止。next 方法返回一个对象，它的 value 属性就是当前 yield 表达式的值，done 属性的值 false，表示遍历还没有结束</p>
+<p>第二次调用，Generator 函数从上次 yield 表达式停下的地方，一直执行到下一个 yield 表达式或者 return 语句（如果没有，就执行到函数结束）。next 方法返回的对象的 value 属性就是当前 yield 表达式的值或者 return 语句后面的表达式的值（如果都没有，则 value 属性的值为 undefined ），done 属性的值 true ，表示遍历已经结束。</p>
+<blockquote>
+<p>next 方法的作用是分阶段执行 Generator 函数。每次调用 next 方法，会返回一个对象，表示当前阶段的信息（ value 属性和 done 属性）。value 属性是 yield 语句后面表达式的值，表示当前阶段的值；done 属性是一个布尔值，表示 Generator 函数是否执行完毕，即是否还有下一个阶段</p>
+</blockquote>
+<h3>数据交换和错误处理</h3>
+<p>我们比较熟悉的是 Generator 函数可以暂停执行和恢复执行，这也是它能封装异步任务的根本原因</p>
+<p>除此之外，还有两个作为异步编程完整方案的特性：<strong>函数体内外的数据交换和错误处理机制</strong></p>
+<h4>数据交换</h4>
+<p><strong>Generator 函数向外输出数据：next 方法返回值的 value 属性</strong></p>
+<p><strong>Generator 函数体内输入数据: 通过 next 方法接受参数</strong></p>
+<p>还是上面的例子，修改一下代码</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params">num</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'first'</span>)
+  <span class="hljs-keyword">var</span> result = <span class="hljs-keyword">yield</span> num + <span class="hljs-number">2</span>
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'second'</span>)
+  <span class="hljs-keyword">return</span> result
+}
+
+<span class="hljs-keyword">var</span> g = gen(<span class="hljs-number">1</span>)
+<span class="hljs-built_in">console</span>.log(g.next())
+<span class="hljs-built_in">console</span>.log(g.next(<span class="hljs-number">2</span>))
+</code></pre>
+<p>控制台就打印出了</p>
+<pre class="hljs"><code><span class="hljs-comment">// first</span>
+<span class="hljs-comment">// { value: 3, done: false }</span>
+<span class="hljs-comment">// second</span>
+<span class="hljs-comment">// { value: 2, done: true }</span>
+</code></pre>
+<p>上面代码中，第一个 next 方法的 value 属性，返回表达式 num + 2 的值（3）。第二个 next 方法带有参数 2，这个参数可以传入 Generator 函数，作为上个阶段异步任务的返回结果，被函数体内的变量 result 接收。因此，这一步的 value 属性，返回的就是 2（变量 result 的值）</p>
+<h4>错误处理机制</h4>
+<p>Generator 函数内部还可以部署错误处理代码，捕获函数体外抛出的错误</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params">x</span>)</span>{
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">var</span> y = <span class="hljs-keyword">yield</span> x + <span class="hljs-number">2</span>
+  } <span class="hljs-keyword">catch</span> (e){ 
+    <span class="hljs-built_in">console</span>.log(e)
+  }
+  <span class="hljs-keyword">return</span> y
+}
+
+<span class="hljs-keyword">var</span> g = gen(<span class="hljs-number">1</span>)
+g.next()
+g.throw（<span class="hljs-string">'出错了'</span>）
+</code></pre>
+<p>上面代码的最后一行，Generator 函数体外，使用指针对象的 throw 方法抛出的错误，可以被函数体内的 try ... catch 代码块捕获。这意味着，出错的代码与处理错误的代码，实现了时间和空间上的分离，这对于异步编程无疑是很重要的</p>
+<h3>执行异步任务</h3>
+<h4>手动执行</h4>
+<p>手动执行其实就是用 then 方法，层层添加回调函数。接下来我们看一个实际的异步例子</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params"></span>)</span>{
+  <span class="hljs-keyword">var</span> result1 = <span class="hljs-keyword">yield</span> fetch(<span class="hljs-string">'https://api.github.com/users/github'</span>)
+  <span class="hljs-keyword">var</span> result2 = <span class="hljs-keyword">yield</span> fetch(<span class="hljs-string">'https://api.github.com/users/github'</span>)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result1'</span>,result1)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result2'</span>,result2)
+  <span class="hljs-keyword">return</span> result2
+}
+<span class="hljs-comment">// 手动执行Generator 函数</span>
+<span class="hljs-keyword">var</span> g = gen()
+g.next(<span class="hljs-number">1</span>).value.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'第一次执行g.next()'</span>,data)
+  g.next(data).value.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'第二次执行g.next(),并将data传给result1'</span>,data)
+    <span class="hljs-keyword">return</span> data.json()
+  }).then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'解析出第二次结果的json数据'</span>,data)
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'将data传入给result2'</span>,g.next(data))
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'已执行结束'</span>,g.next())
+  })
+})
+</code></pre>
+<p>上面代码中，Generator 函数封装了一个异步操作，该操作先读取一个远程接口，然后从 JSON 格式的数据解析信息</p>
+<p>首先执行 Generator 函数，获取遍历器对象，然后使用 next 方法，执行异步任务的第一阶段。由于 Fetch 模块返回的是一个 Promise 对象，因此要用 then 方法调用下一个next 方法</p>
+<p>假如我们同时执行的异步任务相互不依赖，这里用一个同步任务来模拟异步任务执行快的过程，如下</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params">num</span>)</span>{
+  <span class="hljs-keyword">var</span> result1 = <span class="hljs-keyword">yield</span> fetch(<span class="hljs-string">'https://api.github.com/users/github'</span>)
+  <span class="hljs-keyword">var</span> result2 = <span class="hljs-keyword">yield</span> num + <span class="hljs-number">2</span>
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result1'</span>,result1)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result2'</span>,result2)
+  <span class="hljs-keyword">return</span> result2
+}
+
+<span class="hljs-keyword">var</span> g = gen(<span class="hljs-number">1</span>)
+g.next().value.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'data'</span>,data)
+})
+<span class="hljs-built_in">console</span>.log(g.next(<span class="hljs-string">'result1'</span>))
+<span class="hljs-built_in">console</span>.log(g.next(<span class="hljs-string">'result2'</span>))
+</code></pre>
+<p>打印出来的结果</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49793349-f9444c00-fd6f-11e8-86d9-909f6f99d624.png" alt="image"></p>
+<p>相信大家已经对 next 方法的运行逻辑明白的差不多了，大致也就是</p>
+<ol>
+<li>
+<p>每调用一次 <code>g.next()</code> 方法都会暂停执行 yield 后面的操作，并将 yield 后面的表达式的值作为返回对象中 value 的值</p>
+</li>
+<li>
+<p>下一次调用next方法时，再继续往下执行，直到遇到下一个yield表达式</p>
+</li>
+<li>
+<p>如果没有再遇到新的 yield 表达式，就一直运行到函数结束，直到 return 语句为止，并将 return 语句后面的表达式的值，作为返回的对象的 value 属性值</p>
+</li>
+</ol>
+<p>需要注意的是，<strong>yield 表达式后面的表达式，只有当调用 next 方法、内部指针指向该语句时才会执行</strong></p>
+<p>可以看到，虽然 Generator 函数将异步操作表示得很简洁，但是流程管理却不方便（即何时执行第一阶段、何时执行第二阶段），那应该怎样自动化异步任务的流程管理呢</p>
+<p>Generator 函数就是一个异步操作的容器。它的自动执行需要一种机制，当异步操作有了结果，能够自动交回执行权。</p>
+<p>两种方法可以做到这一点。</p>
+<ol>
+<li>
+<p>回调函数。将异步操作包装成 Thunk 函数，在回调函数里面交回执行权。</p>
+</li>
+<li>
+<p>Promise 对象。将异步操作包装成 Promise 对象，用 then 方法交回执行权。</p>
+</li>
+</ol>
+<p>这里就不着重讲回调函数的方法了，有兴趣的小伙伴可以参考 <a href="http://www.ruanyifeng.com/blog/2015/05/thunk.html">Thunk 函数的含义和用法</a></p>
+<h4>基于 Promise 对象的自动执行</h4>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">gen</span>(<span class="hljs-params"></span>)</span>{
+  <span class="hljs-keyword">var</span> result = <span class="hljs-keyword">yield</span> fetch(<span class="hljs-string">'https://api.github.com/users/github'</span>)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result'</span>,result)
+  <span class="hljs-keyword">return</span> result
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">run</span>(<span class="hljs-params">gen</span>)</span>{
+  <span class="hljs-keyword">var</span> g = gen()
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">next</span>(<span class="hljs-params">data</span>)</span>{
+    <span class="hljs-keyword">var</span> result = g.next(data)
+    <span class="hljs-keyword">if</span> (result.done) <span class="hljs-keyword">return</span> result.value
+    result.value.then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+      <span class="hljs-keyword">return</span> data.json()
+    }).then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>)</span>{
+      next(data)
+    })
+  }
+
+  next()
+}
+
+run(gen)
+</code></pre>
+<p>上面代码中，只要 Generator 函数还没执行到最后一步，next 函数就调用自身，以此实现自动执行</p>
+<h3>co 函数库</h3>
+<p><a href="https://github.com/tj/co">co 模块</a>是 nodejs 社区著名的TJ大神写的一个小工具，用于 Generato r函数的自动执行。co 是上面那个自动执行器的扩展，官网上面有具体的 demo</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49795678-8f2ea580-fd75-11e8-8b8d-832c242f4df7.png" alt="image"></p>
+<p><a href="https://github.com/tj/co/blob/master/index.js">源码</a>解析可以参考<a href="http://www.ruanyifeng.com/blog/2015/05/co.html">co 函数库的含义和用法</a></p>
+<blockquote>
+<p>首先，co 函数接受 Generator 函数作为参数，返回一个 Promise 对象</p>
+</blockquote>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">co</span>(<span class="hljs-params">gen</span>) </span>{
+  <span class="hljs-keyword">var</span> ctx = <span class="hljs-keyword">this</span>
+
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">resolve, reject</span>) </span>{
+  })
+}
+</code></pre>
+<blockquote>
+<p>在返回的 Promise 对象里面，co 先检查参数 gen 是否为 Generator 函数。如果是，就执行该函数，得到一个内部指针对象；如果不是就返回，并将 Promise 对象的状态改为 resolved</p>
+</blockquote>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">co</span>(<span class="hljs-params">gen</span>) </span>{
+  <span class="hljs-keyword">var</span> ctx = <span class="hljs-keyword">this</span>
+
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">resolve, reject</span>) </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> gen === <span class="hljs-string">'function'</span>) gen = gen.call(ctx)
+    <span class="hljs-keyword">if</span> (!gen || <span class="hljs-keyword">typeof</span> gen.next !== <span class="hljs-string">'function'</span>) <span class="hljs-keyword">return</span> resolve(gen)
+  })
+}
+</code></pre>
+<blockquote>
+<p>接着，co 将 Generator 函数的内部指针对象的 next 方法，包装成 onFulefilled 函数。这主要是为了能够捕捉抛出的错误</p>
+</blockquote>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">co</span>(<span class="hljs-params">gen</span>) </span>{
+  <span class="hljs-keyword">var</span> ctx = <span class="hljs-keyword">this</span>
+
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">resolve, reject</span>) </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> gen === <span class="hljs-string">'function'</span>) gen = gen.call(ctx)
+    <span class="hljs-keyword">if</span> (!gen || <span class="hljs-keyword">typeof</span> gen.next !== <span class="hljs-string">'function'</span>) <span class="hljs-keyword">return</span> resolve(gen)
+
+    onFulfilled()
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onFulfilled</span>(<span class="hljs-params">res</span>) </span>{
+      <span class="hljs-keyword">var</span> ret
+      <span class="hljs-keyword">try</span> {
+        ret = gen.next(res)
+      } <span class="hljs-keyword">catch</span> (e) {
+        <span class="hljs-keyword">return</span> reject(e)
+      }
+      next(ret)
+    }    
+  })
+}
+</code></pre>
+<blockquote>
+<p>最后，就是关键的 next 函数，它会反复调用自身</p>
+</blockquote>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">next</span>(<span class="hljs-params">ret</span>) </span>{
+  <span class="hljs-keyword">if</span> (ret.done) <span class="hljs-keyword">return</span> resolve(ret.value)
+  <span class="hljs-keyword">var</span> value = toPromise.call(ctx, ret.value)
+  <span class="hljs-keyword">if</span> (value &amp;&amp; isPromise(value)) <span class="hljs-keyword">return</span> value.then(onFulfilled, onRejected)
+  <span class="hljs-keyword">return</span> onRejected(<span class="hljs-keyword">new</span> <span class="hljs-built_in">TypeError</span>(<span class="hljs-string">'You may only yield a function, promise, generator, array, or object, '</span>
+        + <span class="hljs-string">'but the following object was passed: "'</span> + <span class="hljs-built_in">String</span>(ret.value) + <span class="hljs-string">'"'</span>))
+    }
+})
+
+&gt; 上面代码中，next 函数的内部代码，一共只有四行命令
+
+&gt; 第一行，检查当前是否为 Generator 函数的最后一步，如果是就返回。
+
+&gt; 第二行，确保每一步的返回值，是 <span class="hljs-built_in">Promise</span> 对象。
+
+&gt; 第三行，使用 then 方法，为返回值加上回调函数，然后通过 onFulfilled 函数再次调用 next 函数。
+
+&gt; 第四行，在参数不符合要求的情况下（参数非 Thunk 函数和 <span class="hljs-built_in">Promise</span> 对象），将 <span class="hljs-built_in">Promise</span> 对象的状态改为 rejected，从而终止执行。
+
+</code></pre>
+<p>下面是一个 Generator 函数,用于依次读取两个文件</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> fs = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fs'</span>)
+
+<span class="hljs-keyword">var</span> readFile = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">fileName</span>)</span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">resolve, reject</span>)</span>{
+    fs.readFile(fileName, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">error, data</span>)</span>{
+      <span class="hljs-keyword">if</span> (error) reject(error)
+      resolve(data)
+    })
+  })
+}
+
+<span class="hljs-keyword">var</span> gen = <span class="hljs-function"><span class="hljs-keyword">function</span>* (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> f1 = <span class="hljs-keyword">yield</span> readFile(<span class="hljs-string">'/etc/fstab'</span>)
+  <span class="hljs-keyword">var</span> f2 = <span class="hljs-keyword">yield</span> readFile(<span class="hljs-string">'/etc/shells'</span>)
+  <span class="hljs-built_in">console</span>.log(f1.toString())
+  <span class="hljs-built_in">console</span>.log(f2.toString())
+}
+
+<span class="hljs-keyword">var</span> co = <span class="hljs-built_in">require</span>(<span class="hljs-string">'co'</span>)
+co(gen)
+</code></pre>
+<p>co模块可以让你不用编写Generator函数的执行器。Generator函数只要传入co函数，就会自动执行。co函数返回一个Promise对象，因此可以用then方法添加回调函数。</p>
+<pre class="hljs"><code>co(gen).then(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Generator 函数执行完成'</span>)
+})
+</code></pre>
+<p>co模块的原理：<strong>其实就是将两种自动执行器（Thunk函数和Promise对象），包装成一个模块。使用co的前提条件是，Generator函数的yield命令后面，只能是Thunk函数或Promise对象。如果数组或对象的成员，全部都是Promise对象，也可以使用co（co v4.0版以后，yield命令后面只能是Promise对象，不再支持Thunk函数）</strong></p>
+<p>co 支持并发的异步操作，即允许某些操作同时进行，等到它们全部完成，才进行下一步。这时，要把并发的操作都放在数组或对象里面</p>
+<h2>async/await</h2>
+<p>在 ES7 ，得到了 <code>Generator/yield</code> 这样的语法，可以让我们以接近编写同步代码的方式来编写异步代码（无需使用.then()或者回调函数）</p>
+<p>目前，它仍处于提案阶段，但是转码器Babel和regenerator都已经支持</p>
+<p><strong>async函数可以说是目前异步操作最好的解决方案，是对Generator函数的升级和改进</strong></p>
+<h3>是什么</h3>
+<p><strong>async 函数就是 Generator 函数的语法糖</strong></p>
+<p>注意：<strong>await只能用在async函数中</strong></p>
+<p>上面那个读取两个文件的例子，写成 async 函数，就是下面这样</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> asyncReadFile = <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>)</span>{
+  <span class="hljs-keyword">var</span> f1 = <span class="hljs-keyword">await</span> readFile(<span class="hljs-string">'/etc/fstab'</span>)
+  <span class="hljs-keyword">var</span> f2 = <span class="hljs-keyword">await</span> readFile(<span class="hljs-string">'/etc/shells'</span>)
+  <span class="hljs-built_in">console</span>.log(f1.toString())
+  <span class="hljs-built_in">console</span>.log(f2.toString())
+}
+</code></pre>
+<p>可以发现，<strong>async 函数就是将 Generator 函数的星号（*）替换成 async，将 yield 替换成 await</strong></p>
+<h3>优点</h3>
+<ol>
+<li><strong>内置执行器</strong>。Generator 函数的执行必须靠执行器，所以才有了 co 函数库，而 async 函数自带执行器。也就是说，async 函数的执行，与普通函数一模一样，只要一行。</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> result = asyncReadFile()
+</code></pre>
+<ol start="2">
+<li>
+<p><strong>更好的语义</strong>。 async 和 await，比起星号和 yield，语义更清楚了。async 表示函数里有异步操作，await 表示紧跟在后面的表达式需要等待结果</p>
+</li>
+<li>
+<p><strong>更广的适用性</strong>。 co 函数库约定，yield 命令后面只能是 Thunk 函数或 Promise 对象，而 async 函数的 await 命令后面，可以跟 Promise 对象和原始类型的值（数值、字符串和布尔值，但这时等同于同步操作）</p>
+</li>
+</ol>
+<h3>async 函数的实现</h3>
+<p><strong>async 函数的实现，就是将 Generator 函数和自动执行器，包装在一个函数里</strong></p>
+<pre class="hljs"><code><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fn</span>(<span class="hljs-params">args</span>)</span>{
+  <span class="hljs-comment">// ...</span>
+}
+
+<span class="hljs-comment">// 等同于</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fn</span>(<span class="hljs-params">args</span>)</span>{ 
+  <span class="hljs-keyword">return</span> spawn(<span class="hljs-function"><span class="hljs-keyword">function</span>*(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// ...</span>
+  })
+}
+</code></pre>
+<p>所有的 async 函数都可以写成上面的第二种形式，其中的 spawn 函数就是自动执行器</p>
+<h3>async 函数的用法</h3>
+<p>同 Generator 函数一样，async 函数返回一个 Promise 对象，可以使用 then 方法添加回调函数。当函数执行的时候，一旦遇到 await 就会先返回，等到触发的异步操作完成，再接着执行函数体内后面的语句</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> url = <span class="hljs-string">'https://api.github.com/users/github'</span>
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getUrl</span>(<span class="hljs-params">url</span>) </span>{
+  <span class="hljs-keyword">var</span> result1 = <span class="hljs-keyword">await</span> fetch(url)
+  <span class="hljs-keyword">var</span> result2 = <span class="hljs-keyword">await</span> fetch(url)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result1'</span>,result1)
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'result2'</span>,result2)
+  <span class="hljs-keyword">return</span> result2.json()
+}
+
+!<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> result = <span class="hljs-keyword">await</span> getUrl(url)
+  <span class="hljs-built_in">console</span>.log(result)
+}()
+
+<span class="hljs-comment">// getUrl(url).then(function(data){</span>
+<span class="hljs-comment">//   console.log('data',data)</span>
+<span class="hljs-comment">// })</span>
+</code></pre>
+<p>控制台打印结果为</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49797293-eb93c400-fd79-11e8-9659-e1af13287030.png" alt="image"></p>
+<p>需要注意的是</p>
+<ol>
+<li>await 命令后面的 Promise 对象，运行结果可能是 rejected，所以最好把 await 命令放在 try...catch 代码块中</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> url = <span class="hljs-string">'https://api.github.com/users/github'</span>
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getUrl</span>(<span class="hljs-params">url</span>) </span>{
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">await</span> fetch(url)
+  } <span class="hljs-keyword">catch</span> (err) {
+    <span class="hljs-built_in">console</span>.log(err)
+  }
+}
+
+!<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">var</span> result = <span class="hljs-keyword">await</span> getUrl(url)
+  <span class="hljs-built_in">console</span>.log(result)
+}()
+</code></pre>
+<ol start="2">
+<li>
+<p>await 命令只能用在 async 函数之中，如果用在普通函数，就会报错</p>
+</li>
+<li>
+<p>如果这两个是独立的异步操作，可以让它们同时触发</p>
+</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">let</span> one = <span class="hljs-keyword">await</span> getOne()
+<span class="hljs-keyword">let</span> two = <span class="hljs-keyword">await</span> getTwo()
+
+<span class="hljs-keyword">let</span> [foo, bar] = <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all([getOne(), getTwo()])
+</code></pre>
+<h2>参考文献</h2>
+<p><a href="http://www.ruanyifeng.com/blog/2015/04/generator.html">Generator 函数的含义与用法</a></p>
+<p><a href="http://www.ruanyifeng.com/blog/2015/05/co.html">co 函数库的含义和用法</a></p>
+<p><a href="http://www.ruanyifeng.com/blog/2015/05/async.html">async 函数的含义和用法</a></p>
+<p><a href="http://es6.ruanyifeng.com/#docs/generator">Generator 函数的语法</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

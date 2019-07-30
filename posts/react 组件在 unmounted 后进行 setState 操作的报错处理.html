@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>react 组件在 unmounted 后进行 setState 操作的报错处理 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">react 组件在 unmounted 后进行 setState 操作的报错处理</h1>
+          <p class="post-date">2018-12-29</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>最近在项目中遇到一个这样的问题，在 react 组件 unmounted 之后 setState 会报错</p>
+<p>我们先来看个简单的例子，主要是为了重现一下问题</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Child</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  state = {
+    <span class="hljs-attr">ballName</span>: <span class="hljs-string">''</span>
+  }
+
+  componentDidMount() {
+    setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.setState({
+        <span class="hljs-attr">ballName</span>: <span class="hljs-string">'Ball Zhang'</span>
+      }, <span class="hljs-number">1000</span>)
+    })
+  }
+
+  render() {
+    <span class="hljs-keyword">return</span> <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">span</span>&gt;</span>Hello! {this.state.ballName}<span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span></span>
+  }
+}
+</code></pre>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Parent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  state = {
+    <span class="hljs-attr">isShowed</span>: <span class="hljs-literal">true</span>
+  }
+
+  componentDidMount() {
+    setTimeout(<span class="hljs-function"><span class="hljs-params">()</span>=&gt;</span> {
+      <span class="hljs-keyword">this</span>.setState({
+        <span class="hljs-attr">isShowed</span>: <span class="hljs-literal">false</span>
+      })
+    }, <span class="hljs-number">300</span>)
+  }
+
+  render() {
+    <span class="hljs-keyword">const</span> message = <span class="hljs-keyword">this</span>.state.isShowed ? <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Child</span> /&gt;</span> : 'Bye!'
+    return (
+      <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+         <span class="hljs-tag">&lt;<span class="hljs-name">span</span>&gt;</span>{ message }<span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+</span></code></pre>
+<p>举的例子比较简略，主要是为了说明问题</p>
+<p>在 Parent 组件中，300ms 之后移除了 Welcome 组件，但在 Child 组件里 1000ms 之后会改变 Welcome 组件的状态。这时候 React 会报出如下错误：</p>
+<blockquote>
+<p>Warning: setState(...): Can only update a mounted or mounting component. This usually means you called setState() on an unmounted component.</p>
+</blockquote>
+<p>这种错误情况一般出现在 react 组件已经从 DOM 中移除,但组件的 setState 还未执行完</p>
+<p>我们在 react 组件中发送一些异步请求或者进行异步操作时， 就有可能会出现这样的问题，这个例子的 setState 其实也是异步操作</p>
+<p>再举个例子，我们在 componentDidMount 中发送异步请求，当请求成功返回数据，我们调用 setState 改变组件的状态。但是当请求到达之前， 我们更换了页面或者移除了组件，就会报这个错误。这是因为虽然组件已经被移除，但是请求还在执行， 所以会报setState() on an unmounted component的错误</p>
+<h2>解决办法</h2>
+<p>现在我们已经知道问题出现的原因了，那应该怎么来解决呢？</p>
+<p>实质上是要求我们在 react 组件被移除之前终止 setState 操作就行了</p>
+<p>回到我们之前的例子，可以这样来做：</p>
+<p><strong>一种方式在子组件上设置定时器，可随时取消</strong></p>
+<pre class="hljs"><code>componentDidMount() {
+  <span class="hljs-comment">// 把 setTimeout 保存在 timer 里</span>
+  <span class="hljs-keyword">this</span>.timer = setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-keyword">this</span>.setState({
+      <span class="hljs-attr">name</span>: <span class="hljs-string">'Ball Zhang'</span>
+    })
+  }, <span class="hljs-number">1000</span>)
+}
+
+<span class="hljs-comment">// 在组件将要被移除的时候，清除 timer</span>
+componentWillUnmount() {
+  clearTimeout(<span class="hljs-keyword">this</span>.timer)
+}
+</code></pre>
+<p>类似的在处理 ajax 请求的时候也是这个套路， 在 componentWillUnmount 方法中终止 ajax 请求即可</p>
+<pre class="hljs"><code>componentWillMount() {
+  <span class="hljs-keyword">this</span>.xhr = $.ajax({
+    <span class="hljs-comment">// 请求的细节</span>
+  })
+}
+
+componentWillUnmount() {
+  <span class="hljs-keyword">this</span>.xhr.abort()
+}
+</code></pre>
+<p><strong>另一种方法是在父组件移出子组件之前增加延时，保证子组件有足够的时间完成 setState</strong></p>
+<pre class="hljs"><code>componentDidMount() {
+    setTimeout(<span class="hljs-function"><span class="hljs-params">()</span>=&gt;</span> {
+      <span class="hljs-keyword">this</span>.setState({
+        <span class="hljs-attr">isShowed</span>: <span class="hljs-literal">false</span>
+      })
+    }, <span class="hljs-number">2000</span>)
+  }
+</code></pre>
+<p>至于采用哪种方式来解决这个 bug ，还得根据具体情境来决定</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

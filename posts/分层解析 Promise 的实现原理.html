@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>分层解析 Promise 的实现原理 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">分层解析 Promise 的实现原理</h1>
+          <p class="post-date">2018-10-15</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>今天写的这篇文章是关于 Promise 的，其实在谷歌一搜索，会出来很多关于Promise的文章，那为什么还要写这篇文章呢？</p>
+<p>我相信一定有人用过 Promise ,但总有点似懂非懂的感觉，比如我们知道异步操作的执行是通过 then 来实现的，那后面的操作是如何得知前面异步操作完成的呢？ Promise 具体是怎样实现的呢？</p>
+<p>所以我写这篇文章的目的主要是从最基础的点开始剖析，一步一步来理解 Promise 的背后实现原理</p>
+<p>也是因为最近自己的困惑，后面边看文章，边调试代码，以至于对 Promise 的理解又上升了一个台阶~</p>
+<h1>为什么会有 Promise 的产生</h1>
+<p>我们可以想象这样一种应用场景，需要连续执行两个或者多个异步操作，每一个后来的操作都在前面的操作执行成功之后，带着上一步操作所返回的结果开始执行</p>
+<p>在过去，我们会做多重的异步操作，比如</p>
+<pre class="hljs"><code>doFirstThing(<span class="hljs-function">(<span class="hljs-params">firstResult</span>) =&gt;</span> {
+  doSecondThing(firstResult, (secondResult) =&gt; {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`The secondResult is:`</span> + secondResult)
+  })
+})
+</code></pre>
+<p>这种多层嵌套来解决一个异步操作依赖前一个异步操作的需求，不仅层次不够清晰，当异步操作过多时，还会出现经典的回调地狱</p>
+<p>那正确的打开方式是怎样的呢？Promise 提供了一个解决上述问题的模式，我们先回到上面那个多层异步嵌套的问题，接下来转变为 Promise 的实现方式：</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doFirstThing</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+    setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'获取第一个数据'</span>)
+      <span class="hljs-keyword">let</span> firstResult = <span class="hljs-number">3</span> + <span class="hljs-number">4</span>
+      resolve(firstResult)
+    },<span class="hljs-number">400</span>)
+  })
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doSecondThing</span>(<span class="hljs-params">firstResult</span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'获取第二个数据'</span>)
+  <span class="hljs-keyword">let</span> secondResult = firstResult * <span class="hljs-number">5</span>
+  <span class="hljs-keyword">return</span> secondResult
+}
+
+doFirstThing()
+  .then(<span class="hljs-function"><span class="hljs-params">firstResult</span> =&gt;</span> doSecondThing(firstResult))
+  .then(<span class="hljs-function"><span class="hljs-params">secondResult</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`The secondResult Result: <span class="hljs-subst">${secondResult}</span>`</span>
+  )})
+  .catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'err'</span>,err)
+  })
+</code></pre>
+<p>可以看到结果就是我们预期得到的，需要注意的一点是，如果想要在回调中获取上个 Promise 中的结果，上个 Promise 中必须有返回结果</p>
+<h1>Promise 到底是什么</h1>
+<p>相信经过上面的应用场景，已经大致明白 Promise 的作用了，那它的具体定义是什么呢？</p>
+<blockquote>
+<p>Promise 是对异步编程的一种抽象，是一个代理对象，代表一个必须进行异步处理的函数返回的值或抛出的异常</p>
+</blockquote>
+<p>简单来说，Promise 主要就是为了解决异步回调的问题，正如上面的例子所示</p>
+<p>可以将异步对象和回调函数脱离开来，通过 then 方法在这个异步操作上面绑定回调函数</p>
+<p>用 Promise 来处理异步回调使得代码层析清晰，便于理解，且更加容易维护，其主流规范目前主要是 <a href="http://promisesaplus.com/">Promises/A+</a> ，下面介绍具体的API</p>
+<h2>状态和值</h2>
+<p>Promise 有3种状态: <code>pending</code> (待解决，这也是初始状态), <code>fulfilled</code> (完成）, <code>rejected</code> (拒绝)</p>
+<blockquote>
+<p>状态只能由 <code>pending</code> 变为 <code>fulfilled</code> 或由 <code>pending</code> 变为 <code>rejected</code> ，且状态改变之后不会再发生变化，会一直保持这个状态</p>
+</blockquote>
+<p>Promise 的值是指状态改变时传递给回调函数的值</p>
+<h2>接口</h2>
+<p>Promise 唯一接口 <code>then</code> 方法，它需要2个参数，分别是 <code>onResolved</code> 和 <code>onRejected</code></p>
+<p>并且需要返回一个 promise 对象来支持链式调用</p>
+<p>Promise 的构造函数接收一个函数参数，参数形式是固定的异步任务，接收的函数参数又包含 <code>resolve</code> 和 <code>reject</code> 两个函数参数，可以用于改变 Promise 的状态和传入 Promise 的值</p>
+<ol>
+<li>
+<p>resolve：将 Promise 对象的状态从 <code>pending</code> (进行中)变为 <code>fulfilled</code> (已成功)</p>
+</li>
+<li>
+<p>reject：将 Promise 对象的状态从 <code>pending</code> (进行中)变为 <code>rejected</code> (已失败)</p>
+</li>
+<li>
+<p>resolve 和 reject 都可以传入任意类型的值作为实参，表示 Promise 对象成功( <code>fulfilled</code> )和失败( <code>rejected</code> )的值</p>
+</li>
+</ol>
+<p>了解了 Promise 的状态和值，接下来，我们开始讲解 Promise 的实现步骤</p>
+<h1>Promise 是怎样实现的</h1>
+<p>我们已经了解到实现多个相互依赖异步操作的执行是通过 then 来实现的，那重新回到最开始的疑问，后面的操作是怎么得知异步操作完成了呢？了解过 Vue 的童鞋应该知道一种发布/订阅模式，就是后面有一个函数在一直监听着前面异步操作的完成。 Promise 的实现貌似也有点发布/订阅的味道，不过它有 then 的链式调用，且没有 on/emit 这种很明显的订阅/发布的东西，让实现变得看起来有点复杂</p>
+<p>在讲解 Promise 实现之前，我们还是先简要提一下发布/订阅模式：首先有一个事件数组来收集事件，然后订阅通过 on 将事件放入数组, emit 触发数组相应事件</p>
+<p>那 Promise 呢？ Promise 内部其实也有一个数组队列存放事件, then 里边的回调函数就存放数组队列中。下面我们可以看下具体的实现步骤</p>
+<h2>实现 promise 雏形</h2>
+<p>( demo1 )</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Promise</span> </span>{
+  <span class="hljs-keyword">constructor</span> (executor) {
+    <span class="hljs-keyword">this</span>.value = <span class="hljs-literal">undefined</span>
+    <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'pending'</span>
+    executor(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'resolve'</span>,
+      <span class="hljs-keyword">this</span>.value = value
+    }, reason =&gt; {
+      <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'rejected'</span>
+      <span class="hljs-keyword">this</span>.value = reason
+    })
+  }
+
+  then(onResolved) {
+    onResolved(<span class="hljs-keyword">this</span>.value)
+  }
+}
+
+<span class="hljs-comment">// 测试</span>
+<span class="hljs-keyword">var</span> promise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+  resolve(<span class="hljs-string">'promise'</span>)
+})
+
+promise.then(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value'</span>,value)
+})
+promise.then(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value'</span>,value)
+})
+</code></pre>
+<p>上述代码很简单，大致的逻辑是：</p>
+<p>通过构造器 <code>constructor</code> 定义 Promise 的初始状态和初始值，通过 Promise 的构造函数接收一个函数参数 <code>executor</code> , 接收的函数参数又包含 <code>resolve</code> 和 <code>reject</code> 两个函数参数，可以用于改变 Promise 的状态和传入 Promise 的值。</p>
+<p>然后调用 then 方法，将 Promise 操作成功后的值传入回调函数</p>
+<h3>异步操作</h3>
+<p>相信有人会好奇，上述 Promise 实例中都是进行的同步操作，但是往往我们使用 Promise 都是进行的异步操作，那会出现怎样的结果呢？在上述例子上进行修改，我们用 setTimeout 来模拟异步的实现</p>
+<pre class="hljs"><code><span class="hljs-comment">// 测试</span>
+<span class="hljs-keyword">var</span> promise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+  setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    resolve(<span class="hljs-string">'promise'</span>)
+  },<span class="hljs-number">300</span>)
+})
+</code></pre>
+<p>会发现后面的回调函数中打印出来的值都是<code>undefined</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/46940961-92baee80-d09c-11e8-8711-a0fe75d661a9.png" alt="image"></p>
+<p>很明显，这种错误的造成是因为 then 里边的回调函数在实例化 Promise 操作 resolve 或 reject 之前就执行完成了，所以我们应该设定触发回调函数执行的标识，也就是在状态和值发生改变之后再执行回调函数</p>
+<p>正确的逻辑是这样的：</p>
+<ol>
+<li>
+<p>调用 then 方法，将需要在 Promise 异步操作成功时执行的回调函数放入 children 数组队列中，其实也就是注册回调函数，类似于观察者模式</p>
+</li>
+<li>
+<p>创建 Promise 实例时传入的函数会被赋予一个函数类型的参数，即 <code>resolve</code> ( <code>reject</code> )，它接收一个参数 value ，当异步操作执行成功后，会调用 <code>resolve</code> ( <code>reject</code> )方法，这时候其实真正执行的操作是将 children 队列中的回调一一执行</p>
+</li>
+</ol>
+<p>在 demo1 的基础上修改如下：</p>
+<p>( demo2 )</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Promise</span> </span>{
+  <span class="hljs-keyword">constructor</span> (executor) {
+    <span class="hljs-keyword">this</span>.value = <span class="hljs-literal">undefined</span>
+    <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'pending'</span>
+    <span class="hljs-keyword">this</span>.children = [] <span class="hljs-comment">// children为数组队列，存放多个回调函数</span>
+    executor(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'resolve'</span>,
+      <span class="hljs-keyword">this</span>.setValue(value)
+    }, reason =&gt; {
+      <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'rejected'</span>
+      <span class="hljs-keyword">this</span>.setValue(reason)
+    })
+  }
+
+  then (onResolved) {
+    <span class="hljs-keyword">this</span>.children.push(onResolved)
+  }
+
+  setValue (value) {
+    <span class="hljs-keyword">this</span>.value = value
+    <span class="hljs-keyword">this</span>.children.forEach(<span class="hljs-function"><span class="hljs-params">child</span> =&gt;</span> {
+      child(<span class="hljs-keyword">this</span>.value)
+    })
+  }
+}
+
+<span class="hljs-comment">// 测试</span>
+<span class="hljs-keyword">var</span> promise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+  setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    resolve(<span class="hljs-string">'promise'</span>)
+  },<span class="hljs-number">300</span>)
+})
+promise.then(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value'</span>,value)
+})
+</code></pre>
+<p>首先实例化 Promise 时，传给 promise 的函数发送异步请求，接着调用 promise 对象的 then 函数，注册请求成功的回调函数，然后当异步请求发送成功时，调用 resolve ( rejected )方法，该方法依次执行 then 方法注册的回调数组</p>
+<h2>实现 promise 开枝散叶</h2>
+<p>相信仔细的人应该可以看出来，then 方法应该能够支持链式调用，但是上面的初步实现显然无法支持链式调用</p>
+<p>那怎样才能做到支持链式调用呢？其实实现也很简单：</p>
+<pre class="hljs"><code>then (onResolved) {
+  <span class="hljs-keyword">this</span>.children.push(onResolved)
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
+}
+</code></pre>
+<pre class="hljs"><code><span class="hljs-comment">// 测试</span>
+<span class="hljs-keyword">var</span> promise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+  setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    resolve(<span class="hljs-string">'promise'</span>)
+  },<span class="hljs-number">300</span>)
+})
+promise.then(<span class="hljs-function"><span class="hljs-params">value1</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value1'</span>,value1)
+}).then(<span class="hljs-function"><span class="hljs-params">value2</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value2'</span>,value2)
+})
+</code></pre>
+<p>then 方法中加入 <code>return this</code> 实现了链式调用，但如果需要在 then 回调函数中返回一个值 value 或者 promise ，传给下一个 then 回调函数呢？</p>
+<p>先来看返回值 value 的情况，比如：</p>
+<pre class="hljs"><code><span class="hljs-comment">// 测试</span>
+promise.then(<span class="hljs-function"><span class="hljs-params">value1</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value1'</span>,value1)
+  <span class="hljs-keyword">let</span> value = <span class="hljs-string">'promise2'</span>
+  <span class="hljs-keyword">return</span> value
+}).then(<span class="hljs-function"><span class="hljs-params">value2</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value2'</span>,value2)
+})
+</code></pre>
+<p>在 demo2 的基础上进行改造：</p>
+<p>( demo3 )</p>
+<pre class="hljs"><code>then (onResolved) {
+  <span class="hljs-keyword">var</span> child = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {})
+  child.onResolved = onResolved
+  <span class="hljs-keyword">this</span>.children.push(child)
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
+}
+
+setValue (value) {
+  <span class="hljs-keyword">this</span>.value = value
+  <span class="hljs-keyword">this</span>.children.forEach(<span class="hljs-function"><span class="hljs-params">child</span> =&gt;</span> {
+    <span class="hljs-keyword">var</span> ret = child.onResolved(<span class="hljs-keyword">this</span>.value)
+    <span class="hljs-keyword">this</span>.value = ret
+  })
+}
+</code></pre>
+<p>原理就是在调用 Promise 对象的 then 函数时，注册所有请求成功的回调函数，后续在 setValue 函数中循环所有的回调函数，每次执行完一个回调函数就会更新 <code>this.value</code> 的值，然后将更新后的 <code>this.value</code> 传入下一个回调函数里，这样就解决了传值的问题</p>
+<p>但这样也会出现一个问题，我们只考虑了串行 Promise 的情况下依次更新 <code>this.value</code> 的值，如果串行和并行一起呢？比如：</p>
+<pre class="hljs"><code><span class="hljs-comment">// 测试</span>
+<span class="hljs-comment">// 串行</span>
+promise.then(<span class="hljs-function"><span class="hljs-params">value1</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value1'</span>,value1)
+  <span class="hljs-keyword">let</span> value = <span class="hljs-string">'promise2'</span>
+  <span class="hljs-keyword">return</span> value
+}).then(<span class="hljs-function"><span class="hljs-params">value2</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value2'</span>,value2)
+})
+
+<span class="hljs-comment">// 并行</span>
+promise.then(<span class="hljs-function"><span class="hljs-params">value1</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value1'</span>,value1)
+})
+</code></pre>
+<p>打印出来的结果最后一个 value1 为 undefined ，因为我们一直在改变 <code>this.value</code> 的值，并且在串行最后一个 then 回调函数中也显示设定返回值，默认返回 undefined</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/46940977-9cdced00-d09c-11e8-8ff5-f98bef6b569a.png" alt="image"></p>
+<p>可见 <code>return this</code> 并行不通，继续在 demo3 的基础上改造 then 和 setValue 函数如下：</p>
+<p>( demo4 )</p>
+<pre class="hljs"><code>then (onResolved) {
+  <span class="hljs-keyword">var</span> child = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {})
+  child.onResolved = onResolved
+  <span class="hljs-keyword">this</span>.children.push(child)
+  <span class="hljs-keyword">return</span> child
+}
+setValue (value) {
+  <span class="hljs-keyword">this</span>.value = value
+  <span class="hljs-keyword">this</span>.children.forEach(<span class="hljs-function"><span class="hljs-params">child</span> =&gt;</span> {
+    <span class="hljs-keyword">var</span> ret = child.onResolved(<span class="hljs-keyword">this</span>.value)
+    child.setValue(ret)
+  })
+}
+</code></pre>
+<p>那如果 then 回调函数中返回一个 promise 呢？比如：</p>
+<pre class="hljs"><code><span class="hljs-comment">// 测试</span>
+promise.then(<span class="hljs-function"><span class="hljs-params">value1</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value1'</span>,value1)
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+    setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      resolve(<span class="hljs-string">'promise2'</span>)
+    },<span class="hljs-number">200</span>)
+  })
+}).then(<span class="hljs-function"><span class="hljs-params">value2</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'value2'</span>,value2)
+})
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/46940996-a6feeb80-d09c-11e8-873c-a378fb28e30e.png" alt="image"></p>
+<p>很明显，打印出来的结果是个 Promise 。继续在 demo4 的基础上改造 setValue 函数</p>
+<p>( demo5 )</p>
+<pre class="hljs"><code>setValue (value) {
+  <span class="hljs-keyword">if</span> (value &amp;&amp; value.then) {
+    value.then(<span class="hljs-function"><span class="hljs-params">realValue</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.setValue(realValue)
+    })
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">this</span>.value = value
+    <span class="hljs-keyword">this</span>.children.forEach(<span class="hljs-function"><span class="hljs-params">child</span> =&gt;</span> {
+      <span class="hljs-keyword">var</span> ret = child.onResolved(<span class="hljs-keyword">this</span>.value)
+      child.setValue(ret)
+    })
+  }
+}
+</code></pre>
+<p>在 setValue 方法里面，我们对 value 进行了判断，如果是一个 promise 对象，就会调用其 then 方法，形成一个嵌套，直到其不是 promise 对象为止</p>
+<p>到目前为止，我们已经实现了 Promise 的主要功能—'开枝散叶'，状态和值的有序更新</p>
+<h2>实现 promise 错误处理</h2>
+<p>上面所有列举到的 demo 都是在异步操作成功的情况下进行的，但异步操作不可能都成功，在异步操作失败时，状态为标记为 <code>rejected</code> ，并执行注册的失败回调</p>
+<p><code>rejected</code> 失败的错误处理也类似于 <code>resolve</code> 成功状态下的处理，接着在 demo5 的注册回调、处理状态上加入新的逻辑，在 Promise 上加入 <code>resolve</code> 和 <code>reject</code> 静态函数</p>
+<p>( demo6 )</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Promise</span> </span>{
+  <span class="hljs-keyword">constructor</span> (executor) {
+    <span class="hljs-keyword">this</span>.value = <span class="hljs-literal">undefined</span>
+    <span class="hljs-keyword">this</span>.status = <span class="hljs-string">'pending'</span>
+    <span class="hljs-keyword">this</span>.children = []
+    executor(<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.setValue(value, <span class="hljs-string">'resolved'</span>)
+    }, reason =&gt; {
+      <span class="hljs-keyword">this</span>.setValue(reason, <span class="hljs-string">'rejected'</span>)
+    })
+  }
+
+  then (onResolved, onRejected) {
+    <span class="hljs-keyword">var</span> child = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {})
+    <span class="hljs-keyword">this</span>.children.push(child)
+    <span class="hljs-built_in">Object</span>.assign(child, {
+      <span class="hljs-attr">onResolved</span>: onResolved || (<span class="hljs-function"><span class="hljs-params">value</span> =&gt;</span> value),
+      <span class="hljs-attr">onRejected</span>: onRejected || (<span class="hljs-function"><span class="hljs-params">reason</span> =&gt;</span> <span class="hljs-built_in">Promise</span>.reject(reason))
+    })
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.status !== <span class="hljs-string">'pending'</span>) {
+      child.triggerHandler(<span class="hljs-keyword">this</span>.value, <span class="hljs-keyword">this</span>.status)
+    }
+    <span class="hljs-keyword">return</span> child
+  }
+
+  <span class="hljs-keyword">catch</span> (onRejected) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.then(<span class="hljs-literal">null</span>, onRejected)
+  }
+
+  triggerHandler (parentValue, status) {
+    <span class="hljs-keyword">var</span> handler
+    <span class="hljs-keyword">if</span> (status === <span class="hljs-string">'resolved'</span>) {
+      handler = <span class="hljs-keyword">this</span>.onResolved
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (status === <span class="hljs-string">'rejected'</span>) {
+      handler = <span class="hljs-keyword">this</span>.onRejected
+    }
+    <span class="hljs-keyword">this</span>.setValue(handler(parentValue), <span class="hljs-string">'resolved'</span>)
+  }
+
+  setValue (value, status) {
+    <span class="hljs-keyword">if</span> (value &amp;&amp; value.then) {
+      value.then(<span class="hljs-function"><span class="hljs-params">realValue</span> =&gt;</span> {
+        <span class="hljs-keyword">this</span>.setValue(realValue, <span class="hljs-string">'resolved'</span>)
+      }, reason =&gt; {
+        <span class="hljs-keyword">this</span>.setValue(reason, <span class="hljs-string">'rejected'</span>)
+      })
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">this</span>.status = status
+      <span class="hljs-keyword">this</span>.value = value
+      <span class="hljs-keyword">this</span>.children.forEach(<span class="hljs-function"><span class="hljs-params">child</span> =&gt;</span> {
+        child.triggerHandler(value, status)
+      })
+    }
+  }
+
+  <span class="hljs-keyword">static</span> resolve (value) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">resolve</span> =&gt;</span> {
+      resolve(value)
+    })
+  }
+
+  <span class="hljs-keyword">static</span> reject (reason) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+      reject(reason)
+    })
+  }
+}
+</code></pre>
+<p>then 函数中有两个回调 handler, 分别是<code>onResolved</code> 和 <code>onResolved</code> ,表示成功执行的回调函数和是失败执行的回调函数，并设置默认值，保持链式连接</p>
+<p>定义一个 <code>triggerHandler</code> 函数用来判断当前 child 的 status ,并触发自己的 handler ,执行回调函数，再次更新 status 和 value</p>
+<p>setValue 函数同时设置 Promise 自己的状态和值，然后在重新设置新的状态之后循环遍历 children</p>
+<p>为了更高效率的运行，在 then 函数中注册回调函数时加入状态判断，如果状态改变不为 <code>pending</code> ,说明 setValue 函数已经执行，状态已经发生了更改，就立马执行 triggerHandle r函数；如果状态为 <code>pending</code> ,则在 setValue 函数执行时再触发 triggerHandle `函数</p>
+<h2>Promise 中的 nextTick</h2>
+<p><code>Promise/A+</code>规范要求 handler 执行必须是异步的, 具体可以参见标准 3.1 条</p>
+<blockquote>
+<p>Here “platform code” means engine, environment, and promise implementation code. In practice, this requirement ensures that onFulfilled and onRejected execute asynchronously, after the event loop turn in which then is called, and with a fresh stack. This can be implemented with either a “macro-task” mechanism such as setTimeout or setImmediate, or with a “micro-task” mechanism such as MutationObserver or process.nextTick. Since the promise implementation is considered platform code, it may itself contain a task-scheduling queue or “trampoline” in which the handlers are called</p>
+</blockquote>
+<p>这里用 setTimeout 简单实现一个跨平台的 <code>nextTick</code></p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">nextTick</span>(<span class="hljs-params">func</span>) </span>{
+  setTimeout(func)
+}
+</code></pre>
+<p>然后使用 <code>nextTick</code> 包裹 triggerHandler</p>
+<pre class="hljs"><code>triggerHandler (status, parentValue) {
+  nextTick(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-keyword">var</span> handler
+    <span class="hljs-keyword">if</span> (status === <span class="hljs-string">'resolved'</span>) {
+      handler = <span class="hljs-keyword">this</span>.onResolved
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (status === <span class="hljs-string">'rejected'</span>) {
+      handler = <span class="hljs-keyword">this</span>.onRejected
+    }
+    <span class="hljs-keyword">this</span>.setStatus(<span class="hljs-string">'resolved'</span>, handler(parentValue))
+  })
+}
+</code></pre>
+<p>在 demo6 中我们实现了不管是异步还是同步都可以执行 triggerHandler ，那为什么要强制异步的要求呢？</p>
+<p>主要是为了流程可预测，标准需要强制异步。可类比于经典的 image onload 问题</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> image = <span class="hljs-keyword">new</span> Image()
+image.onload = funtion
+image.src = <span class="hljs-string">'url'</span>
+</code></pre>
+<p>src 属性为什么需要写在 onload 事件后面？</p>
+<p>因为 js 内部是按顺序逐行执行的，可以认为是同步的，给 image 赋值 src 时，去加载图片这个过程是异步的，这个异步过程完成后，如果有 onload ，则执行 onload</p>
+<p>如果先赋值 src ,那么这个异步过程可能在你赋值 onload 之前就完成了（比如图片缓存），那么 onload 就不会执行</p>
+<p>反之, js 同步执行确定 onload 赋值完成后才会赋值 src ,可以保证这个异步过程在 onload 赋值完成后才开始进行，也就保证了 onload 一定会被执行到</p>
+<p>同样的，在Promise中，我们希望代码执行顺序是完全可以预测的，不允许出现任何问题</p>
+<h1>总结</h1>
+<p>上述 Promise 各个功能逻辑块的完整代码可见我的 github <a href="https://github.com/lulujianglab/Promise">分层实现Promise</a></p>
+<p>需要注意的是：</p>
+<ol>
+<li>
+<p>promise 里面的 then 函数仅仅是注册了后续需要执行的回调函数，真正的执行是在 triggerHandler 方法里</p>
+</li>
+<li>
+<p>then 和 catch 注册完回调函数后，返回的是一个新的 Promise 对象，以延续链式调用</p>
+</li>
+<li>
+<p>对于内部 pending 、fulfilled 和 rejected 的状态转变，通过 handler 触发 resolve 和 reject 方法，然后在 setValue 中更改状态和值</p>
+</li>
+</ol>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Webpack4 和 Babel 7 全新配置 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Webpack4 和 Babel 7 全新配置</h1>
+          <p class="post-date">2019-01-10</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>前阵子自己开坑写了个 npm 开源的交互组件，按照 webpack 的配置流程走了一遍，打包遇到了各种坑。根据命令行的报错逐个排查，发现 babel 升级到 7.x 之后有坑。为了更好的记录遇到的问题以及解决方案，这里以 webpack4.x 的全套配置流程为方式重新梳理一遍</p>
+<h1>webpack 和 babel 浅析</h1>
+<p>在梳理配置流程之前我们先来大致过一下 webpack 和 babel 的基础理论，如果想更详细的了解，可以去查阅一下<a href="https://webpack.css88.com/"> webpack 官方文档 </a>和<a href="https://babel.docschina.org/docs/en/index.html"> Babel 官方文档</a></p>
+<h2>webpack</h2>
+<blockquote>
+<p>webpack 是一个现代 JavaScript 应用程序的静态模块打包器(module bundler)。当 webpack 处理应用程序时，它会递归地构建一个依赖关系图(dependency graph)，其中包含应用程序需要的每个模块，然后将所有这些模块打包成一个或多个 bundle</p>
+</blockquote>
+<p><img src="https://user-images.githubusercontent.com/26807227/50872268-c7b7b280-13f9-11e9-84b1-71bde1275be0.png" alt="image"></p>
+<p>也就是说，一切静态资源，皆可打包。<strong>webpack 可以说是现代前端发展的基石</strong></p>
+<p>那为什么需要 webpack 来打包呢？ webpack 到底发挥的是什么作用？</p>
+<ul>
+<li>
+<p>webpack 可以通过分析项目结构，找到 JavaScript 模块以及其它一些浏览器不能直接运行的扩展语言( Scss , TS 等)，并将其打包为合适的格式以供旧浏览器使用</p>
+</li>
+<li>
+<p>以往的前端技术，是用jQuery、html、css等来开发静态页面；而现在的，我们讲的都是 MVVM 框架，数据驱动界面，webpack 可以将现在 js 开发中的各种新型有用的技术集合打包</p>
+</li>
+</ul>
+<p>在如今功能丰富的页面下，都有着复杂的 JavaScript 代码和一大堆依赖包，为了简化开发的复杂度，前端社区出现了很多有益于提高开发效率的方法</p>
+<p>比如我们熟悉的模块化开发，把复杂的程序细化为小的文件；scss / less 等 css 预处理器</p>
+<p>这些开发方式都需要额外的处理才能让浏览器识别，而手动处理又是非常繁琐的，这就为 webpack 这类工具的出现提供了需求</p>
+<h2>babel</h2>
+<blockquote>
+<p>Babel 是一个工具链，主要用于在旧的浏览器或环境中将 ECMAScript 2015+ 代码转换为向后兼容版本的 JavaScript 代码</p>
+</blockquote>
+<p>Babel 可以转换 JSX 语法，可以将 ES6 的代码转换为 ES5</p>
+<p>babel 的目的就是为了解决浏览器的自身对于 es 语言的差异性而带来的一款工具，有了 babel 就首先不用担心旧浏览器不支持 es 语言这件事，其实最重要的不是支持，而是解决差异性，这种差异性不仅介于浏览器之间，对于 node 这样的环境也会存在这样的问题，各个 node 版本对于 es 的支持，或者对于 es 的一些尚未提交的草案的支持都是不同的，所以不论是浏览器下还是 node 下都需要到使用 babel 的场景</p>
+<p>尤其是现在 Javascript 主要是用 ES6 编写的，为了更好适应各种旧浏览器，我们需要进行转换处理，这个转换的步骤也就是 <strong>transpiling（转译）</strong></p>
+<p>webpack 不知道如何进行转换但是有 <strong>loader (加载器)</strong>，也就是转译器</p>
+<p><strong>babel-loader</strong> 是一个 webpack 的 loader (加载器)，用于将 ES6 及以上版本转译至 ES5</p>
+<p>使用 loader 之前，我们需要安装一堆依赖项，尤其是：</p>
+<ul>
+<li>babel-core</li>
+<li>babel-loader</li>
+<li>babel-preset-env 用于将 Javascript ES6 代码编译为 ES5</li>
+</ul>
+<h1>webpack 4 变化</h1>
+<p>这里主要看看我们用的比较多的两则变化：</p>
+<h2>webpack 4 既不必须定义 entry point(入口点) ，也不必须定义 output file(输出文件)</h2>
+<p><strong>entry point (入口点)</strong>：webpack 寻找开始构建 Javascript 包的文件<br>
+<strong>output file (输出文件)</strong>：webpack 构建完成输出 Javascript 包的文件</p>
+<p>但是从 webpack 4 开始，这两个属性不是必须定义的，它有一个默认值，会将 ./src/index.js 作为默认入口点， ./dist/main.js 作为默认输出模块包</p>
+<p>当然，我们也可以覆盖默认 entry point(入口点) 和 默认 output(输出) ，只需要在 package.json 中配置它们</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-attr">entry</span>: <span class="hljs-string">'./src/index.js'</span>, 
+  <span class="hljs-attr">output</span>: { 
+    <span class="hljs-attr">path</span>: path.resolve(__dirname, <span class="hljs-string">'dist'</span>),
+    <span class="hljs-attr">filename</span>: <span class="hljs-string">'[name].js'</span>
+  }
+}
+</code></pre>
+<p>或者</p>
+<pre class="hljs"><code><span class="hljs-string">"scripts"</span>: {
+  <span class="hljs-attr">"dev"</span>: <span class="hljs-string">"webpack --mode development ./src/js/index.js --output ./dist/main.js"</span>,
+  <span class="hljs-attr">"build"</span>: <span class="hljs-string">"webpack --mode production ./src/js/index.js --output ./dist/main.js"</span>
+}
+</code></pre>
+<h2>webpack 4 引入了 production(生产) 和 development(开发) 模式</h2>
+<p>拥有两个配置文件在 webpack 中是常见模式，但在 webpack 4 中，我们可以在没有一行配置的情况下完成，仅仅只需要在 package.json 中填充 script 部分</p>
+<pre class="hljs"><code><span class="hljs-string">"scripts"</span>: {
+  <span class="hljs-attr">"dev"</span>: <span class="hljs-string">"webpack --mode development"</span>,
+  <span class="hljs-attr">"build"</span>: <span class="hljs-string">"webpack --mode production"</span>
+}
+</code></pre>
+<p>然后运行</p>
+<pre class="hljs"><code>npm run dev
+</code></pre>
+<p>打开 ./dist/main.js，会发现有一个没有压缩的 bundle（包）文件</p>
+<p>接着运行</p>
+<pre class="hljs"><code>npm run build
+</code></pre>
+<p>再次打开 ./dist/main.js，没错，bundle(包)压缩了！</p>
+<p><strong>production mode (生产模式)</strong> 可以开箱即用地进行各种优化。 包括压缩，作用域提升，tree-shaking 等<br>
+<strong>development mode (开发模式)</strong> 针对速度进行了优化，仅仅提供了一种不压缩的 bundle</p>
+<h1>环境搭建</h1>
+<p>这里使用 npm 来安装 webpack</p>
+<pre class="hljs"><code>npm i webpack webpack-cli -g
+</code></pre>
+<p>在 webpack3 中， webpack 和 cli 是在同一个包中，但在第4版中，为了更好的管理，已经将两者分开</p>
+<p>初始化项目和配置</p>
+<pre class="hljs"><code>npm init -y
+npm i webpack webpack-cli - D
+</code></pre>
+<h1>部署配置</h1>
+<p>修改我们项目的 package.json ，使用 <code>npm run build</code> 启动 webpack</p>
+<pre class="hljs"><code><span class="hljs-string">"scripts"</span>: {
+  <span class="hljs-attr">"build"</span>: <span class="hljs-string">"webpack --mode production"</span>
+},
+<span class="hljs-string">"devDependencies"</span>: {
+  <span class="hljs-attr">"webpack"</span>: <span class="hljs-string">"^4.28.3"</span>,
+  <span class="hljs-attr">"webpack-cli"</span>: <span class="hljs-string">"^3.2.1"</span>
+}
+</code></pre>
+<p>我们在项目实战中应该很熟悉，类似于 vue-cli 或者是 umijs 这样的脚手架在打包的时候都会通过配置自动生成项目，通常都是在 src 文件夹下进行项目的开发，然后运行 <code>npm run build</code> 打包并生成我们的 dist 文件</p>
+<p>比如我们在 src 目录下新建一个 index.js 文件，写上</p>
+<pre class="hljs"><code><span class="hljs-built_in">console</span>.log(<span class="hljs-string">'我是测试案例'</span>)
+</code></pre>
+<p>然后运行 <code>npm run build</code> ,会发现新增了一个 dist 目录，里面存放着 webpack 打包好后的 main.js 文件</p>
+<h1>配置流程</h1>
+<p>回想我们之前做过的项目，一般会打包 src 下的什么文件呢?</p>
+<ul>
+<li>发布时需要的 html, css, js</li>
+<li>css 预编译器 stylus / less / sass</li>
+<li>es6 的高级语法</li>
+<li>react 的 jsx 语法</li>
+<li>图片资源 .png, .gif, .ico, .jpg</li>
+<li>文件间的 require</li>
+<li>别名 @ 等修饰符</li>
+<li>webpack dev server</li>
+</ul>
+<p>下面就跟着上述几点来依次在 webpack 的 webpack.config.js 中进行配置，以 commonJS 模块化机制向外输出</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {}
+</code></pre>
+<h2>html 配置</h2>
+<p>这里就不使用默认配置了，自行定义好入口 entry 和出口 output 。通俗的理解就是，webpack 相当于一个工厂，进入相当于把各种各样的原料放入我们的工厂，然后工厂进行一系列的打包操作，将打包好的东西向外输出，就可以出售了（上线）</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-attr">entry</span>: <span class="hljs-string">'./src/index.js'</span>, <span class="hljs-comment">//入口文件</span>
+  output: {  <span class="hljs-comment">// 出口定义</span>
+    path: path.resolve(__dirname, <span class="hljs-string">'dist'</span>), <span class="hljs-comment">// 输出文件的目标路径</span>
+    filename: <span class="hljs-string">'[name].js'</span> <span class="hljs-comment">// 文件名[name].js默认</span>
+  }
+}
+</code></pre>
+<p>HTML 打包需要安装插件 <code>html-webpack-plugin</code>，它将会创建一个 index.html 文件，有了这个插件，我们就可以不用手动创建一个 index.html 文件了</p>
+<pre class="hljs"><code>npm i html-webpack-plugin -D
+</code></pre>
+<p>然后在 webpack.config.js 中引入</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> HtmlWebpackPlugin = <span class="hljs-built_in">require</span>(<span class="hljs-string">'html-webpack-plugin'</span>)
+
+<span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  plugins: [  <span class="hljs-comment">// 插进的引用, 压缩，分离美化</span>
+    <span class="hljs-keyword">new</span> HtmlWebpackPlugin({  <span class="hljs-comment">// 将模板html的头部和尾部添加css和js模板</span>
+      file: <span class="hljs-string">'index.html'</span> <span class="hljs-comment">// 输出文件的文件名称，默认为index.html</span>
+    }),
+  ],
+}
+</code></pre>
+<p>配置好后，在终端输入 <code>npm run build</code> 后 webpack 将 html 打包好并且自动将 js 引进来了</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text/javascript"</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"main.js"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+</code></pre>
+<p>在 dist 目录下启动本地服务器测试一下，运行 <code>http-server</code>，然后在浏览器中打开一个 ip 地址的 8080 端口，就可以在浏览器中看到我们的 Hello World 了，也就是我们上线的页面</p>
+<h2>css 配置</h2>
+<p>在我们的项目应用中，往往为了提高编程效率，使用一些预编译器，比如 stylus 、less 、sass 等，这里主要以 less 和 css 为例进行说明</p>
+<p>在 src 下新建 index.html 、main.css 、style.less 文件</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"title"</span>&gt;</span>Hello Webpack-4-cli !/p&gt;
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+</code></pre>
+<pre class="hljs"><code><span class="hljs-selector-tag">body</span> {
+  <span class="hljs-attribute">background</span>: gray;
+}
+</code></pre>
+<pre class="hljs"><code><span class="hljs-selector-class">.title</span> {
+  <span class="hljs-attribute">color</span>: red;
+}
+</code></pre>
+<p>在 index.js 中引入</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> style <span class="hljs-keyword">from</span> <span class="hljs-string">"./main.css"</span>
+<span class="hljs-keyword">import</span> style2 <span class="hljs-keyword">from</span> <span class="hljs-string">"./style.less"</span>
+</code></pre>
+<p>然后安装文件 css-loader 、 sass-loader 和 sass</p>
+<pre class="hljs"><code>npm i css-loader less less-loader style-loader -D
+</code></pre>
+<p>因为想让 css 在 dist 目录下和 HTML 分离，所以这是还需引入 extract-text-webpack-plugin</p>
+<pre class="hljs"><code>npm i extract-text-webpack-plugin -D
+</code></pre>
+<p>需要注意的是，这里有一个坑，因为 extract-text-webpack-plugin 最新版本为 3.0.2 ，这个版本还没有适应 webpack 4 的版本</p>
+<p>解决办法：使用 4.0 beta 版</p>
+<pre class="hljs"><code>npm i extract-text-webpack-plugin@next -D
+</code></pre>
+<p>会下载到 extract-text-webpack-plugin@4.0.0-beta，安装好后，我们开始配置webpack.config.js文件</p>
+<p>但是即便是使用 extract-text-webpack-plugin@4.0.0-beta 代替，还是会有一些问题，所以可以用另一个插件来代替，webpack4 可以使用 mini-css-extract-plugin 这个插件来单独打包 css</p>
+<pre class="hljs"><code>npm i mini-css-extract-plugin -D
+</code></pre>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> MiniCssExtractPlugin = <span class="hljs-built_in">require</span>(<span class="hljs-string">'mini-css-extract-plugin'</span>) <span class="hljs-comment">// 打包的css拆分,将一部分抽离出来  </span>
+<span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  <span class="hljs-built_in">module</span>: { <span class="hljs-comment">// 模块的相关配置</span>
+    rules: [ <span class="hljs-comment">// 根据文件的后缀提供一个loader,解析规则</span>
+      {
+        <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.(css|less)$/</span>,
+        <span class="hljs-attr">use</span>: [MiniCssExtractPlugin.loader, <span class="hljs-string">"css-loader"</span>, <span class="hljs-string">'less-loader'</span>]
+      },
+  ]},
+  <span class="hljs-attr">plugins</span>: [
+    <span class="hljs-keyword">new</span> HtmlWebpackPlugin({
+      <span class="hljs-attr">file</span>: <span class="hljs-string">'index.html'</span>,
+      <span class="hljs-attr">template</span>: <span class="hljs-string">'src/index.html'</span> <span class="hljs-comment">// 本地模板文件的位置，支持加载器(如handlebars、ejs、undersore、html等)</span>
+    }),
+    <span class="hljs-keyword">new</span> MiniCssExtractPlugin({ <span class="hljs-comment">// [name] 默认  也可以自定义name  声明使用</span>
+      filename: <span class="hljs-string">"[name].css"</span>,
+      <span class="hljs-attr">chunkFilename</span>: <span class="hljs-string">"[id].css"</span>
+    }),
+  ],
+}
+</code></pre>
+<p>打包之后 http-server , 发现我们的样式已经生效了，.less 的文件也被编译到 .css 文件中了，并且 css 部分已经从 html 中分离出来</p>
+<h2>js 配置</h2>
+<p>为了让更多的旧浏览器适应 es6 的开发语法，需要引入 babel 来把 es6 的代码编译为 es5 。在根目录下新建 .babelrc</p>
+<pre class="hljs"><code>{<span class="hljs-string">"presets"</span>: [<span class="hljs-string">"env"</span>]}
+</code></pre>
+<p>在 index.js 中添加代码</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> arr = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]
+<span class="hljs-keyword">const</span> iAmJavascriptES6 = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(...arr)
+<span class="hljs-built_in">window</span>.iAmJavascriptES6 = iAmJavascriptES6
+</code></pre>
+<p>然后安装文件</p>
+<pre class="hljs"><code>npm i babel-loader babel-core  abel-preset-env -D
+</code></pre>
+<p>接下来在 webpack.config.js 中配置</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  <span class="hljs-built_in">module</span>: { <span class="hljs-comment">// 模块的相关配置</span>
+    rules: [ <span class="hljs-comment">// 根据文件的后缀提供一个loader,解析规则</span>
+      {
+        <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.js$/</span>,
+        <span class="hljs-attr">exclude</span>: <span class="hljs-regexp">/node_modules/</span>, <span class="hljs-comment">// 不匹配选项（优先级高于test和include)</span>
+        use: <span class="hljs-string">'babel-loader'</span>
+      },
+  ]}
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>这里会出现一个大坑，因为我们的 babel 已经升级到了一个大版本 - 7.x</p>
+<blockquote>
+<p>Error: Cannot find module '@babel/core'<br>
+babel-loader@8 requires Babel 7.x (the package '@babel/core').<br>
+If you'd like to use Babel 6.x ('babel-core'), you should install 'babel-loader@7'.</p>
+</blockquote>
+<p>没找到 @babel/core ，这里把 babel-core 卸载，并安装 @babel/core</p>
+<pre class="hljs"><code>npm un babel-core
+npm i -D @babel/core
+</code></pre>
+<p>同理，也需要将 babel-preset-env 卸载后重新安装，最终安装好的文件是</p>
+<pre class="hljs"><code><span class="hljs-string">"devDependencies"</span>: {
+  <span class="hljs-attr">"@babel/core"</span>: <span class="hljs-string">"^7.2.2"</span>,
+  <span class="hljs-attr">"@babel/plugin-transform-runtime"</span>: <span class="hljs-string">"^7.2.0"</span>,
+  <span class="hljs-attr">"@babel/preset-env"</span>: <span class="hljs-string">"^7.2.3"</span>,
+  <span class="hljs-attr">"@babel/runtime"</span>: <span class="hljs-string">"^7.2.0"</span>,
+  <span class="hljs-attr">"babel-loader"</span>: <span class="hljs-string">"^8.0.5"</span>,
+}
+</code></pre>
+<p>babel 舍弃了以前的 babel-<em>-</em> 的命名方式，改成了 @babel/<em>-</em></p>
+<p>修改完依赖和 .babelrc 文件后就能正常启动项目了</p>
+<pre class="hljs"><code>{
+  <span class="hljs-string">"presets"</span>: [<span class="hljs-string">"@babel/preset-env"</span>],
+  <span class="hljs-string">"plugins"</span>: [
+    <span class="hljs-string">"@babel/plugin-transform-runtime"</span>
+  ]
+}
+</code></pre>
+<h2>为 React 项目配置 webpack 4</h2>
+<p>安装 React ：</p>
+<pre class="hljs"><code>npm i react react-dom --D
+</code></pre>
+<p>因为前面已经安装了 <code>babel-loader</code> ，<code>@babel/core</code> ，<code>@babel/preset-env</code> , 所以只需安装<code>babel-preset-react</code> , 同上面一样的情况，在 babel 7 中，我们需要安装 <code>@babel/preset-react</code></p>
+<pre class="hljs"><code>npm i @babel/preset-react --D
+</code></pre>
+<ul>
+<li><a href="https://github.com/babel/babel-loader">babel-loader</a> : 使用 Babel 转换 JavaScript依赖关系的 Webpack 加载器</li>
+<li><a href="https://babeljs.io/docs/en/babel-core">@babel/core</a> : 即 babel-core，将 ES6 代码转换为 ES5</li>
+<li><a href="https://babeljs.io/docs/en/babel-preset-env">@babel/preset-env</a> : 即 babel-preset-env，根据您要支持的浏览器，决定使用哪些 transformations / plugins 和 polyfills，例如为旧浏览器提供现代浏览器的新特性</li>
+<li><a href="https://babeljs.io/docs/en/babel-preset-react">@babel/preset-react</a> : 即 babel-preset-react，针对所有 React 插件的 Babel 预设，例如将 JSX 转换为函数</li>
+</ul>
+<p>再次强调：<strong>babel 7 使用了 @babel 命名空间来区分官方包，因此以前的官方包 babel-xxx 改成了 @babel/xxx</strong></p>
+<p>修改 webpack.config.js 和 .babelrc 文件</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  <span class="hljs-built_in">module</span>: {
+    <span class="hljs-attr">rules</span>: [
+      {
+        <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.(js|jsx)$/</span>,
+        <span class="hljs-attr">exclude</span>: <span class="hljs-regexp">/node_modules/</span>, <span class="hljs-comment">// 不匹配选项（优先级高于test和include)</span>
+        use: <span class="hljs-string">'babel-loader'</span>
+      },
+  ]}
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<pre class="hljs"><code>{
+  <span class="hljs-string">"presets"</span>: [<span class="hljs-string">"@babel/preset-env"</span>, <span class="hljs-string">"@babel/preset-react"</span>],
+  <span class="hljs-string">"plugins"</span>: [
+    <span class="hljs-string">"@babel/plugin-transform-runtime"</span>
+  ]
+}
+</code></pre>
+<p>然后在 src 目录下新建一个 App.js 的 react 组件</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">"react"</span>
+<span class="hljs-keyword">import</span> ReactDOM <span class="hljs-keyword">from</span> <span class="hljs-string">"react-dom"</span>
+<span class="hljs-keyword">const</span> App = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Hello React!<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  )
+}
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> App
+ReactDOM.render(<span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">App</span> /&gt;</span>, document.getElementById("app"))
+</span></code></pre>
+<p>接下来在 index.js 文件中 import(导入) 组件</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> App <span class="hljs-keyword">from</span> <span class="hljs-string">"./App"</span>
+</code></pre>
+<p>在 index.html 中添加代码</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"title"</span>&gt;</span>Hello Webpack-4-cli !<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"app"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+</code></pre>
+<p>再次构建 <code>npm run build</code> 即可</p>
+<p>如果想详细了解可以查阅这篇文章 <a href="https://www.css88.com/archives/9427">React 教程：如何使用 webpack 4 和 Babel 构建 React 应用(2018)</a></p>
+<h2>图片资源的配置</h2>
+<p>在src目录下新建一个assets文件，里面放置图片</p>
+<p>安装依赖文件</p>
+<pre class="hljs"><code>npm i file-loader -D
+</code></pre>
+<p>然后在 webpack.config.js 中添加配置</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  <span class="hljs-built_in">module</span>: {
+    <span class="hljs-attr">rules</span>: [
+      { <span class="hljs-comment">// 图片loader</span>
+        test: <span class="hljs-regexp">/\.(png|jpg|gif)$/</span>,
+        <span class="hljs-attr">use</span>: [
+          {
+            <span class="hljs-attr">loader</span>: <span class="hljs-string">'file-loader'</span> <span class="hljs-comment">// 根据文件地址加载文件</span>
+          }
+        ]
+      }
+  ]}
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>然后在 index.js 文件中引入</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> img <span class="hljs-keyword">from</span> <span class="hljs-string">'./assets/star.png'</span>
+
+<span class="hljs-keyword">var</span> oImg = <span class="hljs-keyword">new</span> Image()
+<span class="hljs-comment">// oImg.src = require('./assets/star.png') // 当成模块引入图片</span>
+oImg.src = img
+<span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'image'</span>).appendChild(oImg)
+</code></pre>
+<p>然后在 index.html 中添加代码</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"title"</span>&gt;</span>Hello Webpack-4-cli !<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"app"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"image"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+</code></pre>
+<h2>别名(@)的配置</h2>
+<p>在 src 目录下新建一个文件夹 utils , 然后在 utils 中新建文件 format.js</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">format</span>(<span class="hljs-params">chars</span>) </span>{
+  <span class="hljs-keyword">return</span> chars.toUpperCase()
+}
+</code></pre>
+<p>如果我们要在 src/index.js 中引入这个 format.js 文件呢,理所当然是不是想这么写</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> format <span class="hljs-keyword">from</span> <span class="hljs-string">'./utils/format'</span>
+</code></pre>
+<p>这样写确实没错，但如果想使用别名代替呢?比如在 vue-cli 项目中常用的 @ 一个文件路径，其意思就是在 src 目录下，同样的方法，我们可以在 webpack.config.js 中添加配置</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  resolve: { <span class="hljs-comment">// 解析模块的可选项</span>
+    <span class="hljs-comment">// modules: [ ]//模块的查找目录 配置其他的css等文件</span>
+    extensions: [<span class="hljs-string">".js"</span>, <span class="hljs-string">".json"</span>, <span class="hljs-string">".jsx"</span>, <span class="hljs-string">".less"</span>, <span class="hljs-string">".css"</span>], <span class="hljs-comment">// 用到文件的扩展名</span>
+    alias: { <span class="hljs-comment">// 模快别名列表</span>
+      utils: path.resolve(__dirname,<span class="hljs-string">'src/utils'</span>)
+    }
+  },
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>就可以在 index.js 中修改引入方式了</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> format = <span class="hljs-built_in">require</span>(<span class="hljs-string">'utils/format'</span>)
+</code></pre>
+<h2>CopyWebpackPlugin 插件和 webpack.ProvidePlugin 插件</h2>
+<ul>
+<li>使用 <code>CopyWebpackPlugin</code> 可以将 src 下其他的不需要打包的文件直接复制到 dist 目录下</li>
+<li>使用 <code>webpack.ProvidePlugin</code> 可以在全局引用 lodash 这类的工具库，省去了import</li>
+</ul>
+<p>在 webpack.config.js 中添加配置</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  plugins: [
+    <span class="hljs-keyword">new</span> CopyWebpackPlugin([
+      { <span class="hljs-attr">from</span>:<span class="hljs-string">'src/assets/redStar.png'</span>,<span class="hljs-attr">to</span>: <span class="hljs-string">'redStar.png'</span> }
+    ]),
+    <span class="hljs-keyword">new</span> webpack.ProvidePlugin({
+        <span class="hljs-string">'_'</span>: <span class="hljs-string">'lodash'</span>  <span class="hljs-comment">// 引用 webpack</span>
+    })
+  ],
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<h2>webpack dev server</h2>
+<p>想象一下，如果我们对代码进行更改，都需要 <code>npm run dev</code>，会不会远远降低我们的开发效率</p>
+<p>如果使用 <code>webpack dev server</code> 配置，浏览器会自动启动你的应用程序</p>
+<p>每次更改文件时，它都会自动刷新浏览器的窗口,比如 vue-cli 中，我们启动监听 <code>npm run dev</code> 时，可以监控我们 src 下文件的改动，那是怎么做到的呢？</p>
+<p>在 webpack 里其实创建了一个 node 进程，通过 webpack-dev-server 其内部封装了一个 node 的 express 模块</p>
+<p>首先安装包</p>
+<pre class="hljs"><code>npm i webpack-dev-server --D
+</code></pre>
+<p>接下来打开 package.json 并调整 scripts</p>
+<pre class="hljs"><code><span class="hljs-string">"scripts"</span>: {
+  <span class="hljs-attr">"dev"</span>: <span class="hljs-string">"webpack-dev-server --mode development --open"</span>,
+  <span class="hljs-attr">"build"</span>: <span class="hljs-string">"webpack --mode production"</span>
+}
+</code></pre>
+<p>然后在 webpack.config.js 中添加配置</p>
+<pre class="hljs"><code><span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-comment">// ...</span>
+  devServer: { <span class="hljs-comment">// 服务于webpack-dev-server  内部封装了一个express </span>
+    port: <span class="hljs-string">'8888'</span>,
+    before(app) {
+      app.get(<span class="hljs-string">'/api/test.json'</span>, (req, res) =&gt; {
+        res.json({
+          <span class="hljs-attr">code</span>: <span class="hljs-number">200</span>,
+          <span class="hljs-attr">message</span>: <span class="hljs-string">'Hello World'</span>
+        })
+      })
+    }
+  }
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>启动监听 <code>npm run dev</code> ，就可以看到 <code>webpack dev server</code> 在浏览器中启动了应用项目</p>
+<h1>完整代码链接</h1>
+<p><a href="https://github.com/lulujianglab/webpack-4-cli">webpack-4-cli</a></p>
+<h1>学习资料</h1>
+<p><a href="https://segmentfault.com/a/1190000015611030">手写一个webpack4.0配置</a><br>
+<a href="https://blog.csdn.net/xuehu837769474/article/details/81277224">从零配置到生产发布（2018）</a><br>
+<a href="https://imweb.io/topic/5b8699a96a0f1b02454de3c0">使用 Webpack 4 和 Babel 7 从头开始创建 React 应用程序</a><br>
+<a href="https://www.jianshu.com/p/e21d19875fbb">babel 7.x 和 webpack 4.x 配置 vue 项目</a><br>
+<a href="https://github.com/userkang/webpack-demos-cn">阮一峰 Webpack 教程</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

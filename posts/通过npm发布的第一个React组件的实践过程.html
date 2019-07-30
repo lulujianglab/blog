@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>通过npm发布的第一个React组件的实践过程 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">通过npm发布的第一个React组件的实践过程</h1>
+          <p class="post-date">2018-11-12</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h2>前言</h2>
+<p>从开始接触react也有差不多四个月时间了，用的频繁了之后，也越发的“默契”。最近在项目中要开发一些定制化组件，写了些组件想要集中的管理，就打算把组件放在npm上，在网上查找资料学习了下，下面就是通过npm发布自己的第一个React组件的实现过程</p>
+<h2>注册</h2>
+<p>npm的注册就跟我们注册微博等其他社交账号一样，基本都是输入邮箱、用户名等等信息，十分简单也不耗时</p>
+<p>注册网址：<a href="https://www.npmjs.com">https://www.npmjs.com</a></p>
+<h2>新建项目</h2>
+<p>在github上新建一个项目（这里不做过多赘述，相信使用过github的盆友应该会很熟悉），然后git clone下来之后进入到项目目录，执行npm init，按提示输入信息，主要有</p>
+<ul>
+<li>name:发布的名称</li>
+<li>version：版本号</li>
+<li>entry：入口文件</li>
+</ul>
+<p>刚开始没填好没关系，后期也可以修改</p>
+<h2>具体封装实现</h2>
+<p>我在这个项目里面封装了一个react-hover-menu的组件</p>
+<p>这是完成后的项目树：</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48341783-f3901380-e6a8-11e8-9009-a705b7588525.png" alt="image"></p>
+<h3>配置package.json</h3>
+<h4>npm相关信息</h4>
+<pre class="hljs"><code>&quot;name&quot;: &quot;react-hover-menu&quot;,
+&quot;version&quot;: &quot;1.0.3&quot;,
+&quot;description&quot;: &quot;react hover or click menu component&quot;,
+&quot;main&quot;: &quot;dist/bundle.js&quot;,
+&quot;files&quot;: [
+  &quot;dist&quot;
+],
+&quot;scripts&quot;: {
+  &quot;test&quot;: &quot;echo \&quot;Error: no test specified\&quot; &amp;&amp; exit 1&quot;,
+  &quot;build&quot;: &quot;webpack&quot;
+},
+</code></pre>
+<ul>
+<li>
+<p>main: 这里是我们组件的入口文件。开发者在 import 我们的组件的时候会引入这里 export 的内容</p>
+</li>
+<li>
+<p>files: 申明将要发布到 npm 的文件。如果省略掉这一项，所有文件包括源代码会被一起上传到 npm</p>
+</li>
+<li>
+<p>scripts: 加入一个 build 指令来运行 webpack，此时运行的 webpack 是这个当前文件夹内安装的 webpack 而不是 global 的 webpack</p>
+</li>
+</ul>
+<h4>依赖</h4>
+<pre class="hljs"><code>&quot;dependencies&quot;: {
+  &quot;antd&quot;: &quot;^3.10.5&quot;,
+  &quot;prop-types&quot;: &quot;^15.6.0&quot;,
+  &quot;react&quot;: &quot;^16.2.0&quot;,
+  &quot;react-dom&quot;: &quot;^16.6.1&quot;
+},
+&quot;devDependencies&quot;: {
+  &quot;babel-core&quot;: &quot;^6.26.3&quot;,
+  &quot;babel-loader&quot;: &quot;^7.1.2&quot;,
+  &quot;babel-plugin-import&quot;: &quot;^1.11.0&quot;,
+  &quot;babel-preset-env&quot;: &quot;^1.6.1&quot;,
+  &quot;babel-preset-react&quot;: &quot;^6.24.1&quot;,
+  &quot;css-loader&quot;: &quot;^0.28.11&quot;,
+  &quot;less&quot;: &quot;^3.8.1&quot;,
+  &quot;less-loader&quot;: &quot;^4.1.0&quot;,
+  &quot;postcss-loader&quot;: &quot;^3.0.0&quot;,
+  &quot;react-hot-loader&quot;: &quot;^4.3.12&quot;,
+  &quot;react-scripts&quot;: &quot;^1.1.0&quot;,
+  &quot;style-loader&quot;: &quot;^0.19.1&quot;,
+  &quot;webpack&quot;: &quot;^3.10.0&quot;,
+  &quot;webpack-node-externals&quot;: &quot;^1.6.0&quot;
+}
+</code></pre>
+<p>这些依赖是我这个组件需要用到的，具体依赖得根据具体项目需要添加</p>
+<h3>配置webpack(webpack.config.js)</h3>
+<ul>
+<li>
+<p>通过babel准换JSX和ES6的代码</p>
+</li>
+<li>
+<p>通过css-loader, sytle-loader 引入 css 到打包文件</p>
+</li>
+<li>
+<p>通过exclude:/src/, css-loader对antd的样式做处理</p>
+</li>
+<li>
+<p>通过style-loader，css-loader，postcss-loader，less-loader对less样式做处理</p>
+</li>
+<li>
+<p>webpack-node-externals 可以避免把 node_modules 里面的依赖包引入打包文件</p>
+</li>
+<li>
+<p>libraryTarget: &quot;commonjs2&quot; 使测试项目可以找到我们打包后的组件</p>
+</li>
+</ul>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>)
+<span class="hljs-keyword">const</span> nodeExternals = <span class="hljs-built_in">require</span>(<span class="hljs-string">'webpack-node-externals'</span>)
+
+<span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-attr">entry</span>: <span class="hljs-string">'./src/index.js'</span>,
+  <span class="hljs-attr">output</span>: {
+    <span class="hljs-attr">filename</span>: <span class="hljs-string">'bundle.js'</span>,
+    <span class="hljs-attr">path</span>: path.resolve(__dirname, <span class="hljs-string">'dist'</span>),
+    <span class="hljs-attr">libraryTarget</span>: <span class="hljs-string">'commonjs2'</span>
+  },
+  <span class="hljs-attr">module</span>: {
+    <span class="hljs-attr">rules</span>: [
+      {<span class="hljs-comment">// 通过babel准换JSX和ES6的代码</span>
+        test: <span class="hljs-regexp">/(\.jsx|\.js)$/</span>,
+        <span class="hljs-attr">loader</span>: <span class="hljs-string">'babel-loader'</span>,
+        <span class="hljs-attr">exclude</span>: <span class="hljs-regexp">/node_modules/</span>,
+        <span class="hljs-attr">query</span>:
+        {
+          <span class="hljs-attr">presets</span>:[<span class="hljs-string">"env"</span>, <span class="hljs-string">"react"</span>],
+          <span class="hljs-attr">plugins</span>: [
+            [  <span class="hljs-string">"import"</span>,{<span class="hljs-attr">libraryName</span>: <span class="hljs-string">"antd"</span>, <span class="hljs-attr">style</span>: <span class="hljs-string">"css"</span>}] <span class="hljs-comment">// antd按需加载</span>
+          ]
+        }
+      },
+      {<span class="hljs-comment">// CSS处理</span>
+        test: <span class="hljs-regexp">/\.css$/</span>,
+        <span class="hljs-attr">loader</span>: <span class="hljs-string">"style-loader!css-loader?modules"</span>,
+        <span class="hljs-attr">exclude</span>: <span class="hljs-regexp">/node_modules/</span>,
+      },
+      {<span class="hljs-comment">// antd样式处理</span>
+        test:<span class="hljs-regexp">/\.css$/</span>,
+        <span class="hljs-attr">exclude</span>:<span class="hljs-regexp">/src/</span>,
+        <span class="hljs-attr">use</span>:[
+            { <span class="hljs-attr">loader</span>: <span class="hljs-string">"style-loader"</span>,},
+            {
+                <span class="hljs-attr">loader</span>: <span class="hljs-string">"css-loader"</span>,
+                <span class="hljs-attr">options</span>:{
+                    <span class="hljs-attr">importLoaders</span>:<span class="hljs-number">1</span>
+                }
+            }
+        ]
+      },
+      {<span class="hljs-comment">// less样式处理</span>
+        test: <span class="hljs-regexp">/\.less$/</span>,
+        <span class="hljs-attr">use</span>: 
+        [
+          <span class="hljs-string">"style-loader"</span>, 
+          {
+            <span class="hljs-attr">loader</span>: <span class="hljs-string">'css-loader'</span>, 
+            <span class="hljs-attr">options</span>: {
+              <span class="hljs-attr">sourceMap</span>: <span class="hljs-number">1</span>,
+              <span class="hljs-attr">modules</span>:<span class="hljs-literal">true</span>
+            }
+          }, 
+          {
+            <span class="hljs-attr">loader</span>: <span class="hljs-string">"postcss-loader"</span>,
+            <span class="hljs-attr">options</span>: {           <span class="hljs-comment">// 如果没有options这个选项将会报错 No PostCSS Config found</span>
+              plugins: <span class="hljs-function">(<span class="hljs-params">loader</span>) =&gt;</span> [
+                  <span class="hljs-built_in">require</span>(<span class="hljs-string">'autoprefixer'</span>)(), <span class="hljs-comment">//CSS浏览器兼容</span>
+              ]
+            }
+          },
+          {
+            <span class="hljs-attr">loader</span>: <span class="hljs-string">"less-loader"</span>,
+            <span class="hljs-attr">options</span>: {
+              <span class="hljs-attr">modifyVars</span>: {
+                <span class="hljs-string">'primary-color'</span>: <span class="hljs-string">'#1DA57A'</span>,
+                <span class="hljs-string">'link-color'</span>: <span class="hljs-string">'#1DA57A'</span>,
+                <span class="hljs-string">'border-radius-base'</span>: <span class="hljs-string">'2px'</span>,
+              },
+              <span class="hljs-attr">javascriptEnabled</span>: <span class="hljs-literal">true</span>,
+            }
+          }
+        ]
+      },
+    ]
+  },
+  <span class="hljs-attr">externals</span>: [nodeExternals()]
+}
+</code></pre>
+<h3>配置babel(.babelrc)</h3>
+<ul>
+<li>transpile JSX and ES6 code</li>
+</ul>
+<pre class="hljs"><code>{
+  &quot;presets&quot;: [&quot;react&quot;,&quot;env&quot;],
+  &quot;plugins&quot;: [&quot;react-hot-loader/babel&quot;,[&quot;import&quot;, { &quot;libraryName&quot;: &quot;antd&quot;, &quot;libraryDirectory&quot;: &quot;lib&quot;, &quot;style&quot;: &quot;css&quot; }]],
+  &quot;env&quot;: {
+    &quot;production&quot;:{
+      &quot;preset&quot;:[&quot;react-optimize&quot;]
+    }
+  }
+}
+</code></pre>
+<h2>测试</h2>
+<p>完成上述步骤后我们就可以在src文件夹里面完成自己的组件，这个时候就可以打包并link让测试项目引入这个打包后的组件进行测试</p>
+<pre class="hljs"><code>npm run build
+
+npm link （可能会提示需要管理员权限）
+
+cd [test project folder]
+
+npm link react-hover-menu
+</code></pre>
+<h3>创建测试项目</h3>
+<p>在本地做一个测试项目按上述步骤引入组件就可以看到成果了</p>
+<p>使用create-react-app 创建一个 react 项目，并 link 我们刚才完成的组件：</p>
+<pre class="hljs"><code>create-react-app demo-menu
+
+cd demo-menu
+
+npm link react-hover-menu
+</code></pre>
+<p>link之后我们就可以直接在页面中引入组件</p>
+<pre class="hljs"><code>import HoverMenu from 'react-hover-menu'
+</code></pre>
+<h2>发布到NPM</h2>
+<p>首先先登录npm</p>
+<blockquote>
+<p>npm login</p>
+</blockquote>
+<p>然后发布组件到npm</p>
+<blockquote>
+<p>npm publish</p>
+</blockquote>
+<p>取消发布</p>
+<blockquote>
+<p>npm unpublish</p>
+</blockquote>
+<p>更改版本</p>
+<blockquote>
+<p>更改 package.json 里面的版本号并重新发布</p>
+</blockquote>
+<h2>出现的问题</h2>
+<h3>解决引入antd样式无效问题</h3>
+<p>刚开始配置的时候，发现了一个如果同时引入css modules和按需引入antd，antd样式无效的问题</p>
+<p><a href="!%5Bimage%5D(https://user-images.githubusercontent.com/26807227/48345006-b8461280-e6b1-11e8-9ed0-92fcb5cb2ac9.png)">官网</a>给出的按需加载解决方案，需要先安装<code>babel-plugin-import</code></p>
+<ul>
+<li>babel-loader的query/options字段加入</li>
+</ul>
+<pre class="hljs"><code>plugins: [
+  [  &quot;import&quot;,{libraryName: &quot;antd&quot;, style: &quot;css&quot;}] // antd按需加载
+]
+</code></pre>
+<ul>
+<li>webpack中plugins字段这样配置</li>
+</ul>
+<pre class="hljs"><code>module: {
+  rules: [
+    {// 通过babel准换JSX和ES6的代码
+      test: /(\.jsx|\.js)$/,
+      loader: 'babel-loader',
+      exclude: /node_modules/,
+      query:
+      {
+        presets:[&quot;env&quot;, &quot;react&quot;],
+        plugins: [
+          [  &quot;import&quot;,{libraryName: &quot;antd&quot;, style: &quot;css&quot;}] // antd按需加载
+        ]
+      }
+    },
+    {// CSS处理
+      test: /\.css$/,
+      loader: &quot;style-loader!css-loader?modules&quot;,
+      exclude: /node_modules/,
+    }
+  ]
+}
+</code></pre>
+<p>测试后发现还是不行</p>
+<h4>解决办法</h4>
+<p>如果同时需要使用antd和css modules,处理样式时，需要分别处理</p>
+<p>webpack加入以下处理</p>
+<pre class="hljs"><code>{// CSS处理
+  test: /\.css$/,
+  loader: &quot;style-loader!css-loader?modules&quot;,
+  exclude: /node_modules/,
+},
+{// antd样式处理
+  test:/\.css$/,
+  exclude:/src/,
+  use:[
+      { loader: &quot;style-loader&quot;,},
+      {
+          loader: &quot;css-loader&quot;,
+          options:{
+              importLoaders:1
+          }
+      }
+  ]
+},
+</code></pre>
+<h3>引入less</h3>
+<p>由于后期要修改ant上的样式，根据<a href="https://ant.design/docs/react/customize-theme-cn">官网</a>上给出的提示，必须加装less格式</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/48344925-7cab4880-e6b1-11e8-9330-e1972df73550.png" alt="image"></p>
+<p>继续在webpack加入以下处理</p>
+<pre class="hljs"><code>{// less样式处理
+  test: /\.less$/,
+  use: 
+  [
+    &quot;style-loader&quot;, 
+    {
+      loader: 'css-loader', 
+      options: {
+        sourceMap: 1,
+        modules:true
+      }
+    }, 
+    {
+      loader: &quot;postcss-loader&quot;,
+      options: {           // 如果没有options这个选项将会报错 No PostCSS Config found
+        plugins: (loader) =&gt; [
+            require('autoprefixer')(), //CSS浏览器兼容
+        ]
+      }
+    },
+    {
+      loader: &quot;less-loader&quot;,
+      options: {
+        modifyVars: {
+          'primary-color': '#1DA57A',
+          'link-color': '#1DA57A',
+          'border-radius-base': '2px',
+        },
+        javascriptEnabled: true,
+      }
+    }
+  ]
+},
+</code></pre>
+<p>好了，可以开森的npm组件了</p>
+<h2>Github Repo</h2>
+<p>查看我创建的<a href="https://github.com/lulujianglab/react-hover-menu">前端React呼出菜单组件</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

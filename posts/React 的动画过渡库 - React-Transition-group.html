@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>React 的动画过渡库 - React-Transition-group - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">React 的动画过渡库 - React-Transition-group</h1>
+          <p class="post-date">2019-03-22</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>在开发中实现动画的方法有很多，不管是 <code>react</code> 还是 <code>vue</code> 都有开源的动画组件库来更加方便的动画实现效果</p>
+<p>react 动画组件库是 <code>React-Transition-group</code>，在说这个组件库之前，我们先来看下借助 CSS3 实现最基本的动画样式</p>
+<h1>CSS3 实现动画样式</h1>
+<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-keyword">this</span>.state = {
+    <span class="hljs-attr">show</span>: <span class="hljs-literal">true</span>
+  }
+  <span class="hljs-keyword">this</span>.handleToggle = <span class="hljs-keyword">this</span>.handleToggle.bind(<span class="hljs-keyword">this</span>)
+}
+
+render() {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Fragment</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">className</span>=<span class="hljs-string">{this.state.show</span> ? '<span class="hljs-attr">show</span>' <span class="hljs-attr">:</span> '<span class="hljs-attr">hide</span>'}&gt;</span>hello<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleToggle}</span>&gt;</span>toggle<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">Fragment</span>&gt;</span></span>
+  );
+}
+
+handleToggle() {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">show</span>: <span class="hljs-keyword">this</span>.state.show ? <span class="hljs-literal">false</span> : <span class="hljs-literal">true</span>
+  })
+}
+</code></pre>
+<pre class="hljs"><code><span class="hljs-selector-class">.show</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+  <span class="hljs-attribute">transition</span>: all <span class="hljs-number">1s</span> ease-in;
+}
+
+<span class="hljs-selector-class">.hide</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+  <span class="hljs-attribute">transition</span>: all <span class="hljs-number">1s</span> ease-in;
+}
+</code></pre>
+<p>这样在浏览器中通过控制 toggle，就可以看到 hello 若隐若现了，就借助了 CSS3 实现了最基本的动画样式</p>
+<h1>使用 react-transition-group 实现动画</h1>
+<p>在 github 中搜索 <code>react-transition-group</code> ,可以看到 star 最多的项目，就是 <a href="https://github.com/reactjs/react-transition-group">react-transition-group</a></p>
+<p>先安装依赖 <code>npm install react-transition-group --save</code></p>
+<p>然后在项目中引入 <code>import { CSSTransition } from 'react-transition-group'</code></p>
+<p>可以看到官网的<a href="https://reactcommunity.org/react-transition-group/css-transition">demo</a></p>
+<blockquote>
+<p><code>classNames=&quot;fade&quot; applies fade-enter, fade-enter-active, fade-enter-done, fade-exit, fade-exit-active, fade-exit-done, fade-appear, and fade-appear-active</code>.</p>
+</blockquote>
+<h1>Transition</h1>
+<p>过渡组件 ( <code>Transiton</code> ) 允许您用一个简单的声明性 API 描述随着时间的推移从一个组件状态到另一个组件状态的转换</p>
+<p>默认展示组件某个特定状态的样式，而不是创建渐变动画</p>
+<pre class="hljs"><code>&lt;Transition
+  <span class="hljs-keyword">in</span>={<span class="hljs-keyword">this</span>.state.show}
+  timeout={<span class="hljs-number">1000</span>}
+  <span class="hljs-comment">// unmountOnExit</span>
+&gt;
+  {state=&gt;{
+    <span class="hljs-keyword">if</span>(state === <span class="hljs-string">'entering'</span> || state === <span class="hljs-string">'entered'</span>)
+      <span class="hljs-keyword">return</span> <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">className</span>=<span class="hljs-string">"on"</span>&gt;</span>{state}<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+    <span class="hljs-keyword">else</span> 
+      <span class="hljs-keyword">return</span> <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">className</span>=<span class="hljs-string">"off"</span>&gt;</span>{state}<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  }}
+&lt;<span class="hljs-regexp">/Transition&gt;
+&lt;button onClick={this.handleAddItem}&gt;toggle {`${this.state.show}`}&lt;/</span>button&gt;
+</code></pre>
+<p><code>Transition</code> 中间传入一个函数，也就是属性 children ，并获得一个参数 state,</p>
+<p>state 包含了内部组件的 <code>transition</code> 状态，分别有</p>
+<ul>
+<li><code>entering</code></li>
+<li><code>entered</code></li>
+<li><code>exiting</code></li>
+<li><code>exited</code></li>
+<li><code>unmounted</code></li>
+</ul>
+<p>上述 🌰 的意思可以理解为</p>
+<p>你设置的时间是 1000ms，当 in 从 false 变成 true 的时候， 显示 <code>&lt;div className=&quot;on&quot;&gt;{state}&lt;/div&gt;</code>（  <code>entering</code> 和 <code>entered</code> 的状态 ）, 相反的，当 in 从 true 变成 false 的时候，1000ms 之后, 切换到 <code>&lt;div className=&quot;off&quot;&gt;{state}&lt;/div&gt;</code>（ <code>exiting</code> 和 <code>exited</code> 的状态 ）</p>
+<h2>运行原理</h2>
+<p>从头来看，它其实就是一个状态机，跟动画没什么关系，所以它的名字也是叫 <code>Transition</code></p>
+<p>有点像路由，在不同的组件中选择一个渲染，唯一的区别是，它只有4个路由选项:</p>
+<p>进入 ( in === true )时，url 是 <code>entering</code>，1000ms 后，url 变成 <code>entered</code></p>
+<p>退出 ( in ===false ) 时，url 是 <code>exiting</code>，1000ms 后，url 变成 <code>exited</code></p>
+<p>然后加上 css <code>ease-in-out</code> 就成了动画</p>
+<h1>CSSTransition</h1>
+<p>展示组件从状态到另一个状态的动态变化，需要定义 className 和相关样式</p>
+<p>最常用的是用来动画一个组件的安装和卸载，但也可以用来描述在适当的过渡状态</p>
+<p>可以将我们之前用 CSS3 写的样式修改为</p>
+<pre class="hljs"><code>render() {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Fragment</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">CSSTransition</span>
+        <span class="hljs-attr">in</span>=<span class="hljs-string">{this.state.show}</span>
+        <span class="hljs-attr">timeout</span>=<span class="hljs-string">{1000}</span>
+        // 前缀名注意<span class="hljs-attr">S</span>
+        <span class="hljs-attr">classNames</span>=<span class="hljs-string">'fade'</span>
+      &gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>hello<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">CSSTransition</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleToggle}</span>&gt;</span>toggle<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>  
+    <span class="hljs-tag">&lt;/<span class="hljs-name">Fragment</span>&gt;</span></span>
+  )
+}
+
+handleToggle() {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">show</span>: <span class="hljs-keyword">this</span>.state.show ? <span class="hljs-literal">false</span> : <span class="hljs-literal">true</span>
+  })
+}
+</code></pre>
+<pre class="hljs"><code>
+<span class="hljs-selector-class">.fade-enter</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-selector-class">.fade-enter-active</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+  <span class="hljs-attribute">transition</span>: opacity <span class="hljs-number">1s</span> ease-in;
+}
+
+<span class="hljs-comment">/* 入场动画执行完毕后，保持状态 */</span>
+<span class="hljs-selector-class">.fade-enter-done</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+}
+
+<span class="hljs-selector-class">.fade-exit</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+}
+
+<span class="hljs-selector-class">.fade-exit-active</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+  <span class="hljs-attribute">transition</span>: opacity <span class="hljs-number">1s</span> ease-in;
+}
+
+<span class="hljs-selector-class">.fade-exit-done</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+}
+</code></pre>
+<p>这样就可以实现和之前相同的动画效果了</p>
+<p>咋一看虽然稍微复杂了点，但是它可以带给我们很多新的特效</p>
+<p>比如参数 <code>in</code> 是 <code>true</code> or <code>false</code>，代表了是’淡入’状态，还是’淡出’状态</p>
+<p><code>timeout</code> 代表了整个的持续时间</p>
+<p><code>unmountOnExit</code> 属性，添加到代码中，会发现当我们点隐藏的时候，对应的 DOM 被移出了，点显示的时候，DOM 又出来了</p>
+<p>借助 <code>react-transition-group</code> 这个库，实现起来非常简单</p>
+<p>继续看它的<a href="https://reactcommunity.org/react-transition-group/css-transition">文档</a>，这个库提供了很多钩子函数</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49338677-9d870e00-f65f-11e8-82e0-91b81aaa7202.png" alt="image"></p>
+<p>假设当这个 hello 显示出来之后，希望它的颜色能变成红色,现在实现就变得很简单了</p>
+<p>只需要在入场动画结束之后，将 color 变成 red</p>
+<pre class="hljs"><code><span class="hljs-selector-class">.fade-enter-done</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+  <span class="hljs-attribute">color</span>: red
+}
+</code></pre>
+<p>还可以用 js 的方式来实现，怎么做呢？</p>
+<p>在 <code>CSSTransition</code> 组件中添加一个钩子<code>onEntered</code></p>
+<pre class="hljs"><code>&lt;CSSTransition
+  <span class="hljs-keyword">in</span>={<span class="hljs-keyword">this</span>.state.show}
+  timeout={<span class="hljs-number">1000</span>}
+  classNames=<span class="hljs-string">'fade'</span>
+  unmountOnExit
+  onEntered={(el) =&gt; {el.style.color=<span class="hljs-string">'blue'</span>}}
+&gt;
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>hello<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+<span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">CSSTransition</span>&gt;</span></span>
+</code></pre>
+<p>钩子和生命周期函数是一个东西，就是在某个时刻会自动执行的函数</p>
+<p><code>onEntered</code> 钩子什么时候会自动执行呢？就是当入场动画结束之后，就会被执行</p>
+<p><code>el</code> 就是指的内部的 <code>div</code> 元素</p>
+<p>如果希望第一次展示的时候也有动画效果，应该怎么办呢？</p>
+<p>同样也需要在 <code>CSSTransition</code> 组件中添加一个 <code>appear={true}</code> ,同时在入场动画的第一帧添加 <code>fade-appear</code> ,同时在入场动画的第二帧以及整个过程中添加 <code>fade-appear-active</code></p>
+<pre class="hljs"><code><span class="hljs-comment">/* enter是入场前的刹那（点击按钮），appear指页面第一次加载前的一刹那（自动） */</span>
+<span class="hljs-selector-class">.fade-enter</span>, <span class="hljs-selector-class">.fade-appear</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-comment">/* enter-active指入场后到入场结束的过程，appear-active则是页面第一次加载自动执行 */</span>
+<span class="hljs-selector-class">.fade-enter-active</span>, <span class="hljs-selector-class">.fade-appear-active</span> {
+  <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+  <span class="hljs-attribute">transition</span>: opacity <span class="hljs-number">1s</span> ease-in;
+}
+</code></pre>
+<p>这些也就是 <code>react-transition-group</code> 这个库比较核心的内容，其他更复杂的方法可以查阅 <a href="https://reactcommunity.org/react-transition-group/transition">Transition</a></p>
+<h1>TransitionGroup</h1>
+<p>如果要做多个元素的动画切换呢？</p>
+<p>这个时候就要用到 <a href="https://reactcommunity.org/react-transition-group/transition-group">TransitionGroup</a></p>
+<p><code>TransitionGroup</code> 实际上就是实现多个Transition 或者CSSTransition组合的效果</p>
+<p>用来管理一些列组件的动画，例如列表</p>
+<p>首先引入这个组件 <code>import TransitionGroup from 'react-transition-group'</code></p>
+<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-keyword">this</span>.state = {
+    <span class="hljs-attr">data</span>: []
+  }
+  <span class="hljs-keyword">this</span>.handleAddItem = <span class="hljs-keyword">this</span>.handleAddItem.bind(<span class="hljs-keyword">this</span>)
+}
+
+render() {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Fragment</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">TransitionGroup</span>&gt;</span>
+      {
+        this.state.data.map((item, index) =&gt; {
+          return (
+            <span class="hljs-tag">&lt;<span class="hljs-name">CSSTransition</span>
+              <span class="hljs-attr">timeout</span>=<span class="hljs-string">{1000}</span>
+              <span class="hljs-attr">classNames</span>=<span class="hljs-string">'fade'</span>
+              <span class="hljs-attr">unmountOnExit</span>
+              <span class="hljs-attr">onEntered</span>=<span class="hljs-string">{(el)</span> =&gt;</span> {el.style.color='blue'}}
+              appear={true}
+              key={index}
+            &gt;
+              <span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>{item}<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">CSSTransition</span>&gt;</span>
+          )
+        })
+      }
+      <span class="hljs-tag">&lt;/<span class="hljs-name">TransitionGroup</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleAddItem}</span>&gt;</span>toggle<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">Fragment</span>&gt;</span></span>
+  )
+}
+
+handleAddItem() {
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function">(<span class="hljs-params">prevState</span>) =&gt;</span> {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">data</span>: [...prevState.data, <span class="hljs-string">'item'</span>]
+    }
+  })
+}
+</code></pre>
+<p>这样配合 <code>TransitionGroup</code> 和 <code>CSSTransition</code> 就可以进行多个元素或者组件切换这样的动画效果了</p>
+<h1>完整代码</h1>
+<p><a href="https://github.com/lulujianglab/react-todolist-transition/tree/master/transition-react"> transition 动画</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

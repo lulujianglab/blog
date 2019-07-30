@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ant-design-pro踩坑 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">ant-design-pro踩坑</h1>
+          <p class="post-date">2018-07-23</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>字典表级联的需求我们在项目里边也是经常碰到，下一级选择栏依赖于上一级选择栏选中的结果，对于model中定义state，一定<strong>要用不同的key值代替不同的接口数据</strong></p>
+<h1>问题</h1>
+<p>对于多次请求的接口，如果只用一个key值，下次接口数据render的时候，上次接口请求的数据就会被覆盖或者出现下次接口请求的数据不会更新的bug</p>
+<h1>实例</h1>
+<p>比如在routes文件夹下的组件中请求接口数据</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> CreateForm = Form.create()(<span class="hljs-function"><span class="hljs-params">props</span> =&gt;</span> { <span class="hljs-comment">//创建组件CreateForm，为Operation子组件</span>
+          
+  <span class="hljs-keyword">const</span> { getFieldDecorator } = props.form;
+  <span class="hljs-keyword">const</span> { optionsA, handleChangeA, handleChangeB, optionsB } = props; <span class="hljs-comment">//获取父组件传入子组件的值</span>
+  ......
+  const handleSelectChangeA = <span class="hljs-function">(<span class="hljs-params">id</span>) =&gt;</span> { 
+    handleChangeA(id)  
+  };
+  <span class="hljs-keyword">const</span> handleSelectChangeB = <span class="hljs-function">(<span class="hljs-params">id</span>) =&gt;</span> { 
+    handleChangeB(id)  
+  };
+ <span class="hljs-keyword">return</span> (...)
+}
+
+<span class="hljs-comment">// 关联model中的数据，在render中直接用this.props可以获取state中的数据</span>
+@connect(<span class="hljs-function">(<span class="hljs-params">{ operation }</span>) =&gt;</span> ({
+   ...operation,
+}))
+@Form.create()
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Operation</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PureComponent</span> </span>{
+
+  <span class="hljs-comment">// 组件初始化请求数据</span>
+  componentDidMount() {
+    <span class="hljs-keyword">const</span> { dispatch } = <span class="hljs-keyword">this</span>.props;
+    <span class="hljs-keyword">const</span> query = {
+      <span class="hljs-attr">level</span>: <span class="hljs-string">'a'</span>,
+      <span class="hljs-attr">pId</span>: <span class="hljs-number">0</span>
+    }
+    dispatch({
+      <span class="hljs-attr">type</span>: <span class="hljs-string">'operation/fetch'</span>,
+      <span class="hljs-attr">payload</span>: query,
+    });
+  }
+    
+  <span class="hljs-comment">// handleChangeA为第一个select选中时处理数据的函数</span>
+  handleChangeA = <span class="hljs-function"><span class="hljs-params">id</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'id'</span>, id)
+    <span class="hljs-keyword">const</span> { dispatch } = <span class="hljs-keyword">this</span>.props;
+    <span class="hljs-keyword">const</span> params = {
+      <span class="hljs-attr">level</span>: <span class="hljs-string">'b'</span>,
+      <span class="hljs-attr">pId</span>: id
+    };
+    dispatch({
+      <span class="hljs-attr">type</span>: <span class="hljs-string">'operation/fetch'</span>,
+      <span class="hljs-attr">payload</span>: params,
+    });  
+  }
+
+  <span class="hljs-comment">// handleChangeB为第二个select选中时处理数据的函数</span>
+  handleChangeB = <span class="hljs-function"><span class="hljs-params">id</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'id'</span>, id)
+    <span class="hljs-keyword">const</span> { dispatch } = <span class="hljs-keyword">this</span>.props;
+    <span class="hljs-keyword">const</span> params = {
+      <span class="hljs-attr">level</span>: <span class="hljs-string">'c'</span>,
+      <span class="hljs-attr">pId</span>: id
+    };
+    dispatch({
+      <span class="hljs-attr">type</span>: <span class="hljs-string">'operation/fetch'</span>,
+      <span class="hljs-attr">payload</span>: params,
+    });  
+  }
+
+  render() {
+    ......
+
+    <span class="hljs-comment">// 将方法handleChange传入子组件CreateForm</span>
+    <span class="hljs-keyword">const</span> parentMethods = {
+      <span class="hljs-attr">handleChangeA</span>: <span class="hljs-keyword">this</span>.handleChangeA,
+      <span class="hljs-attr">handleChangeB</span>: <span class="hljs-keyword">this</span>.handleChangeB,
+    };
+
+    <span class="hljs-comment">//处理数据格式，过滤出选中的id和professionalName，用以传入子组件CreateForm</span>
+    <span class="hljs-keyword">const</span> optionsA = (<span class="hljs-keyword">this</span>.props.aTags || []).map(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Option</span> <span class="hljs-attr">key</span>=<span class="hljs-string">{item.id}</span>&gt;</span>{item.professionalName}<span class="hljs-tag">&lt;/<span class="hljs-name">Option</span>&gt;</span></span>)
+    <span class="hljs-keyword">const</span> optionsB = (<span class="hljs-keyword">this</span>.props.bTags || []).map(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Option</span> <span class="hljs-attr">key</span>=<span class="hljs-string">{item.id}</span>&gt;</span>{item.professionalName}<span class="hljs-tag">&lt;/<span class="hljs-name">Option</span>&gt;</span></span>)
+        
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">className</span>=<span class="hljs-string">{styles.tabs}</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">Tabs</span> <span class="hljs-attr">defaultActiveKey</span>=<span class="hljs-string">"2"</span> <span class="hljs-attr">onChange</span>=<span class="hljs-string">{callback}</span> <span class="hljs-attr">tabBarStyle</span>=<span class="hljs-string">{{</span> <span class="hljs-attr">marginBottom:</span> <span class="hljs-attr">24</span> }}&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">TabPane</span> <span class="hljs-attr">tab</span>=<span class="hljs-string">"tab1"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"1"</span>&gt;</span>Content of Tab Pane 1<span class="hljs-tag">&lt;/<span class="hljs-name">TabPane</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">TabPane</span> <span class="hljs-attr">tab</span>=<span class="hljs-string">"tab2"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"2"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">Collapse</span> <span class="hljs-attr">bordered</span>=<span class="hljs-string">{false}</span> <span class="hljs-attr">defaultActiveKey</span>=<span class="hljs-string">{[</span>'<span class="hljs-attr">2</span>']}&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">Panel</span> <span class="hljs-attr">header</span>=<span class="hljs-string">"panel1"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"1"</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-name">Panel</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">Panel</span> <span class="hljs-attr">header</span>=<span class="hljs-string">"panel2"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"2"</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">CreateForm</span> {<span class="hljs-attr">...parentMethods</span>} <span class="hljs-attr">optionsA</span>=<span class="hljs-string">{optionsA}</span> <span class="hljs-attr">optionsB</span>=<span class="hljs-string">{optionsB}/</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-name">Panel</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">Panel</span> <span class="hljs-attr">header</span>=<span class="hljs-string">"panel3"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"3"</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-name">Panel</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">Collapse</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-name">TabPane</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">TabPane</span> <span class="hljs-attr">tab</span>=<span class="hljs-string">"tab3"</span> <span class="hljs-attr">key</span>=<span class="hljs-string">"3"</span>&gt;</span>Content of Tab Pane 3<span class="hljs-tag">&lt;/<span class="hljs-name">TabPane</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">Tabs</span>&gt;</span>
+     <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+   );
+  }
+}
+</span></code></pre>
+<p>然后在model下对数据请求进行逻辑处理</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">namespace</span>: <span class="hljs-string">'operation'</span>,
+  <span class="hljs-attr">state</span>: {
+    <span class="hljs-attr">aTags</span>: [],
+    <span class="hljs-attr">bTags</span>: [],
+    <span class="hljs-attr">cTags</span>: [],
+  },
+  <span class="hljs-attr">effects</span>: {
+    *fetch({ payload }, { call, put }) {
+      <span class="hljs-keyword">const</span> { level } = payload;
+      <span class="hljs-keyword">const</span> levelMap = {
+        <span class="hljs-string">'a'</span>: <span class="hljs-string">'aTags'</span>,
+        <span class="hljs-string">'b'</span>: <span class="hljs-string">'bTags'</span>,
+        <span class="hljs-string">'c'</span>: <span class="hljs-string">'cTags'</span>,
+      }
+      <span class="hljs-keyword">const</span> target = levelMap[level];
+      <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">yield</span> call(query,payload);
+      <span class="hljs-keyword">const</span> result = {
+        [target]: response,
+      }
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'----'</span>, result);
+      <span class="hljs-keyword">yield</span> put({
+        <span class="hljs-attr">type</span>: <span class="hljs-string">'saveTag'</span>,
+        <span class="hljs-attr">payload</span>: result,
+      });
+    },
+  },
+  <span class="hljs-attr">reducers</span>: {
+    saveTag(state, action) {
+      <span class="hljs-keyword">return</span> {
+        ...state,
+        ...action.payload,
+      };
+    },
+  },
+}
+</code></pre>
+<p>这里的aTags: []，bTags: []，cTags: []分别存放三次请求的数据，而不是直接定义Tags来存放三次请求数据</p>
+<p>类似于这种结果界面</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/43082058-b065cdec-8ec5-11e8-9d85-ae06a065be0d.png" alt="image"></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>一篇文章告诉你谁才是最好用的 Javascript 请求库 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">一篇文章告诉你谁才是最好用的 Javascript 请求库</h1>
+          <p class="post-date">2019-02-27</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>在前端这个迅猛发展的领域，前端请求方法也是迭出不穷，从原生 <code>XHR</code> 到 <code>jQuery ajax</code>，再到现在的 <code>axios</code> 和 <code>fetch</code>，那发请求的最佳实践是什么呢？这个答案我们在文章中会慢慢给出</p>
+<p>在分析 <code>axios</code> 封装方法之前，我们先来看看 <code>jQuery ajax</code> 和 <code>fetch</code> 方法</p>
+<h2>jQuery ajax</h2>
+<p><code>jQuery ajax</code> 是对原生 <code>XHR</code> 的封装，还支持 <code>JSONP</code></p>
+<pre class="hljs"><code>$.ajax({
+  <span class="hljs-attr">type</span>: <span class="hljs-string">'POST'</span>,
+  <span class="hljs-attr">url</span>: url,
+  <span class="hljs-attr">data</span>: data,
+  <span class="hljs-attr">dataType</span>: dataType,
+  <span class="hljs-attr">success</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{},
+  <span class="hljs-attr">error</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{}
+})
+</code></pre>
+<p>但是随着 <code>react</code>，<code>vue</code> 等前端框架的兴起，<code>jQuery</code> 早已不复当年之勇</p>
+<p>且 <code>jQuery</code> 整个项目太大，单纯使用 <code>ajax</code> 却要引入整个 <code>jQuery</code> 非常的不合理，于是便有了 <code>fetch</code> 的解决方案</p>
+<h2>fetch</h2>
+<p><code>fetch</code> 号称是 <code>ajax</code> 的替代品，它的 <code>API</code> 是基于 <code>Promise</code> 设计的</p>
+<p>而且 <strong><code>fetch</code></strong> 也是 <strong>whatwg 的标准</strong>，具体可以参考 <a href="https://fetch.spec.whatwg.org/">fetch Living Standard</a></p>
+<pre class="hljs"><code><span class="hljs-comment">// 原生 XHR</span>
+<span class="hljs-keyword">var</span> xhr = <span class="hljs-keyword">new</span> XMLHttpRequest()
+xhr.open(<span class="hljs-string">'GET'</span>, url)
+xhr.onreadystatechange = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">if</span> (xhr.readyState === <span class="hljs-number">4</span> &amp;&amp; xhr.status === <span class="hljs-number">200</span>) {
+    <span class="hljs-built_in">console</span>.log(xhr.responseText) <span class="hljs-comment">// 从服务器获取数据</span>
+  }
+}
+xhr.send()
+
+<span class="hljs-comment">// fetch</span>
+fetch(url).then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> {
+  <span class="hljs-keyword">if</span> (response.ok) {
+    response.json()
+  }
+})
+.then(<span class="hljs-function"><span class="hljs-params">data</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(data))
+.catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(err))
+</code></pre>
+<p>再搭配上 <code>async</code> / <code>await</code> 将会让我们的异步代码更加优雅</p>
+<pre class="hljs"><code><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">test</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">let</span> response = <span class="hljs-keyword">await</span> fetch(url)
+  <span class="hljs-keyword">let</span> data = <span class="hljs-keyword">await</span> response.json()
+  <span class="hljs-built_in">console</span>.log(data)
+}
+</code></pre>
+<p><code>fetch</code> 相对于是更加底层的，很多情况下都需要我们再次封装，比如需要手动将参数拼接成 'name=test' 的格式，而 <code>jquery ajax</code> 已经封装好了</p>
+<pre class="hljs"><code><span class="hljs-comment">// jquery ajax</span>
+$.post(url, {<span class="hljs-attr">name</span>: <span class="hljs-string">'test'</span>})
+
+<span class="hljs-comment">// fetch</span>
+fetch(url, {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">'POST'</span>,
+  <span class="hljs-attr">body</span>: <span class="hljs-built_in">Object</span>.keys({<span class="hljs-attr">name</span>: <span class="hljs-string">'test'</span>}).map(<span class="hljs-function">(<span class="hljs-params">key</span>) =&gt;</span> {
+    <span class="hljs-keyword">return</span> <span class="hljs-string">`<span class="hljs-subst">${<span class="hljs-built_in">encodeURIComponent</span>(key)}</span> = <span class="hljs-subst">${<span class="hljs-built_in">encodeURIComponent</span>(params[key])}</span>`</span>
+  }).join(<span class="hljs-string">'&amp;'</span>)
+})
+</code></pre>
+<p>除此之外，<code>fetch</code> 还有很多问题，比如</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/55151930-449d3180-518a-11e9-8062-9b831bcc9c70.gif" alt="问号"></p>
+<ul>
+<li>
+<p><code>fetch</code> 只对网络请求报错，对 400，500 都当做成功的请求，需要封装去处理</p>
+</li>
+<li>
+<p><code>fetch</code> 不支持取消（最大的问题），不支持超时控制，使用 <code>setTimeout</code> 及 <code>Promise.reject</code> 实现的超时控制并不能阻止请求过程继续在后台运行，造成了流量的浪费</p>
+</li>
+<li>
+<p><code>fetch</code> 没有办法原生监测请求的进度，而 <code>XHR</code> 可以</p>
+</li>
+</ul>
+<p>具体问题可以参考  <a href="http://undefinedblog.com/window-fetch-is-not-as-good-as-you-imagined/?utm_source=caibaojian.com">fetch 没有你想象的那么美</a> 和  <a href="https://www.cnblogs.com/huilixieqi/p/6494380.html">fetch 使用的常见问题及解决方法</a></p>
+<p>所以 fetch 并不是开箱即用的</p>
+<h2>axios</h2>
+<p>对比于 <code>jQuery ajax</code> 、 <code>fetch</code> 、 <code>axios</code> 的优点简直不要太多，它也是 <code>vue</code> 官网推荐使用的</p>
+<p><code>axios</code> 是一个基于 <code>Promise</code> 的 <code>HTTP</code> 库，可以用于浏览器和 <code>nodejs</code> 中，主要特性有</p>
+<ul>
+<li>从浏览器中创建 <code>XMLHttpRequest</code></li>
+<li>从 <code>node.js</code> 创建 <code>http</code> 请求</li>
+<li>支持 <code>Promise API</code></li>
+<li>拦截请求和响应</li>
+<li>转换请求数据和响应数据</li>
+<li>取消请求</li>
+<li>自动转换 <code>JSON</code> 数据</li>
+<li>客户端支持防御 <code>XSRF</code></li>
+</ul>
+<p><code>axios</code> 本质上也是对原生 <code>XHR</code> 的封装</p>
+<pre class="hljs"><code>axios.post(<span class="hljs-string">'/upload'</span>, {
+  <span class="hljs-attr">userName</span>: <span class="hljs-string">'zhangsan'</span>
+})
+.then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(res, res.data)
+})
+.catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(err)
+})
+</code></pre>
+<p>对于客户端支持防御 XSRF，实际上就是让你的每个请求都带一个从 <code>cookie</code> 中拿到的 <code>key</code>，根据浏览器同源策略，假冒的网站是拿不到你 <code>cookie</code> 中的 <code>key</code>，这样后台就可以轻松辨别出这个请求是否是用户在假冒网站上的误导输入，从而采取正确的策略</p>
+<p><strong><code>axios</code> 既提供了并发的封装方法，也没有 <code>fetch</code> 的各种问题，而且体积也较小，当之无愧现在最应该选用的请求的方式</strong></p>
+<p>axios 支持同构, 对于既要支持 SPA 同时支持 SSR 的项目来说非常好用</p>
+<p>具体的使用方法我们可以查看 <a href="http://www.axios-js.com/zh-cn/docs/index.html">axios 中文文档</a></p>
+<p>下面是一些封装方法的详细使用</p>
+<h3>合并请求</h3>
+<pre class="hljs"><code><span class="hljs-keyword">let</span> q1 = axios.post(<span class="hljs-string">'/add'</span>, <span class="hljs-string">'b=2'</span>)
+<span class="hljs-keyword">let</span> q2 = axios.post(<span class="hljs-string">'/upload'</span>, <span class="hljs-string">'a=1'</span>)
+
+<span class="hljs-comment">// 合并这两个请求，并处理其成功和失败</span>
+<span class="hljs-comment">// 一般会用于两个分开的相关联的请求，缺一不可</span>
+axios.all([q1, q2])
+.then(axios.spread(<span class="hljs-function">(<span class="hljs-params">res1, res2</span>) =&gt;</span> {
+  <span class="hljs-comment">// 全部成功</span>
+  <span class="hljs-built_in">console</span>.log(res1, res2)
+}))
+.catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+  <span class="hljs-comment">// 其一失败</span>
+  <span class="hljs-built_in">console</span>.log(err)
+})
+</code></pre>
+<h3>options 参数</h3>
+<pre class="hljs"><code><span class="hljs-comment">// axios.headers = {} // 覆盖原本默认头</span>
+<span class="hljs-comment">// axios.defalut.headers.accept = 'abc' // 走默认头，修改个例</span>
+            
+<span class="hljs-comment">// 请求一</span>
+axios.get(<span class="hljs-string">'/'</span>, {
+  <span class="hljs-attr">params</span>: {<span class="hljs-attr">id</span>: <span class="hljs-number">1</span>},
+
+  <span class="hljs-comment">// transformResponse 在传递给 then/catch 前，允许修改响应数据</span>
+  transformResponse: <span class="hljs-function">(<span class="hljs-params">data</span>) =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(data)
+
+    <span class="hljs-comment">// 就是 res.data，可以更改</span>
+    data = <span class="hljs-string">'data changed'</span>
+
+    <span class="hljs-keyword">return</span> data
+  }
+})
+.then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(res, res.data)
+})
+.catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(err)
+})
+
+<span class="hljs-comment">// 请求二</span>
+axios.post(<span class="hljs-string">'/upload'</span>, <span class="hljs-string">'name=jack'</span>, {
+  <span class="hljs-attr">timeout</span>: <span class="hljs-number">1000</span>,
+
+  <span class="hljs-comment">// transformRequest 允许在向服务器发送前，修改请求数据</span>
+  <span class="hljs-comment">// 只能用在 'PUT', 'POST' 和 'PATCH' 这几个请求方法</span>
+  transformRequest: <span class="hljs-function">(<span class="hljs-params">data</span>) =&gt;</span> {
+    <span class="hljs-comment">// 加工请求体数据</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-string">'name = rose'</span>
+  }
+})
+.then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(res, res.data)
+})
+.catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(err)
+})
+</code></pre>
+<h3>取消请求</h3>
+<p>这里我们以上传文件为例，在 vuejs 中使用</p>
+<pre class="hljs"><code>choose file : <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span> = <span class="hljs-string">"file"</span> <span class="hljs-attr">name</span> = <span class="hljs-string">"file"</span> @<span class="hljs-attr">change</span> = <span class="hljs-string">"changeFile"</span> /&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span> @<span class="hljs-attr">click</span> = <span class="hljs-string">"sendAjax"</span>&gt;</span>sendReq<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span> @<span class="hljs-attr">click</span> = <span class="hljs-string">"cancelAjax"</span>&gt;</span>cancelReq<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span> @<span class="hljs-attr">click</span> = <span class="hljs-string">"resumeAjax"</span>&gt;</span>ContinueSendlReq<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+</code></pre>
+<pre class="hljs"><code><span class="hljs-comment">// 发送请求</span>
+sendAjax() {
+
+  <span class="hljs-comment">// 在请求前需要先生成独立的标识，才能更方便取消请求</span>
+  <span class="hljs-keyword">const</span> CancelToken = axios.CancelToken <span class="hljs-comment">// 获取取消标识</span>
+  <span class="hljs-keyword">const</span> source = CancelToken.source() <span class="hljs-comment">// 使用 CancelToken.source 工厂方法创建 cancel token</span>
+  <span class="hljs-comment">// 保存起来方便取消调用</span>
+  <span class="hljs-keyword">this</span>.source = source
+            
+  <span class="hljs-keyword">let</span> fd = <span class="hljs-keyword">new</span> FormData()
+  fd.append(<span class="hljs-string">'file'</span>, <span class="hljs-keyword">this</span>.file)
+  axios.post(<span class="hljs-string">'/uploadfile'</span>, fd, {
+    <span class="hljs-comment">// 携带取消标识</span>
+    cancelToken: source.token,
+    <span class="hljs-attr">onUploadProgress</span>: <span class="hljs-function">(<span class="hljs-params">progressEvent</span>) =&gt;</span> {
+      <span class="hljs-built_in">console</span>.log(progressEvent.loaded)
+      <span class="hljs-built_in">console</span>.log(progressEvent.total)
+
+      <span class="hljs-comment">// 保存最后上传大小</span>
+      <span class="hljs-keyword">this</span>.loaded = progressEvent.loaded
+
+      <span class="hljs-keyword">this</span>.rate = (progressEvent.loaded / progressEvent.total) * <span class="hljs-number">100</span>
+    }
+  })
+  .then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(res.data)
+  })
+  .catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(err)
+  })
+},
+
+<span class="hljs-comment">// 取消请求</span>
+cancelAjax() {
+  <span class="hljs-keyword">this</span>.source.cancel() <span class="hljs-comment">// 通过内部存好的方法做取消</span>
+},
+
+<span class="hljs-comment">// 继续请求</span>
+resumeAjax() {
+  <span class="hljs-comment">// 剪裁文件        开始        结尾</span>
+  <span class="hljs-keyword">const</span> fileData = <span class="hljs-keyword">this</span>.file.slice(<span class="hljs-keyword">this</span>.loaded + <span class="hljs-number">1</span>, <span class="hljs-keyword">this</span>.file.size)
+  <span class="hljs-keyword">let</span> fd = <span class="hljs-keyword">new</span> FormData()
+  fd.append(<span class="hljs-string">'file'</span>, fileData)
+
+  <span class="hljs-comment">// 为了后续续传以后，再取消</span>
+  <span class="hljs-keyword">const</span> CancelToken = axios.CancelToken <span class="hljs-comment">// 获取取消标识</span>
+  <span class="hljs-keyword">const</span> source = CancelToken.source() <span class="hljs-comment">// 使用 CancelToken.source 工厂方法创建 cancel token</span>
+  <span class="hljs-keyword">this</span>.source = source
+
+  axios.post(<span class="hljs-string">'/uploadfile'</span>, fd, {
+    <span class="hljs-comment">// 携带取消标识</span>
+    cancelToken: source.token,
+    <span class="hljs-attr">onUploadProgress</span>: <span class="hljs-function">(<span class="hljs-params">progressEvent</span>) =&gt;</span> {
+      <span class="hljs-comment">// 保存最后上传大小</span>
+      <span class="hljs-keyword">this</span>.loaded = progressEvent.loaded
+      <span class="hljs-keyword">this</span>.rate = (progressEvent.loaded / progressEvent.total) * <span class="hljs-number">100</span>
+    }
+  })
+  .then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(res.data)
+  })
+  .catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(err)
+  })
+},
+
+<span class="hljs-comment">// 上传文件</span>
+changeFile(e) {
+  <span class="hljs-comment">// console.log(e.target.files[0])</span>
+  <span class="hljs-keyword">this</span>.file = e.target.files[<span class="hljs-number">0</span>]
+}
+</code></pre>
+<p>为了更方便的取消请求，我们在发送请求时，需要有独立的标识</p>
+<p>取消请求大概来说分为三步</p>
+<ol>
+<li>获取请求标识</li>
+<li>使用 <code>CancelToken.source</code> 工厂方法创建 <code>cancel</code> <code>token</code>，保存起来方便取消调用</li>
+<li>通过内部存好的方法做取消</li>
+</ol>
+<h3>拦截器</h3>
+<p><strong>在请求或响应被 <code>then</code> 或 <code>catch</code> 处理前拦截它们</strong></p>
+<p>比如实现一个功能如下</p>
+<ol>
+<li>在请求发起之前，show 一个 loading 出来</li>
+<li>响应回来之后，关闭这个 loading</li>
+</ol>
+<p>可以通过设置一个标识表示 loading 出现与否，默认是不出现，在在发送请求之前将 loading 标识设为 true，拿到响应数据之后，将 loading 标识设为 false</p>
+<pre class="hljs"><code>data() {
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">isshow</span>: <span class="hljs-literal">false</span> <span class="hljs-comment">// loading默认不出现</span>
+  }
+},
+</code></pre>
+<p>添加请求拦截器</p>
+<pre class="hljs"><code><span class="hljs-comment">// 配置请求拦截器  use 给请求之前做的事可以是多件，可以 use 多次</span>
+axios.interceptors.request.use(<span class="hljs-function">(<span class="hljs-params">config</span>) =&gt;</span> {
+  <span class="hljs-comment">// 在发送请求之前做些什么</span>
+  <span class="hljs-built_in">console</span>.log(config)
+
+  <span class="hljs-keyword">this</span>.isshow = <span class="hljs-literal">true</span> <span class="hljs-comment">// loading 出现</span>
+  <span class="hljs-keyword">return</span> config
+}, (error) =&gt; {
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(error)
+})
+</code></pre>
+<p>添加响应拦截器</p>
+<pre class="hljs"><code> axios.interceptors.response.use(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+  <span class="hljs-comment">// 对响应数据做点什么</span>
+  <span class="hljs-built_in">console</span>.log(res) <span class="hljs-comment">// res.config</span>
+  
+  <span class="hljs-keyword">this</span>.isshow = <span class="hljs-literal">false</span> <span class="hljs-comment">// loading 消失</span>
+  <span class="hljs-keyword">return</span> res
+}, (error) =&gt; {
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(error)
+})
+</code></pre>
+<p>在拦截器中我们也可以实现一个类似 cookie 的机制，比如现在广泛使用的 <a href="https://jwt.io/introduction/">jwt</a>，通过客户端保存数据，再在请求中带回服务器</p>
+<ol>
+<li>服务器发送 cookie 到客户端保存起来，在响应拦截器中完成</li>
+<li>然后在请求之前，从本地获取 cookie，设置请求头拦截器</li>
+</ol>
+<p>在服务端代码中设置响应头中包含 <code>token: 'abc'</code> 的信息</p>
+<pre class="hljs"><code>server.post(<span class="hljs-string">'/token'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">req, res</span>)</span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'body'</span>, req.body)
+  <span class="hljs-comment">// 给客户端一个标识</span>
+  res.set(<span class="hljs-string">'token'</span>, <span class="hljs-string">'abc'</span>)
+
+  res.send({<span class="hljs-attr">token</span>: <span class="hljs-string">'abc'</span>, <span class="hljs-attr">msg</span>: <span class="hljs-string">'post请求成功'</span>})
+})
+</code></pre>
+<p>然后前端请求数据，通过响应拦截器将 token 存在本地，使用 <code>localStorage</code></p>
+<pre class="hljs"><code>axios.interceptors.response.use(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+              
+  <span class="hljs-comment">// 获取服务器的响应头</span>
+  <span class="hljs-keyword">if</span>(res.headers.token) {
+    <span class="hljs-keyword">var</span> token = res.headers.token
+    localStorage.setItem(<span class="hljs-string">'token'</span>, token)
+  }
+  
+  <span class="hljs-keyword">return</span> res
+}, (error) =&gt; {
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(error)
+})
+</code></pre>
+<p>然后再次发送请求时，通过请求拦截器从本地取出 token 放入请求头中</p>
+<pre class="hljs"><code>axios.interceptors.request.use(<span class="hljs-function">(<span class="hljs-params">config</span>) =&gt;</span> {
+
+  <span class="hljs-comment">// 设置请求头，类似cookie</span>
+  <span class="hljs-keyword">var</span> token = localStorage.getItem(<span class="hljs-string">'token'</span>)
+  <span class="hljs-keyword">if</span>(token) {
+    config.headers[<span class="hljs-string">'token'</span>] = token
+  }
+
+  <span class="hljs-keyword">return</span> config
+}, (error) =&gt; {
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(error)
+})
+</code></pre>
+<h3>nodejs 使用</h3>
+<p>在 node 中，我们可能遇到需要向另一个服务器 post 数据的需求，这个时候如果使用 axios 会非常方便，毕竟有原生支持的 Promise 语法</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> querystring = <span class="hljs-built_in">require</span>(<span class="hljs-string">'querystring'</span>)
+axios.post(<span class="hljs-string">'http://xxx.com/'</span>, querystring.stringify({ <span class="hljs-attr">userName</span>: <span class="hljs-string">'zhangsan'</span> }))
+</code></pre>
+<p>其他的方法使用这里就不做过多赘述了，具体的使用可以查看 <a href="http://www.axios-js.com/zh-cn/docs/index.html#axios-post-url-data-config">axios 中文文档</a></p>
+<p>所以，发请求的最佳实践是什么呢？综上，<strong>当之无愧现在最应该选用的请求的方式就是 axios</strong></p>
+<p>上述用到的所有代码完整版可以查看 <a href="https://github.com/lulujianglab/axios-demo">axios-demo</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

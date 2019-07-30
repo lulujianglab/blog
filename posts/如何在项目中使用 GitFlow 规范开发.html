@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>如何在项目中使用 GitFlow 规范开发 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">如何在项目中使用 GitFlow 规范开发</h1>
+          <p class="post-date">2019-05-20</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>之前写过一篇 Git 的操作指南，但发现在工作中，还是需要规范的工作流 - GitFlow</p>
+<p><a href="https://github.com/lulujianglab/blog/issues/17">Git 的工作指南</a></p>
+<p>Gitflow 工作流定义了一个围绕项目发布的严格分支模型，不仅包括了 git 功能分支工作流的概念和命令，还<strong>为不同的分支分配一个很明确的角色，并定义分支之间如何和什么时候进行交互</strong></p>
+<p>除了使用功能分支，在做准备、维护和记录发布也使用各自的分支</p>
+<h2>工作方式</h2>
+<p>Gitflow 工作流仍然用中央仓库作为所有开发者的交互中心，开发者在本地工作并 push 分支到中央仓库中</p>
+<h2>历史分支</h2>
+<p>Gitflow 工作流使用 2 个分支来记录项目的历史：</p>
+<ul>
+<li>master 分支存储了正式发布的历史 保存<strong>随时可发布</strong>的代码 所有的 hotfix 分支都是从 master 分支上拉 所有到master的提交都必须要有tag 方便回滚</li>
+<li>develop 分支作为功能的集成分支 <strong>功能最新最全</strong>的分支 所有的 feature、release 分支都是从 develop 分支上拉</li>
+</ul>
+<h2>功能分支 - feature</h2>
+<p>每个新功能位于一个自己的分支 feature，这样可以 push 到中央仓库以备份和协作。主要是<strong>用来开发新的功能</strong></p>
+<p>功能分支是使用 develop 分支作为父分支。当新功能完成时，合并回 develop 分支。新功能提交应该从不直接与 master 分支交互</p>
+<blockquote>
+<p>功能分支 + develop 分支就是功能分支工作流的用法</p>
+</blockquote>
+<h2>发布分支 - release</h2>
+<p>一旦 develop 分支上有了做一次发布（ 或者说快到了既定的发布日 ）的足够功能，就从 develop 分支上 fork 一个发布分支，新建的分支用于开始发布循环：做 Bug 修复、文档生成和其它面向发布任务</p>
+<p>一旦对外发布的工作都完成了，发布分支合并到 master 分支并分配一个版本号打好 Tag</p>
+<p>另外，这些从新建发布分支以来的做的修改要合并回 develop 分支</p>
+<p>使用一个用于发布准备的专门分支，使得一个团队可以在完善当前的发布版本的同时，另一个团队可以继续开发下个版本的功能</p>
+<p>发布分支命名常用方法：release-* 或 release/<em>（feature/</em>-20190523 ）</p>
+<h2>维护分支 - hotfix</h2>
+<p>维护分支或说是热修复（ hotfix ）分支用于快速给产品发布版本（ production releases ）打补丁，这是唯一可以直接从 master 分支 fork 出来的分支。<strong>用于修复线上代码的bug</strong></p>
+<p>修复完成，修改应该马上合并回 master 分支和 develop 分支（当前的发布分支），master 分支应该用新的版本号打好 Tag</p>
+<p>为 Bug 修复使用专门分支，让团队可以处理掉问题而不用打断其它工作或是等待下一个发布循环</p>
+<h2>命令行操作 Gitflow</h2>
+<p>首先为 master 分支配套一个 develop 分支，并建好 develop 分支的跟踪分支</p>
+<pre class="hljs"><code>git <span class="hljs-built_in">clone</span> xxxx
+git checkout -b develop origin/develop
+</code></pre>
+<h3>工程师A和工程师B开始开发新功能</h3>
+<p>他们需要为各自的功能创建相应的分支，新分支基于develop分支：</p>
+<pre class="hljs"><code>git checkout -b some-feature develop
+</code></pre>
+<p>用老套路添加提交到各自功能分支上：编辑、暂存、提交：</p>
+<pre class="hljs"><code>git status
+git add
+git commit
+</code></pre>
+<h3>工程师A完成功能开发</h3>
+<p>如果团队使用 Pull Requests，这时候可以发起一个用于合并到 develop 分支。否则她可以直接合并到她本地的 develop 分支后 push 到中央仓库：</p>
+<pre class="hljs"><code>git pull origin develop
+git checkout develop
+git merge some-feature
+git push
+git branch -d some-feature
+</code></pre>
+<h3>工程师A开始准备发布</h3>
+<p>用一个新的分支来做发布准备，这一步也确定了发布的版本号</p>
+<pre class="hljs"><code>git checkout -b release-0.1 develop
+</code></pre>
+<p>这个分支是清理发布、执行所有测试、更新文档和其它为下个发布做准备操作的地方，像是一个专门用于改善发布的功能分支</p>
+<h3>工程师A完成发布</h3>
+<p>一旦准备好了对外发布，工程师A合并修改到 master 分支和 develop 分支上，删除发布分支</p>
+<p>另外，如果工程师A的团队要求 Code Review，这是一个发起 Pull Request 的理想时机</p>
+<pre class="hljs"><code>git checkout master
+git merge release-0.1
+git push
+git checkout develop
+git merge release-0.1
+git push
+git branch -d release-0.1
+</code></pre>
+<p>发布分支是作为功能开发（ develop 分支 ）和对外发布（ master 分支 ）间的缓冲。只要有合并到 master 分支，就应该打好 Tag 以方便跟踪</p>
+<pre class="hljs"><code>git tag -a 0.1 -m <span class="hljs-string">"Initial public release"</span> master
+git push --tags
+</code></pre>
+<h3>最终用户发现 Bug</h3>
+<p>从 master 分支上拉出了一个维护分支，提交修改以解决问题，然后直接合并回 master 分支</p>
+<pre class="hljs"><code>git checkout -b issue-<span class="hljs-comment">#001 master</span>
+</code></pre>
+<h4>Fix the bug</h4>
+<pre class="hljs"><code>git checkout master
+git merge issue-<span class="hljs-comment">#001</span>
+git push
+</code></pre>
+<p>维护分支中新加这些重要修改也需要包含到 develop 分支中</p>
+<pre class="hljs"><code>git checkout develop
+git merge issue-<span class="hljs-comment">#001</span>
+git push
+git branch -d issue-<span class="hljs-comment">#001</span>
+git tag -a tag tag名称 master
+git push --tags
+</code></pre>
+<p>工程师A回去和工程师B一起做下个发布的新功能开发</p>
+<h2>Gitflow 操作命令</h2>
+<h3>初始化</h3>
+<pre class="hljs"><code>git flow init
+</code></pre>
+<h3>feature分支相关操作</h3>
+<h4>创建新的feature分支</h4>
+<pre class="hljs"><code>git flow feature start 分支名称
+</code></pre>
+<h4>推送feature分支到远程</h4>
+<pre class="hljs"><code>git flow feature publish 分支名称
+</code></pre>
+<h4>获取feature分支</h4>
+<pre class="hljs"><code>git flow feature pull origin 分支名称
+</code></pre>
+<h4>完成feature</h4>
+<pre class="hljs"><code>git flow feature finish 分支名称
+</code></pre>
+<p>后续类似</p>
+<h2>git-flow 工作流程插件</h2>
+<pre class="hljs"><code>brew install git-flow
+</code></pre>
+<p>一键安装 <code>git-flow</code>，增加一些扩展命令，官方文档可以查看 <a href="https://github.com/petervanderdoes/gitflow-avh/wiki#installing-git-flow">official documentation</a></p>
+<p>接下来我们就可以很方便的管理分支</p>
+<p>比如创建功能分支</p>
+<pre class="hljs"><code>git flow init
+git flow feature start MYFEATURE
+git flow feature publish MYFEATURE
+git flow feature finish MYFEATURE
+</code></pre>
+<p>更多的使用方法可以参考 <a href="https://danielkummer.github.io/git-flow-cheatsheet/index.zh_CN.html">git-flow 备忘清单</a>和 <a href="https://www.git-tower.com/learn/git/ebook/cn/command-line/advanced-topics/git-flow">git-flow 的工作流程</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

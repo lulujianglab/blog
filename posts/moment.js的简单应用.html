@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>moment.js的简单应用 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">moment.js的简单应用</h1>
+          <p class="post-date">2018-01-22</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>最近做的前端项目遇到了处理日期时间的问题，要对数据库中的时间进行处理，由于原生的日期格式处理起来很繁琐，所以选用<code>momentjs</code>来对日期进行一些常规的处理</p>
+<p>跟原生js为了完成一个简单的日期时间显示效果而要写一大堆处理函数相比，<code>momentjs</code>算是极其轻量级的操作时间的工具库，支持字符串、Date、时间戳以及数组等格式，它使得操作时间变得非常简单</p>
+<h1>使用心得</h1>
+<p>momentjs支持多个环境，可以在浏览器中引入momentjs文件即可</p>
+<pre class="hljs"><code>&lt;script src=<span class="hljs-string">"https://cdn.bootcss.com/moment.js/2.9.0/moment.js"</span>&gt;<span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span></span>
+</code></pre>
+<p>也可以脱离浏览器的环境在nodejs中使用，但需要安装moment模块</p>
+<pre class="hljs"><code>npm install moment
+</code></pre>
+<p>然后加载模块即可</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>)
+</code></pre>
+<h2>实例</h2>
+<h3>创建</h3>
+<p>获得当前时间</p>
+<pre class="hljs"><code>moment() <span class="hljs-comment">// 当前时间</span>
+</code></pre>
+<p>相当于moment(new Date()) 此处会返回一个moment封装的日期对象</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35214782-46aedb76-ff9d-11e7-96d9-1e21a2f7fa90.png" alt="image"></p>
+<p>初始化一个指定的时间</p>
+<pre class="hljs"><code>moment(<span class="hljs-string">'2018-01-21'</span>) <span class="hljs-comment">// 2018-01-21 </span>
+moment(<span class="hljs-built_in">Date</span>.now() - <span class="hljs-number">24</span> * <span class="hljs-number">60</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>) <span class="hljs-comment">// 昨天</span>
+moment(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(<span class="hljs-number">2018</span>, <span class="hljs-number">01</span>, <span class="hljs-number">22</span>)) <span class="hljs-comment">// 2018-01-22</span>
+moment({<span class="hljs-attr">year</span>:<span class="hljs-number">2015</span>,<span class="hljs-attr">month</span>:<span class="hljs-number">10</span>,<span class="hljs-attr">day</span>:<span class="hljs-number">26</span>,<span class="hljs-attr">hour</span>:<span class="hljs-number">22</span>}) <span class="hljs-comment">// 传入一个具有日期字段的对象</span>
+</code></pre>
+<h3>格式化</h3>
+<pre class="hljs"><code>moment().format(<span class="hljs-string">'YYYY年MM月DD日 HH:mm:ss'</span>) <span class="hljs-comment">// 2018年01月22日 18:01:41</span>
+moment().format(<span class="hljs-string">'YYYY-MM-DD HH:mm:ss'</span>) <span class="hljs-comment">// 2018-01-22 18:02:35</span>
+moment().format(<span class="hljs-string">'YYYY/MM/DD HH:mm:ss'</span>) <span class="hljs-comment">// 2018/01/22 18:03:29</span>
+moment().format(<span class="hljs-string">'hh:m:ss'</span>) <span class="hljs-comment">// 06:2:32</span>
+moment().format(<span class="hljs-string">'YYYY'</span>) <span class="hljs-comment">// "2018"</span>
+moment().format(<span class="hljs-string">'d'</span>) <span class="hljs-comment">// 今天是星期几</span>
+moment().format(<span class="hljs-string">'X'</span>) <span class="hljs-comment">// 转换当前时间的Unix时间戳</span>
+</code></pre>
+<h3>转换为Date对象</h3>
+<pre class="hljs"><code>moment().toDate() <span class="hljs-comment">// Mon Jan 22 2018 18:11:55 GMT+0800 (中国标准时间)</span>
+moment(<span class="hljs-string">'2018-01-20'</span>).toDate() <span class="hljs-comment">// Tue Jan 20 2015 00:00:00 GMT+0800 (中国标准时间)</span>
+moment(<span class="hljs-string">'2018-01-22 10:20:15'</span>).toDate() <span class="hljs-comment">// Mon Jan 22 2018 10:20:15 GMT+0800 (中国标准时间)</span>
+moment(<span class="hljs-number">1448896064621</span>).toDate() <span class="hljs-comment">//毫秒转日期</span>
+</code></pre>
+<h3>获取/设置时间信息</h3>
+<pre class="hljs"><code>moment().second() <span class="hljs-comment">// 秒</span>
+moment().second(<span class="hljs-built_in">Number</span>) <span class="hljs-comment">// 设置 秒 0 到 59</span>
+</code></pre>
+<p>类似还可以设置分获得分设置小时获得小时</p>
+<pre class="hljs"><code>moment().date() <span class="hljs-comment">// 日</span>
+moment().day() <span class="hljs-comment">// 星期几</span>
+moment().dayOfYear() <span class="hljs-comment">// 一年里的第几天</span>
+moment().week() <span class="hljs-comment">// 一年里的第几周</span>
+moment().month() <span class="hljs-comment">// 月-1</span>
+moment().quarter() <span class="hljs-comment">// 一年里的第几个季度</span>
+moment().year() <span class="hljs-comment">// 年</span>
+moment().daysInMonth() <span class="hljs-comment">// 当前月有多少天</span>
+</code></pre>
+<h3>操作</h3>
+<pre class="hljs"><code>moment(<span class="hljs-string">'20160901'</span>, <span class="hljs-string">'YYYYMMDD'</span>).fromNow() <span class="hljs-comment">// 1 years ago</span>
+</code></pre>
+<p>时间加减</p>
+<pre class="hljs"><code>moment().add(<span class="hljs-number">7</span>, <span class="hljs-string">'days'</span>) <span class="hljs-comment">// 当前时间加上7天 第2个参数还可以是 'months', 'years' 等</span>
+moment().add(<span class="hljs-number">7</span>, <span class="hljs-string">'d'</span>) <span class="hljs-comment">// 与上面一行代码的运行结果一样</span>
+moment().subtract(<span class="hljs-number">1</span>, <span class="hljs-string">'months'</span>) <span class="hljs-comment">// 当前的月份减去1个月</span>
+
+moment().startOf(<span class="hljs-string">'week'</span>) <span class="hljs-comment">// 本周第一天</span>
+moment().startOf(<span class="hljs-string">'hour'</span>) <span class="hljs-comment">// 等效于moment().minutes(0).seconds(0).milliseconds(0)</span>
+</code></pre>
+<p>开始结束时间</p>
+<pre class="hljs"><code>moment().endOf(<span class="hljs-string">'year'</span>) <span class="hljs-comment">// 将时间设置为今年的最后时刻</span>
+moment().startOf(<span class="hljs-string">'month'</span>) <span class="hljs-comment">// 将时间设置为这个月的开始</span>
+moment().endOf(<span class="hljs-string">'week'</span>) <span class="hljs-comment">// 将时间设置为本周的最后时刻</span>
+</code></pre>
+<p>比较传入日期的最大值最小值</p>
+<pre class="hljs"><code>a = moment().add(<span class="hljs-number">7</span>, <span class="hljs-string">'days'</span>)
+b = moment().subtract(<span class="hljs-number">1</span>, <span class="hljs-string">'days'</span>)
+moment.max(a, b)
+moment.min(a, b)
+</code></pre>
+<p>时间差（默认返回相差的毫秒数）</p>
+<pre class="hljs"><code>a = moment().add(<span class="hljs-number">7</span>, <span class="hljs-string">'days'</span>)
+b = moment().subtract(<span class="hljs-number">1</span>, <span class="hljs-string">'days'</span>)
+a.diff(b) <span class="hljs-comment">// 86400000</span>
+a.diff(b, <span class="hljs-string">'days'</span>) <span class="hljs-comment">// 1 返回相差的天数</span>
+</code></pre>
+<h3>查询</h3>
+<p>早于</p>
+<pre class="hljs"><code>moment(<span class="hljs-string">'2018-01-22'</span>).isBefore(<span class="hljs-string">'2018-01-21'</span>) <span class="hljs-comment">// true</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isBefore(<span class="hljs-string">'2018-02-23'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// false</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isBefore(<span class="hljs-string">'2019-01-01'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// true</span>
+</code></pre>
+<p>是否相等</p>
+<pre class="hljs"><code>moment(<span class="hljs-string">'2018-01-22'</span>).isSame(<span class="hljs-string">'2018-01-22'</span>) <span class="hljs-comment">// true</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isSame(<span class="hljs-string">'2017-12-31'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// false</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isSame(<span class="hljs-string">'2018-01-01'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// true</span>
+</code></pre>
+<p>晚于</p>
+<pre class="hljs"><code>moment(<span class="hljs-string">'2018-01-22'</span>).isAfter(<span class="hljs-string">'2010-10-21'</span>) <span class="hljs-comment">// true</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isAfter(<span class="hljs-string">'2018-01-01'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// false</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isAfter(<span class="hljs-string">'2017-12-31'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// true</span>
+</code></pre>
+<p>是否在时间范围内</p>
+<pre class="hljs"><code>moment(<span class="hljs-string">'2018-01-22'</span>).isBetween(<span class="hljs-string">'2018-01-01'</span>, <span class="hljs-string">'2018-10-25'</span>) <span class="hljs-comment">// true</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isBetween(<span class="hljs-string">'2017-01-01'</span>, <span class="hljs-string">'2018-01-28'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// false</span>
+moment(<span class="hljs-string">'2018-01-22'</span>).isBetween(<span class="hljs-string">'2017-12-31'</span>, <span class="hljs-string">'2019-01-01'</span>, <span class="hljs-string">'year'</span>) <span class="hljs-comment">// true</span>
+
+moment().isLeapYear() <span class="hljs-comment">// 是否是闰年</span>
+</code></pre>
+<p><a href="http://momentjs.com/">官网地址</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

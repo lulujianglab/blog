@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>聊聊 React 编程思想 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">聊聊 React 编程思想</h1>
+          <p class="post-date">2019-03-31</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>前阵子在部门内做了一个关于 <code>React</code> 的分享，为了更进一步地理解，也分享给有需要的小伙伴，做了如下整理  ^_^</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/55142996-cc7a4000-5178-11e9-9a8d-84dd10af9c6a.png" alt="image"></p>
+<p>Facebook 在 2013 年 5 月推出了全新的函数式编程，也就是全球范围内使用人数最多的前端框架 - <code>React</code>，也是目前最受欢迎的前端框架之一</p>
+<h1>现代框架与旧式框架的区别</h1>
+<p><code>React</code> 是一个视图层框架，是用来解决数据和页面渲染的问题</p>
+<p>同样的还要 <code>Vue</code> 和 <code>Angular</code>，这也是目前前端最受欢迎的三套框架，几乎是所有前端工程师必备的一项技能</p>
+<p>所以我们在技术选型的时候，常常会产生困扰，究竟应该选择哪一门语言开发项目呢，比如</p>
+<ul>
+<li><code>reactjs</code> : 灵活性更大，处理大型业务时选择性更多一点</li>
+<li><code>vuejs</code> : api更多，实现功能更简单，但也因为api多，灵活性有一定限制</li>
+</ul>
+<p>所以，在做复杂度比较高的项目时，大家倾向于 <code>reactjs</code> ，而面向用户端的一些复杂度不是特别高的项目时，用 <code>vuejs</code> 更简单</p>
+<p>当然，<code>vuejs</code> 也可以做大型的项目，至于具体选什么框架，还需要取决于对框架的熟悉程度以及业务复杂度做一个权衡</p>
+<p>而在几年前开发前端应用时，基本没这个困扰，因为大家开发都用 <code>jQuery</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/54597011-bd0c4000-4a70-11e9-8452-c337e0c1901a.png" alt="image"></p>
+<p>但随着前端交互的复杂度越来越高，现代框架比如 <code>react</code>、<code>vue</code> 逐渐的替换掉了 <code>jQuery</code>，因为用现代框架来开发更容易维护</p>
+<p>为什么会说变得容易维护呢？我们先来看看 <code>react</code> 和 <code>jQuery</code> 到底什么区别</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/54597072-db723b80-4a70-11e9-8218-85044047838f.png" alt="image"></p>
+<p>我认为，他们之间<strong>编程思想的最大区别</strong>，就是<strong>声明式</strong>与<strong>命令式</strong>的区别</p>
+<h2>命令式</h2>
+<p>命令式编程，比如 <code>jQuery</code>，直接操作 <code>DOM</code>，告诉页面怎么挂载，怎么操作，整个程序有 70% 都是操作 <code>DOM</code></p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"red_btn"</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"button"</span>&gt;</span>change<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span> 
+<span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text/javascript"</span>&gt;</span><span class="javascript"> 
+  $(<span class="hljs-built_in">document</span>).ready(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{ 
+    $(<span class="hljs-string">"button"</span>).click(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{ 
+      <span class="hljs-keyword">if</span>($(<span class="hljs-string">"button"</span>).hasClass(<span class="hljs-string">"red_btn"</span>)){ 
+        $(<span class="hljs-string">"button"</span>).removeClass(<span class="hljs-string">"red_btn"</span>).addClass(<span class="hljs-string">"green_btn"</span>) 
+      } <span class="hljs-keyword">else</span> {
+        $(<span class="hljs-string">"button"</span>).removeClass(<span class="hljs-string">"green_btn"</span>).addClass(<span class="hljs-string">"red_btn"</span>)
+      }
+    }) 
+  })
+</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+</code></pre>
+<p>例如上面的代码，点击一个按钮，切换 button 颜色。我们用 <code>jQuery</code> 这种命令式编程思路写，就是当前是什么颜色就让它变成另外一个颜色</p>
+<p>但如果我们认真想想，其实这里面可以细分成两个行为，一个是对状态判断，另一个是操作 <code>DOM</code>。那声明式呢？</p>
+<h2>声明式</h2>
+<p>还是上面那个场景，我们用 <code>React</code> 提供的 JSX 语法来实现，当我们用 JSX 描述了映射关系之后，点击按钮事件时，只需要对颜色这个变量进行修改就可以完成需求了</p>
+<pre class="hljs"><code>handleChangeBtnColor() {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">tag</span>: !<span class="hljs-keyword">this</span>.state.tag
+  })
+}
+
+render() {
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span>
+        <span class="hljs-attr">className</span>=<span class="hljs-string">{this.state.tag?</span> '<span class="hljs-attr">red_btn</span>' <span class="hljs-attr">:</span> '<span class="hljs-attr">green_btn</span>'}
+        <span class="hljs-attr">type</span>=<span class="hljs-string">"button"</span>
+        <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleChangeBtnColor}</span>
+      &gt;</span>
+        change
+      <span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  )
+}
+</code></pre>
+<p>所以区别就出来了，用 <code>react</code> 来实现同样的需求，如果细分来看，我们在逻辑上只有状态这一个行为</p>
+<p>而 <code>jQuery</code> 是两个行为，状态 + DOM 操作</p>
+<p>那为什么 <code>React</code> 要用声明式来编程呢？</p>
+<p>因为命令式编程是直接操作 <code>DOM</code> 节点，如果有多个事件，比如 100 个 button 上都有点击和取消事件，那频繁的事件操作会很大程度上产生 bug ，而且不可控，会有无法预期性的 bug 产生</p>
+<p>而且声名式编程只需要我们操作数据就好，数据可能出现的几种情况我们能提前做好容错</p>
+<p>声明式是通过<strong>描述状态与视图之间的映射关系来操作DOM</strong>，或者说具体点是用这样的映射关系来生成一个 <code>DOM</code> 节点插入到页面去</p>
+<p>比如 <code>React</code> 提供的 JSX 和 <code>Vue</code> 中的模板语言</p>
+<p>目的是为了实现声明式渲染的功能，本质上都是描述了 <strong>『状态』与『视图』之间的映射关系</strong></p>
+<p>状态与视图之间的映射关系，等同于 <code>render</code> 函数</p>
+<p>在框架的内部，不论是 JSX 还是 <code>Vue</code> 的模板，最终会编译成 <code>render</code> 函数。</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/54597455-913d8a00-4a71-11e9-89d5-f44b4500a91a.png" alt="image"></p>
+<p><strong>声明式渲染是现代框架的特性，也就是我们常说的数据驱动视图</strong></p>
+<p>这个特性跟声明式可以简化维护应用代码的复杂度有什么关系呢？</p>
+<p>事实上，这个特性可以让我们把关注点只放在状态的维护上。这样一来，即使应用复杂后，我们管理代码的方式只在状态上，所有的视图操作都不用关心了，因为框架会帮我们自动去做，可以说大大降低代码维护的成本</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/54597589-c5b14600-4a71-11e9-8ff3-a89b7c67f53d.gif" alt="what"></p>
+<h2>状态</h2>
+<p>那我们所说的这个状态到底是什么呢？</p>
+<ul>
+<li>在现实中，状态是某一时刻看到或感受到的状况</li>
+<li>对于设计来说，状态是 UI 在交互过程中某一时刻的画面</li>
+<li>对于开发来说，状态是存储上下文中所用到的数据</li>
+</ul>
+<p><img src="https://user-images.githubusercontent.com/26807227/54597685-fbeec580-4a71-11e9-9be2-be9b2a53efe6.png" alt="image"></p>
+<p>在 <strong>React</strong> 官网上，我们可以看到其介绍是<strong>用于构建用户界面的 <code>JavaScript</code> 库</strong>，所以 <code>React</code> 本质上是一个<strong>创建 UI 接口的视图层框架</strong></p>
+<p>前面我们已经提到了 <code>React</code> 有个声明式思想，它是数据到视图的一个静态映射，但在我们的实际项目中，并不是一个静态网页，还需要操作数据，网页的状态可能随时改变，那怎么才能让网页跟着状态一起改变呢？</p>
+<h1>响应式设计思想</h1>
+<p>这就是 <code>React</code> 背后的响应式设计思想</p>
+<p>开发者只需要告诉 <code>React</code> 我们希望页面长什么样子，<code>React</code> 就会自动帮我们绘制界面</p>
+<p>也就是说，我们只要操作数据，页面视图会自动作出响应，用户界面的展示完全取决于数据层</p>
+<p>而且我们一切的操作都是基于内存之中，不会有较大的性能损耗，这就是 <code>React</code> 响应式编程的精髓，也是为何它叫作 <code>React</code>，<code>React</code> 在英文中是响应的意思</p>
+<p>简单来说就是，<strong>不需要关注视图层，只需要关注数据层的变化</strong></p>
+<p>一个类 <code>class</code> 一定有一个构造函数 <code>constructor</code>，最优先被执行</p>
+<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+}
+</code></pre>
+<p><code>constructor</code> 接收 <code>props</code> 参数，<code>super</code> 指的是父类 <code>Component</code> ，<code>super(props)</code> 方法指的是调用父类的构造函数</p>
+<p>定义数据需要定义在状态里面 <code>this.state</code></p>
+<p>框架是怎么知道 Web 应用在运行时<strong>数据状态</strong>发生了变化呢? 这个问题是所有框架必须去解决的</p>
+<p>不同的解决方案，导致的直接结果就是它所提供给用户的上层语法或 API 完全不一样，也是我们常对比的各个框架的使用区别</p>
+<p>解决方案包括我们常说的 <code>Virtual DOM</code>、<code>diff</code> 算法对比</p>
+<p>对 <code>Virtual DOM</code> 有兴趣的小伙伴可以查看我的另一篇博客<a href="https://github.com/lulujianglab/blog/issues/46"> <code>Virtual DOM</code> 中那些你不知道的事</a>，在这篇博客里有对 <code>Virtual DOM</code> 做一个详细的讲解</p>
+<h1>服务端渲染</h1>
+<p>既然提到了 <code>Virtual DOM</code>，这里就提一下 <code>React</code> 的价值 - <code>nodejs</code> 服务端渲染</p>
+<p>因为有 <code>Virtual DOM</code> 的存在，<code>React</code> 可以很容易的将 <code>Virtual DOM</code> 转换为字符串，这便使我们可以只写一份 UI 代码，同时运行在 node 里和和浏览器里</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> html = React.renderToString(el)
+</code></pre>
+<p>在 node 里将组件 HTML 渲染为一段 HTML 一句话即可,不过围绕 <code>renderToString</code> 还需要做一些准备工作</p>
+<p>整个思路大致是：</p>
+<ol>
+<li>从后台 server 或数据库等来源拉取数据</li>
+<li>引入要渲染的 <code>React</code> 组件</li>
+<li>调用 <code>React.renderToString()</code> 方法来生成 HTML</li>
+<li>最后发送 HTML 和数据给浏览器</li>
+</ol>
+<p>这就是 <code>React</code> 的服务端渲染，组件的代码前后端都可以复用</p>
+<p>不仅如此，<code>React</code> 还能够用一套代码同时运行在浏览器和 node 里，而且能够以原生 App 的姿势运行在 iOS 和 Android 系统中，即拥有了 web 迭代迅速的特性，又拥有原生 App 的体验，也就是 <code>React-Native</code></p>
+<h1>单向数据流</h1>
+<p>我认为使用 <code>react</code> 的<strong>最大好处</strong>在于<strong>功能组件化，遵守前端可维护的原则</strong></p>
+<p><code>react</code> 是单向数据流，什么是单向数据流呢？</p>
+<ul>
+<li>
+<p>数据主要从父节点传递到子节点（ 通过 <code>props</code> ），即遵循从上到下的数据流向</p>
+</li>
+<li>
+<p>如果顶层（ 父级 ）的某个 <code>props</code> 改变了，<code>react</code> 会重渲染所有的子节点</p>
+</li>
+</ul>
+<p><img src="https://user-images.githubusercontent.com/26807227/54735941-b4884680-4be3-11e9-8bd1-1b6ebef6b9e7.png" alt="image"></p>
+<p>通俗的理解是指用户访问 <code>View</code>，<code>View</code> 发出用户交互的 <code>Action</code>，在 <code>Action</code> 里对 <code>state</code> 进行相应更新。<code>state</code> 更新后会触发 <code>View</code> 更新页面的过程。这样数据总是清晰的单向进行流动，便于维护并且可以预测</p>
+<p>那为什么 <code>react</code> 要使用单向数据流呢？</p>
+<p>实际上，单向数据流这种模式十分适合跟 <code>react</code> 搭配使用</p>
+<p>它的<strong>主要思想</strong>是<strong>组件不会改变接收的数据</strong>。它们<strong>只会监听数据的变化</strong>，当数据发生变化时它们会使用接收到的新值，而不是去修改已有的值。当组件的更新机制触发后，它们只是使用新值进行重新渲染而已</p>
+<p>它<strong>消除了在多个地方同时管理状态</strong>，可能出现的数据不同步的情况，它只会在一个地方进行状态管理，减小了应用的复杂度，唯一的数据源将使得开发更加简单</p>
+<blockquote>
+<p>需要注意的是，<strong>单向数据流并非单向绑定，甚至单向数据流与绑定没有任何关系</strong></p>
+</blockquote>
+<p>对于 <code>react</code> 来说，单向数据流（ 从上到下 ）与单一数据源这两个原则，限定了 <code>react</code> 中要想在一个组件中更新另一个组件的状态（类似于 <code>vue</code> 的平行组件传参，或者是子组件向父组件传递参数），需要进行状态提升</p>
+<p>即将状态提升到他们最近的祖先组件中。子组件中 <code>Change</code> 了状态，触发父组件状态的变更，父组件状态的变更，影响到了另一个组件的显示（因为传递给另一个组件的状态变化了，这一点与 <code>vue</code> 子组件的 <code>$emit()</code> 方法很相似）</p>
+<p>比如在做 list 删除时，为什么不可以直接把 list 传给子组件来改变 list？</p>
+<p>因为父组件可以向子组件传值，但是子组件只能去使用这个值，不能去改变这个值</p>
+<p>应该是父组件向子组件传递方法，子组件调用这个方法，传递一个数据，最终还是父组件自己来改变这个数据</p>
+<p><a href="https://cn.vuejs.org/v2/guide/components-props.html">Vue也是单向数据流</a>，只不过能实现双向绑定，UI 控件提供了双向数据绑定的方式，在一些需要实时反应用户输入的场合会非常方便</p>
+<p>但通常认为<strong>复杂应用中这种便利比不上引入状态管理带来的优势</strong></p>
+<p>所以无论是 <code>vue</code> 还是 <code>react</code> 其实还是提倡单向数据流去管理状态，这一点在 <code>vuex</code> 和 <code>redux</code> 状态管理器上体现的很明显</p>
+<p>虽然 <code>vue</code> 和 <code>react</code> 框架本身有自己状态管理，当我们的应用遇到多个组件共享状态时，单向数据流的简洁性很容易被破坏</p>
+<ul>
+<li>多个视图依赖于同一状态</li>
+<li>来自不同视图的行为需要变更同一状态</li>
+</ul>
+<p>所以就需要 <code>vuex</code> 和 <code>redux</code> 来解决这个问题，<code>redux</code> 在我的另一篇博客<a href="https://github.com/lulujianglab/blog/issues/34">大白话解析 Redux 、 redux-thunk 、redux-saga 和 react-redux</a> 中介绍的很详细了，大家有兴趣可以去看看</p>
+<blockquote>
+<p>注意：</p>
+</blockquote>
+<p><strong>单向数据流</strong>中的<strong>单向</strong>，指的是<strong>数据从父组件到子组件的这个流向</strong>叫单向</p>
+<p><strong>绑定</strong>的<strong>单双向</strong>是指<strong>View层与Module层之间的映射关系</strong></p>
+<p>但我们通常也说双向数据绑定，带来双向数据流</p>
+<p>数据（ <code>state</code> ）和视图（ <code>View</code> ）之间的双向绑定，<strong>ng 里的 ng-model 和 vue 里的 v-model</strong></p>
+<h2>props</h2>
+<p>刚才我们提到了 <code>props</code>，怎么理解 <code>props</code> 呢？</p>
+<p><code>props</code> 是 <code>property</code> 的缩写，可以理解为 HTML 标签的 <code>attribute</code></p>
+<p>在组件内部，可以<strong>通过 this.props 来访问 props</strong>，<strong>props 是组件唯一的数据来源</strong></p>
+<p>不可以使用 <code>this.props</code> 直接修改 props，因为 <strong>props 是只读的</strong>，<strong>props 是用于整个组件树中传递数据和配置</strong></p>
+<h3>PropTypes 与 DefaultProps</h3>
+<p>react 为我们提供了一套非常简单好用的属性校验机制，强校验：</p>
+<pre class="hljs"><code><span class="hljs-comment">// 对TodoItem的一些属性类型做校验</span>
+TodoItem.propTypes = {
+  <span class="hljs-attr">content</span>: PropTypes.string.isRequired,
+  <span class="hljs-attr">deleteItem</span>: PropTypes.func,
+  <span class="hljs-attr">index</span>: PropTypes.number
+}
+
+<span class="hljs-comment">// 设置TodoItem的一些默认属性</span>
+TodoItem.defaultProps = {
+  <span class="hljs-attr">content</span>: <span class="hljs-string">'hello world'</span>
+}
+</code></pre>
+<p><code>PropTypes</code> 包含的校验类型包括基本类型、数组、对象、实例、枚举</p>
+<h2>state</h2>
+<p><code>React</code> 的一大创新，就是把每一个组件都看成是一个状态机，<strong>组件内部通过 state 来维护组件状态的变化</strong>，这也是<strong>state 唯一的作用</strong></p>
+<p>每个组件都有属于自己的 <code>state</code>，<strong>state</strong> 和 <strong>props</strong> 的<strong>区别</strong>在于<strong>前者 ( state ) 只存在于组件内部</strong>，只能从当前组件调用 <code>this.setState</code> 修改 <code>state</code> 值（ 不可以直接修改 <code>this.state</code> ）</p>
+<p>一般我们更新子组件都是通过改变 <code>state</code> 值，更新子组件的 <code>props</code> 值从而达到更新</p>
+<p><code>state</code> 一般和事件一起使用，比如有一个简单的开关组件，开关状态会以文字的形式表现在按钮的文本上</p>
+<p>首先需要在 <code>render</code> 方法中返回了一个 button 元素，给 button 注册了一个事件用来处理点击事件，在点击事件中对 <code>state</code> 的描述开关状态的字段，比如 on 取反，并执行 <code>this.setState()</code> 方法设置 on 字段的新值。一个开关组件就完成了</p>
+<p><code>react</code> 通过将事件处理器绑定到组件上来处理事件</p>
+<p><code>react</code> 事件本质上和原生 JS 一样，鼠标事件用来处理点击操作，表单事件用于表单元素变化等，<code>react</code> 事件的命名、行为和原生 JS 差不多，不一样的地方是 <code>react</code> 事件名区分大小写</p>
+<p>事件的处理器需要由组件的使用者来提供，可以通过 <code>props</code> 将事件处理器传进来</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/54735680-835b4680-4be2-11e9-8438-97d322a27b5b.png" alt="image"></p>
+<p>这是一个 <code>react</code> 组件实现组件可交互所需的流程，<code>render()</code> 输出 <code>Virtual DOM</code>，<code>Virtual DOM</code> 转为 DOM，再在 DOM 上注册事件，事件触发 <code>setState()</code> 修改数据，在每次调用 <code>setState</code> 方法时，<code>react</code> 会自动执行 <code>render</code> 方法来更新 <code>Virtual DOM</code>，如果组件已经被渲染，那么还会更新到 DOM 中去</p>
+<h2>setState 方法</h2>
+<p>新版的 <code>setState</code> 可以接收一个函数而不是一个对象了，需要有一个返回值 return<br>
+所以我们可以在项目中做一些优化，比如</p>
+<pre class="hljs"><code>handleInputChange(e) {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">inputValue</span>: e.target.value
+  })
+}
+</code></pre>
+<p>可以优化为</p>
+<pre class="hljs"><code>handleInputChange(e) {
+  <span class="hljs-keyword">const</span> value = e.target.value
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({
+      <span class="hljs-attr">inputValue</span>: value
+  }))
+}
+</code></pre>
+<blockquote>
+<p>注意：当有 <code>e.target.value</code> 这种异步设置数据的时候，需要存在外层</p>
+</blockquote>
+<pre class="hljs"><code>handleBtnClick() {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">list</span>: [...this.state.list, <span class="hljs-keyword">this</span>.state.inputValue],
+    <span class="hljs-attr">inputValue</span>: <span class="hljs-string">''</span>
+  })
+  }
+</code></pre>
+<p>可以用 <code>prevState</code>，改为</p>
+<pre class="hljs"><code>handleBtnClick() {
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function">(<span class="hljs-params">prevState</span>) =&gt;</span>({
+    <span class="hljs-attr">list</span>: [...prevState.list, prevState.inputValue],
+    <span class="hljs-attr">inputValue</span>: <span class="hljs-string">''</span>
+  }))
+}
+</code></pre>
+<p>而</p>
+<pre class="hljs"><code>handleDeleteItm(index) {
+  <span class="hljs-keyword">const</span> list = [...this.state.list] <span class="hljs-comment">// 拷贝list数组</span>
+  list.splice(index,<span class="hljs-number">1</span>)
+  <span class="hljs-keyword">this</span>.setState({
+    list
+  })
+}
+</code></pre>
+<p>可以改为</p>
+<pre class="hljs"><code>handleDeleteItm(index) {
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function">(<span class="hljs-params">prevState</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> list = [...prevState.list]
+    list.splice(index,<span class="hljs-number">1</span>)
+    <span class="hljs-keyword">return</span> {list}
+  })
+}
+</code></pre>
+<h2>props 与 state</h2>
+<p>尽可能使用 <code>props</code> 当做数据源，<code>state</code> 用来存放状态值（ 简单的数据 ）</p>
+<p>也就是说咱们通常用 <code>props</code> 传递大量数据，<code>state</code> 用于存放组件内部一些简单的定义数据</p>
+<p>当组件的 <code>state</code> 或者 <code>props</code> 发生改变的时候，<code>render</code> 函数就会重新执行</p>
+<p>当父组件的 <code>render</code> 函数被运行时，它的子组件的 <code>render</code> 都将重新被运行一次</p>
+<h2>单向数据流和单向数据绑定是什么区别呢</h2>
+<p>前面已经提到了单向数据流，需要按照它的顺序办事。比如我们假设有一个这样的生命周期：</p>
+<ol>
+<li>从 data 里面读取数据</li>
+<li>ui 行为（ 如果没有 ui 行为就停在这里等他有了为止 ）</li>
+<li>触发 data 更新</li>
+<li>再回到步骤1</li>
+</ol>
+<p>改了一个数，view 层不能反回头来找他来更新 view 层视图（ 从步骤 2 跳回去 1 ），你得等下一个循环（转了一圈）的步骤 1 才能更新视图。react 就是这样子，你得 <code>setState</code> 触发更新，如果你 <code>this.state = {...}</code>，是没用的，它一直不变</p>
+<p>单向数据绑定，就是绑定事件，比如绑定 <code>onInput</code>、<code>onChange</code>、<code>storage</code> 这些事件，只要触发事件，立刻执行对应的函数（代表 react）</p>
+<p>双向数据绑定，我们一般是借用 js 底层的 <code>Object.defineproperty</code> ( 代表 <code>Vue</code> )</p>
+<p>这是 <code>Vue</code> 双绑的核心思想，<code>view</code> 层能让 <code>model</code> 层变了，<code>model</code> 层也能让 <code>view</code> 层变了</p>
+<p>要判断是单向绑定还是双向绑定，只需要手动去控制台改一下那个核心绑定的数据，view 层的显示内容能马上变化的就是双绑，不能马上有变化的只是单向数据</p>
+<p>想做到像 <code>Vue</code> 那样的极致双绑，能够在控制台改个数据就改变视图的，大概就只有 <code>defineproperty</code>（据说新版 <code>vue</code> 现在用 <code>ES6</code> 的 <code>proxy</code> ）和定时器轮询了</p>
+<p>既然说到了数据流，那组件间是怎么进行通信的呢？</p>
+<h1>组件通信</h1>
+<p>一般来说，有两种通信方式</p>
+<h2>父子组件通信</h2>
+<p>在 <code>react</code> 中，最为常见的组件通信也就是父子了，一般情况是：</p>
+<p><strong>父组件更新组件状态  -----props-----&gt;　子组件更新</strong></p>
+<p>另一种情况是</p>
+<p><strong>子组件更新父组件状态   -----需要父组件传递回调函数-----&gt;  子组件调用触发</strong></p>
+<p>可能大家对于第二种子组件更新父组件状态的情况有些不理解</p>
+<p>一般情况下，只能由父组件通过 <code>props</code> 传递数据给子组件，使得子组件得到更新</p>
+<p>那么现在，我们想实现子组件更新父组件，就需要<strong>父组件通过 props 传递一个回调函数到子组件</strong>中，<strong>这个回调函数可以更新父组件</strong>，<strong>子组件</strong>就是通过<strong>触发这个回调函数，从而使父组件得到更新</strong></p>
+<h2>兄弟组件通信</h2>
+<p>当两个组件处于同一级时（ 同处父级，或者同处子级 ），就称为兄弟组件</p>
+<p>这里也有两种实现方式</p>
+<p><strong>方式一</strong></p>
+<p>按照<strong>React单向数据流方式</strong>，我们需要<strong>借助父组件进行传递，通过父组件回调函数改变兄弟组件的props</strong></p>
+<p>其实这种实现方式与子组件更新父组件状态的方式是大同小异的</p>
+<p>方式一只适用于组件层次很少的情况，当组件层次很深的时候，整个沟通的效率就会变得很低</p>
+<p><strong>方式二</strong></p>
+<p>React官方给我们提供了一种<strong>上下文方式</strong>，可以<strong>让子组件直接访问祖先的数据或函数，无需从祖先组件一层层地传递数据到子组件中</strong></p>
+<p>但这种方法建议按需使用，可能会导致一些不可预期的错误。（ 比如数据传递逻辑结构不清晰 ）</p>
+<h1>组件划分</h1>
+<p>前面已经提到使用 <code>react</code> 的<strong>最大好处</strong>在于<strong>功能组件化，遵守前端可维护的原则</strong></p>
+<p>事实上，<code>react</code> 组件化开发原则是组件负责渲染 UI，组件的不同状态对应着不同 UI，通常遵循以下组件设计思路</p>
+<ul>
+<li>
+<p><strong>布局组件</strong>：仅仅涉及应用 UI 界面结构的组件，不涉及任何业务逻辑，数据请求及操作</p>
+</li>
+<li>
+<p><strong>容器组件</strong>：负责获取数据，处理业务逻辑，通常在 <code>render()</code> 函数内返回展示型组件</p>
+</li>
+<li>
+<p><strong>展示型组件</strong>：负责应用的界面 UI 展示</p>
+</li>
+<li>
+<p><strong>UI 组件</strong>：指抽象出的可重用的 UI 独立组件，通常是无状态组件</p>
+</li>
+</ul>
+<p>实际项目中，最好将 UI 组件和容器组件拆分, UI 组件负责页面渲染，容器组件负责页面逻辑</p>
+<p>当组件中只有一个 render 函数时，就可以定义成无状态组件</p>
+<p>无状态组件的性能比较高，因为它就是一个函数，而 React 里边普通的组件是 JS 里边的一个类，这个类生成的对象里，还会有一些生命周期函数，所以它执行起来，既要执行生命周期函数，又要执行 render ,它要执行的东西远比函数执行的东西多的多，所以一个普通组件的性能是肯定赶不上无状态组件的</p>
+<h1>生命周期函数</h1>
+<p>React的组件拥有一套清晰完整而且非常容易理解的生命周期机制</p>
+<p>大体可以分为三个过程：<strong>初始化</strong>、<strong>更新</strong>和<strong>销毁</strong></p>
+<p>在组件生命周期中，随着组件的 <code>props</code> 或者 <code>state</code> 发生改变，它的 <code>Virtual DOM</code> 和 <code>DOM</code> 表现也将有相应的变化</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49336824-34de6800-f644-11e8-8354-9763639eb7b5.jpg" alt="6721543734532_ pic"></p>
+<p>什么叫生命周期函数？生命周期函数指<strong>在某一时刻组件会自动调用执行的函数</strong></p>
+<pre class="hljs"><code><span class="hljs-comment">// constructor 可以理解为一个生命周期函数，它是 ES6 的语法规定的。在组件一创建就会被调用，页面初始化 Initialization</span>
+<span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-comment">// 当组件的 state 或者 props 发生改变的时候，render 函数就会重新执行  </span>
+  <span class="hljs-keyword">this</span>.state = {
+    <span class="hljs-attr">inputValue</span>: <span class="hljs-string">'hello'</span>,
+    <span class="hljs-attr">list</span>: [<span class="hljs-string">'学习英文'</span>, <span class="hljs-string">'学习react'</span>]
+  }
+  <span class="hljs-keyword">this</span>.handleInputChange = <span class="hljs-keyword">this</span>.handleInputChange.bind(<span class="hljs-keyword">this</span>)
+  <span class="hljs-keyword">this</span>.handleBtnClick = <span class="hljs-keyword">this</span>.handleBtnClick.bind(<span class="hljs-keyword">this</span>)
+  <span class="hljs-keyword">this</span>.handleDeleteItm = <span class="hljs-keyword">this</span>.handleDeleteItm.bind(<span class="hljs-keyword">this</span>)
+}
+
+<span class="hljs-comment">// 在组件即将被挂载到页面的时候执行</span>
+componentWillMount() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'componentWillMount'</span>)
+}
+
+render() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'parent render'</span>)
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>......<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  )
+}
+
+<span class="hljs-comment">// 组件被挂载到页面之后自动执行</span>
+componentDidMount() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'componentDidMount'</span>)
+}
+
+<span class="hljs-comment">// 当组件被更新之前，他会自动执行</span>
+shouldComponentUpdate() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'shouldComponentUpdate'</span>)
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
+}
+
+<span class="hljs-comment">// 组件被更新之前，它会自动执行，但是它在 shouldComponentUpdate 之后执行</span>
+<span class="hljs-comment">// 如果 shouldComponentUpdate 返回true它才执行</span>
+<span class="hljs-comment">// 如果返回 false ，这个函数就不会执行了</span>
+componentWillUpdate() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'componentWillUpdate'</span>)
+}
+
+componentDidUpdate() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'componentDidUpdate'</span>)
+}
+</code></pre>
+<p>在子组件中</p>
+<pre class="hljs"><code>render() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'child render'</span>)
+  <span class="hljs-keyword">const</span> { content } =  <span class="hljs-keyword">this</span>.props
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleClick}</span>&gt;</span>
+      {content}
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+  )
+}
+
+handleClick() {
+  <span class="hljs-keyword">const</span> { deleteItem, index } = <span class="hljs-keyword">this</span>.props
+  deleteItem(index)
+}
+
+<span class="hljs-comment">// 一个组件从父组件接受参数</span>
+<span class="hljs-comment">// （只要父组件的render函数被重新执行了，子组件的这个生命周期函数就会被执行）</span>
+<span class="hljs-comment">// 如果这个组件第一次存在于父组件中，不会执行</span>
+<span class="hljs-comment">// 如果这个组件之前已经存在于父组件中，才会执行</span>
+componentWillReceiveProps() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'child componentWillReceiveProps'</span>)
+}
+
+<span class="hljs-comment">// 但这个组件即将被剔除时执行</span>
+componentWillUnmount() {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'child componentWillUnmount'</span>)
+}
+</code></pre>
+<p><code>Mount</code> 是指组件被挂载执行的过程，<code>Updation</code> 是指组件被更新执行的过程，什么情况发生更新呢？要么是 <code>state</code> 被更新，要么是 <code>props</code> 被更新，也就是数据发生变化的时候，页面会更新</p>
+<blockquote>
+<p>需要注意的是，所有的生命周期函数都可以不存在，但是有一个生命周期函数必须得有，就是 <code>render</code> 函数</p>
+</blockquote>
+<p>它的底层为什么会有这样的设定呢？原因就是组件是继承自 <code>Component</code> 这个组件的，<code>React Component</code> 这个组件里边默认内置了其他所有的生命周期函数，唯独没有内置  <code>render</code> 函数,所以对组件来说，<code>render</code> 是必须自己定义的，不然就会报错</p>
+<h2>React 生命周期函数的使用场景</h2>
+<p>上面讲了 <code>React</code> 的生命周期函数，有一个比较容易忽视的钩子函数 <code>shouldComponentUpdate</code> ，他的使用过程是怎样的呢？</p>
+<p>我们先来做个测试，看下子组件的渲染过程，先把所有的生命周期函数都删除掉，只在子组件的 <code>render</code> 函数中留下 <code>console.log('child render')</code></p>
+<p>然后我们在 input 框中输入内容，在控制台可以看到这样的结果</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49337041-82a89f80-f647-11e8-823b-33989ff3cc25.png" alt="image"></p>
+<p>也就是父组件 <code>render</code> 函数重新执行的时候，子组件的 <code>render</code> 函数也会跟着执行</p>
+<p>这样的逻辑是没有问题的，但是它会带来性能上的损耗</p>
+<p>父组件上的内容发生变化了，其实子组件的内容是没必要重新渲染的，而这样的机制会导致子组件要做很多无谓的渲染</p>
+<p>那应该怎样做性能优化呢?</p>
+<p>很简单，这个时候我们就可以利用生命周期函数 <code>shouldComponentUpdate</code> 来做性能优化了</p>
+<p><code>shouldComponentUpdate</code> 这个函数的意思是，当数据或者内容发生变化的时候，会先询问一下，组件是否要被真正的更新</p>
+<pre class="hljs"><code>shouldComponentUpdate(nextProps, nextState) {
+  <span class="hljs-keyword">if</span>(nextProps.content !== <span class="hljs-keyword">this</span>.props.content) {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+  }
+}
+</code></pre>
+<p><code>shouldComponentUpdate</code> 一般会接收两个参数，一个是<code>nextProps</code>，另一个是 <code>nextState</code></p>
+<p>当一个组件要被更新的时候，<code>props</code> 要被更新成什么样呢？<br>
+<code>nextProps</code> 指的是接下来 <code>props</code> 要被变化成什么样，<code>nextState</code> 指的是接下来 <code>state</code> 要被变化成什么样</p>
+<p>我们的组件 <code>props</code> 接收的 content ,如果 content 发生变化，这个组件才需要重新渲染，没有发生变化时，不需要发生渲染</p>
+<p>这样就通过 <code>shouldComponentUpdate</code> 这个生命周期函数提升了组件的性能，可以避免一个组件做无谓的 <code>render</code> 操作</p>
+<p><code>render</code> 函数重新执行，就意味着 <code>React</code> 底层要生成一份 <code>Virtual DOM</code> ，和之前的 <code>Virtual DOM</code> 做比对，虽然 <code>Virtual DOM</code> 的比对比 <code>Actual DOM</code> 的比对要快的多，但是，如果能省略这个比对过程当然能节约更多的性能</p>
+<h3>性能优化</h3>
+<p>当然，<code>React</code> 当中有很多关于<strong>性能优化</strong>的点</p>
+<ul>
+<li>
+<p>首先是 <code>this.handleClick.bind(this)</code> 这样的方法，如果要改变作用域的话，我们把作用域的修改放在 <code>constructor</code> 里边，这样可以保证整个程序里边这个函数的作用域绑定只会执行一次，而且可以避免组件的一些无谓渲染，所以，这样写代码，<code>react</code> 组件的性能会有所提升</p>
+</li>
+<li>
+<p>其次， <code>react</code> 的底层 <code>setState</code> 内置了性能提升的机制，是一个异步的函数，可以把多次数据的改变结合成一次来做，这样可以降低 <code>Virtual DOM</code> 的比对频率</p>
+</li>
+<li>
+<p>再者 <code>react</code> 的底层使用了 <code>Virtual DOM</code> 的概念，还有同层比对，还有 <code>key</code> 的概念，来提升 <code>Virtual DOM</code> 比对的速率，从而提升 <code>react</code> 的性能</p>
+</li>
+<li>
+<p>最后，也就是借助 <code>shouldComponentUpdate</code> 这个方法，可以提高 <code>react</code> 组件的性能，因为我们可以避免无谓的组件的 <code>render</code> 函数的运行</p>
+</li>
+</ul>
+<h1>监听数据对象</h1>
+<p>由于之前用过一段时间的 <code>Vue</code>，在转到 <code>React</code> 开发的时候，可以明显的发现 <code>React</code> 并没有 <code>Vue</code> 可以 <code>watch</code> 数据对象的方法</p>
+<p>那 <code>React</code> 是怎么检测数据对象的变化呢？</p>
+<p><code>React</code> 默认不是双向绑定的，它不监听数据对象，而是通过手动调用 <code>setState()</code> 方法来触发了 <code>Virtual DOM</code> 的更新，再用 <code>diff</code> 算法来进行 <code>Virtual DOM</code> 比较前后两个状态的不同，看看是哪个 DOM 节点更新了，然后针对性的更改变化了的 DOM 结构实现数据更新，渲染 <code>Actual DOM</code></p>
+<p>我们单纯的使用 <code>React</code>，状态发生变化，会触发组件生命周期中的如下方法：</p>
+<pre class="hljs"><code>componentWillUpdate(object nextProps, object nextState) 
+
+componentDidUpdate(object prevProps, object prevState) 
+</code></pre>
+<p>但如果结合 <code>Redux</code> 使用，一般状态变化是由 <code>Dispatch</code> 引起的，我们可以在 <code>Dispatch</code> 的回调中执行相应的操作</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/55044440-4d501380-5075-11e9-9af9-d2ea2fcda4af.png" alt="image"></p>
+<h1>函数式编程</h1>
+<p><code>react</code> 把需要不断重复构建的 UI 抽象成了组件，它充分利用很多函数式的方法减少了冗余代码</p>
+<p>可以说，<strong>函数式编程是 React 的精髓</strong></p>
+<p>那到底什么是函数式编程呢？</p>
+<blockquote>
+<p>函数式编程或称函数程序设计，又称泛函编程，是一种编程范型，它将电脑运算视为数学上的函数计算，并且<strong>避免使用程序状态以及易变对象</strong></p>
+</blockquote>
+<p>比起命令式编程，函数式编程更加强调程序执行的结果而非执行的过程，倡导利用若干简单的执行单元让计算结果不断渐进，逐层推导复杂的运算，而不是设计一个复杂的执行过程。</p>
+<p>也就是说，<strong>函数式编程和命令式编程最大的区别</strong>是：</p>
+<p><strong>函数式编程关心数据的映射</strong>，而<strong>命令式编程关心解决问题的步骤</strong></p>
+<p>而且维护方便，面向测试的开发流程</p>
+<p>一个高阶函数，它可以接收函数可以当参数，也可以当返回值，这就是函数式编程</p>
+<p>像柯里化、装饰器模式、高阶组件，都是相通的，一个道理</p>
+<p>举个简单的 🌰</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">first</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'zhangshan'</span>)
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">second</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'lisi'</span>)
+}
+</code></pre>
+<p>现在想在每条 <code>console</code> 语句前后各加一条 <code>console</code> 语句，如果在每个函数都加上 <code>console</code> 语句，会产生不必要的耦合，所以高阶函数就派上了用场</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">FuncWrapper</span>(<span class="hljs-params">func</span>) </span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'before'</span>)
+    func()
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'after'</span>)
+  }
+}
+<span class="hljs-keyword">var</span> first = FuncWrapper(first)
+<span class="hljs-keyword">var</span> second = FuncWrapper(second)
+</code></pre>
+<p>我们写了一个函数 <code>FuncWrapper</code>，该函数接一个函数作为参数，将参数函数装饰了一层，返回出去，减少了代码耦合</p>
+<p>在设计模式中称这种模式为装饰器或装饰者模式</p>
+<p>在 <code>React</code> 中，高阶组件 <code>HOC</code> 就相当于这么一个 <code>FuncWrapper</code>，传入一个组件，返回被包装或者被处理的另一个组件</p>
+<h1>高阶组件</h1>
+<blockquote>
+<p>a higher-order component is a function that takes a component and returns a new component.</p>
+</blockquote>
+<p>高阶组件就是一个函数，且该函数接受一个组件作为参数，并返回一个新的组件</p>
+<p>高阶组件就是一个没有副作用的纯函数</p>
+<p>本质上是一个类工厂，先举个简单的 🌰</p>
+<p>组件一：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">First</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{
+  <span class="hljs-keyword">constructor</span> (props) {
+    <span class="hljs-keyword">super</span>(props)
+    <span class="hljs-keyword">this</span>.changeHandle = <span class="hljs-keyword">this</span>.changeHandle.bind(<span class="hljs-keyword">this</span>)
+  }
+  changeHandle (value) {
+    <span class="hljs-built_in">console</span>.log(value)
+  }
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>zhangsan<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">onchange</span>=<span class="hljs-string">{value</span> =&gt;</span> this.changeHandle(value)}/&gt;
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+</span></code></pre>
+<p>组件二：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Second</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{
+  <span class="hljs-keyword">constructor</span> (props) {
+    <span class="hljs-keyword">super</span>(props)
+    <span class="hljs-keyword">this</span>.changeHandle = <span class="hljs-keyword">this</span>.changeHandle.bind(<span class="hljs-keyword">this</span>)
+  }
+  changeHandle (value) {
+    <span class="hljs-built_in">console</span>.log(value)
+  }
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>lisi<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">onchange</span>=<span class="hljs-string">{value</span> =&gt;</span> this.changeHandle(value)}/&gt;
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+</span></code></pre>
+<p>有两个不相同的组件，但是有部分功能重合，比如 <code>h2</code> 标题的内容，<code>changeHandle</code> 函数，这样也就造成了代码的冗余</p>
+<p>理解了高阶函数，再解决这类问题就不难了吧？接下来我们加入高阶组件解决这个问题</p>
+<p>高阶组件：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React, { Fragment } <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+
+<span class="hljs-comment">// 定义装饰器的外层函数</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">HocUITest</span>(<span class="hljs-params">name</span>) </span>{
+  <span class="hljs-comment">// 返回一个装饰器函数</span>
+  <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">CompWrapper</span> (<span class="hljs-params">Component</span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">WarpComponent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{
+      <span class="hljs-keyword">constructor</span> (props) {
+        <span class="hljs-keyword">super</span>(props)
+        <span class="hljs-keyword">this</span>.handleChange = <span class="hljs-keyword">this</span>.handleChange.bind(<span class="hljs-keyword">this</span>)
+      }
+
+      handleChange (value) {
+        <span class="hljs-built_in">console</span>.log(value)
+      }
+
+      render () {
+        <span class="hljs-keyword">return</span> (
+          <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Fragment</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>{name}<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">Component</span> <span class="hljs-attr">handleChange</span>=<span class="hljs-string">{this.handleChange}</span> {<span class="hljs-attr">...this.props</span>}&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">Component</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-name">Fragment</span>&gt;</span></span>
+        )
+      }
+    }
+  }
+}
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> HocUITest
+</code></pre>
+<p>在高阶组件返回包装好的组件的时，我们将高阶组件的 <code>props</code> 展开并传入包装好的组件中，这是确保给高阶组件的 <code>props</code> 也能给到被包装的组件上</p>
+<p>简化接下来的两个组件</p>
+<p>组件一：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> HocUITest <span class="hljs-keyword">from</span> <span class="hljs-string">'./Test'</span>
+
+@HocUITest(<span class="hljs-string">'zhangsan'</span>)
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">First</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{
+  <span class="hljs-keyword">constructor</span> (props) {
+    <span class="hljs-keyword">super</span>(props)
+    <span class="hljs-built_in">console</span>.log(props)
+  }
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">onChange</span>=<span class="hljs-string">{value</span> =&gt;</span> this.props.handleChange(value)}/&gt;
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+
+// First = HocUITest('zhangsan')(First)
+
+export default First
+</span></code></pre>
+<p>组件二：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> HocUITest <span class="hljs-keyword">from</span> <span class="hljs-string">'./Test'</span>
+
+@HocUITest(<span class="hljs-string">'lisi'</span>)
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Second</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{
+  <span class="hljs-keyword">constructor</span> (props) {
+    <span class="hljs-keyword">super</span>(props)
+    <span class="hljs-built_in">console</span>.log(props)
+  }
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">onChange</span>=<span class="hljs-string">{value</span> =&gt;</span> this.props.handleChange(value)}/&gt;
+      <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    )
+  }
+}
+</span></code></pre>
+<p>高阶组件的用途很多，比如代码复用，逻辑抽象，抽离底层代码，渲染劫持，更改 <code>state</code>、更改 <code>props</code> 等等</p>
+<p>包括我们经常用到的 <code>react-redux</code> 的 <code>connect</code> 函数</p>
+<p>把 <code>redux</code> 的 <code>state</code> 和 <code>action</code> 创建函数，通过 <code>props</code> 注入给了 <code>Component</code></p>
+<p>你在目标组件 <code>Component</code> 里面可以直接用 <code>this.props</code> 去调用 <code>redux state</code> 和 <code>action</code> 创建函数了</p>
+<pre class="hljs"><code>ConnectedComment = connect(mapStateToProps, mapDispatchToProps)(Component)
+</code></pre>
+<p>相当于</p>
+<pre class="hljs"><code><span class="hljs-comment">// connect是一个返回函数的函数（就是个高阶函数）</span>
+<span class="hljs-keyword">const</span> enhance = connect(mapStateToProps, mapDispatchToProps)
+<span class="hljs-comment">// 返回的函数就是一个高阶组件，该高阶组件返回一个与Redux store</span>
+<span class="hljs-comment">// 关联起来的新组件</span>
+<span class="hljs-keyword">const</span> ConnectedComment = enhance(Component)
+</code></pre>
+<p><code>antd</code> 的 <code>Form</code> 组件也是一样的</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> WrappedNormalLoginForm = Form.create()(NormalLoginForm)
+</code></pre>
+<p>上述高阶组件中我们用了 ES6 装饰器语法，<code>@HocUITest('lisi')</code> 就是一个<strong>装饰器</strong>，它修改了类的行为</p>
+<p>也就是说，<strong>装饰器是一个对类进行处理的函数</strong></p>
+<p>需要注意的是，装饰器对类的行为的改变，是代码编译时发生的，而不是在运行时</p>
+<p>这意味着，装饰器能在编译阶段运行代码</p>
+<p>也就是说，装饰器本质就是编译时执行的函数</p>
+<p>为了传递更多的参数，上面的装饰器函数外面又封装了一层函数</p>
+<p>比如，我们实际开发时，<code>React</code> 与 <code>Redux</code> 库结合使用时，常常需要写成下面这样</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyComponent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{}
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> connect(mapStateToProps, mapDispatchToProps)(MyComponent)
+</code></pre>
+<p>有了装饰器，就可以改写上面的代码</p>
+<pre class="hljs"><code>@connect(mapStateToProps, mapDispatchToProps)
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyComponent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">React</span>.<span class="hljs-title">Component</span> </span>{}
+</code></pre>
+<p>接下来我们主要说一下两种功能的 <code>react</code> 高阶组件：属性代理、反向继承</p>
+<h2>属性代理</h2>
+<p>高阶组件将它收到的 <code>props</code> 传递给被包装的组件，所叫属性代理</p>
+<p>主要用来处理以下问题</p>
+<ul>
+<li>更改 <code>props</code></li>
+<li>抽取 <code>state</code></li>
+<li>通过 <code>refs</code> 获取组件实例</li>
+<li>将组件与其他原生 DOM 包装到一起</li>
+</ul>
+<h2>反向继承</h2>
+<p>为什么叫反向继承，是高阶组件继承被包装组件，按照我们想的被包装组件继承高阶组件</p>
+<p><strong>反向代理主要用来做渲染劫持</strong></p>
+<p>所谓的渲染劫持，就是最后组件所渲染出来的东西或者我们叫 <code>React Element</code> 完全由高阶组件来决定，通过我们可以对任意一个 <code>React Element</code> 的 <code>props</code> 进行操作；我们也可以操作 <code>React Element</code> 的 <code>Child</code></p>
+<p>用过 <code>React-Redux</code> 的人可能会有印象，使用 <code>connect</code> 可以将 <code>react</code> 和 <code>redux</code> 关联起来，这里的 <code>connect</code> 就是一个高阶组件</p>
+<h1>ref 的使用</h1>
+<p><code>ref</code> 是 <code>reference</code> 的简写，它是一个引用，在 <code>React</code> ，可以使用 <code>ref</code> 操作 DOM</p>
+<pre class="hljs"><code>&lt;input
+  id=<span class="hljs-string">'insertArea'</span>
+  className=<span class="hljs-string">'input'</span>
+  value={<span class="hljs-keyword">this</span>.state.inputValue} 
+  onChange={<span class="hljs-keyword">this</span>.handleInputChange}
+  ref={(input) =&gt; {<span class="hljs-keyword">this</span>.input = input}}
+/&gt;
+</code></pre>
+<p>在 <code>React 16</code> 的新语法中，<code>ref</code> 应该等于一个函数（箭头函数）</p>
+<p><code>ref={(input) =&gt; {this.input = input}}</code> ,构造了一个 <code>ref</code> 引用，这个引用叫 <code>this.input</code> ,它指向 <code>input</code> 对应的 DOM 节点。所以 <code>this.input</code> 指向的就是 <code>input</code> 框的 DOM</p>
+<p>所以下面的方法</p>
+<pre class="hljs"><code>handleInputChange(e) {
+  <span class="hljs-keyword">const</span> value = e.target.value
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({
+      <span class="hljs-attr">inputValue</span>: value
+  }))
+}
+</code></pre>
+<p>可以改为</p>
+<pre class="hljs"><code>handleInputChange() {
+    <span class="hljs-keyword">const</span> value = <span class="hljs-keyword">this</span>.input.value
+    <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({
+        <span class="hljs-attr">inputValue</span>: value
+    }))
+  }
+</code></pre>
+<p>应该尽量保持少操作 DOM ，<code>setState</code> 是异步函数,操作 DOM 时必须写到回调中</p>
+<p>比如</p>
+<pre class="hljs"><code>&lt;Fragment&gt;
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">htmlFor</span>=<span class="hljs-string">'insertArea'</span>&gt;</span>输入内容<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span>
+      <span class="hljs-attr">id</span>=<span class="hljs-string">'insertArea'</span>
+      <span class="hljs-attr">className</span>=<span class="hljs-string">'input'</span>
+      <span class="hljs-attr">value</span>=<span class="hljs-string">{this.state.inputValue}</span> 
+      <span class="hljs-attr">onChange</span>=<span class="hljs-string">{this.handleInputChange}</span>
+      <span class="hljs-attr">ref</span>=<span class="hljs-string">{(input)</span> =&gt;</span> {this.input = input}}
+    /&gt;
+    <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleBtnClick}</span>&gt;</span>提交<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">ul</span> <span class="hljs-attr">ref</span>=<span class="hljs-string">{(ul)</span> =&gt;</span> {this.ul = ul}}&gt;
+    {this.getTodoItem()}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">Fragment</span>&gt;</span></span>
+</code></pre>
+<pre class="hljs"><code> handleBtnClick() {
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function">(<span class="hljs-params">prevState</span>) =&gt;</span>({
+    <span class="hljs-attr">list</span>: [...prevState.list, prevState.inputValue],
+    <span class="hljs-attr">inputValue</span>: <span class="hljs-string">''</span>
+  }), () =&gt; {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-keyword">this</span>.ul.querySelectorAll(<span class="hljs-string">'div'</span>).length)
+  })
+}
+</code></pre>
+<p><code>ref</code> 是帮助我们在 <code>React</code> 中直接获取 DOM 元素的时候使用的，一般情况下尽量避免使用 <code>ref</code> ,但是有的时候一些极其复杂的业务，比如动画的时候，不可避免的还是要用到 DOM 标签，怎么用呢，就用 <code>ref</code> 来获取 DOM 标签</p>
+<blockquote>
+<p>注意，<code>ref</code> 和 <code>setState</code> 合用的时候，DOM 的获取并不及时，原因是 <code>setState</code> 是异步的，如果希望页面更新之后再去获取 DOM ，需要把获取 DOM 的语法放在 <code>setState</code> 的第二个参数里边，它是一个回调函数</p>
+</blockquote>
+<h1>补充知识</h1>
+<h2>开发环境搭建</h2>
+<p>快速搭建 <code>React</code> 的开发环境有两种方法</p>
+<ol>
+<li>
+<p>通过 CDN 引入 .js 文件来使用 <code>React</code></p>
+</li>
+<li>
+<p>使用 <code>create-react-app</code> 脚手架工具来编码</p>
+</li>
+</ol>
+<blockquote>
+<p>脚手架是前端开发过程中的一个辅助工具，自动构建一个大型项目的开发流程和目录，允许我们以一定方式实现 js 文件的相互引用，更方便的对项目进行管理</p>
+</blockquote>
+<p>在脚手架的代码并不能直接运行，需要脚手架进行编译，编译出来的代码才可以被浏览器识别运行，一般会使用 <code>webpack</code> 、 <code>gulp</code> 这样的工具</p>
+<h2>工程目录简介</h2>
+<p><img src="https://user-images.githubusercontent.com/26807227/49340118-80116e80-f676-11e8-9e71-84c83ac2eeb2.png" alt="image"></p>
+<ul>
+<li><code>yarn.lock</code> - 项目依赖的安装包</li>
+<li><code>package.json</code> - node 的包文件，包含项目的介绍、项目依赖的包、指令供调用，让项目变成node的包</li>
+<li><code>public favicon.ico</code> - 项目左上角图标，<code>index.html</code> 模板</li>
+<li><code>src index.js</code> - 整个程序运行的入口文件</li>
+</ul>
+<h2>注意事项</h2>
+<p><code>state</code> 不允许做任何改变，可以先拷贝 <code>state</code> 中的值</p>
+<p><code>const list = [...this.state.list]</code></p>
+<blockquote>
+<p>需要注意的是</p>
+</blockquote>
+<ol>
+<li>
+<p>在 JSX 语法中， {{}} 是表示 JS 表达式里的 JS 对象</p>
+</li>
+<li>
+<p>转义的情况下，比如输入：<code>&lt;h1&gt;hello&lt;/h1&gt;</code> 会显示 <code>&lt;h1&gt;hello&lt;/h1&gt;</code></p>
+<pre class="hljs"><code>&lt;li 
+  key={index} 
+  onClick={<span class="hljs-keyword">this</span>.handleDeleteItm.bind(<span class="hljs-keyword">this</span>,index)}
+&gt;
+  {item}
+&lt;<span class="hljs-regexp">/li&gt;
+</span></code></pre>
+</li>
+</ol>
+<p>不转义的情况下，比如输入：<code>&lt;h1&gt;hello&lt;/h1&gt;</code> 会显示 <code>hello</code> ：</p>
+<pre><code>```jsx
+&lt;li 
+  key={index} 
+  onClick={this.handleDeleteItm.bind(this,index)}
+  dangerouslySetInnerHTML={{__html: item}}
+&gt;
+&lt;/li&gt;
+```
+</code></pre>
+<ol start="3">
+<li>
+<p>在 <code>React</code> 中使用表单时，<code>label</code> 元素的 <code>for</code> 标签要替换成 <code>htmlFor</code></p>
+<pre class="hljs"><code>&lt;label htmlFor=<span class="hljs-string">'insertArea'</span>&gt;输入内容&lt;<span class="hljs-regexp">/label&gt;
+&lt;input
+  id='insertArea'
+  className='input'
+  value={this.state.inputValue} 
+  onChange={this.handleInputChange.bind(this)}
+/</span>&gt;
+</code></pre>
+</li>
+</ol>
+<h2>使用 Charles 实现本地数据 mock</h2>
+<p>在前端开发代码的时候实际上和后端是分离的，也就需要在本地进行接口数据的模拟，这个时候就需要使用 Charles 进行接口数据的模拟</p>
+<p>具体操作我在博客<a href="https://github.com/lulujianglab/blog/issues/34">大白话解析 Redux 、 redux-thunk 、redux-saga 和 react-redux</a>里边已经讲到了，有兴趣的小伙伴可以去看看</p>
+<p>我们先 <code>npm install axios --save</code> 安装 <code>axios</code></p>
+<p>然后在程序中引入 <code>axios</code>: <code>import axios from 'axios'</code></p>
+<pre class="hljs"><code>componentDidMount() {
+  axios.get(<span class="hljs-string">'/list.json'</span>)
+    .then(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> { 
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'data'</span>,res.data) 
+      <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({      
+          <span class="hljs-attr">list</span>: [...res.data]
+      }))
+    })
+    .catch(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'error'</span>))
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/49337911-239e5700-f656-11e8-8eb6-822283c64826.png" alt="image"></p>
+<p><code>Charles</code> 这个工具的<strong>原理</strong>是什么？</p>
+<p>它可以抓到浏览器向外发送的请求，然后对一些请求做一些处理，比如说，抓取到请求的是<code>http://localhost:3000/list.json</code></p>
+<p>他有一个规则是，只要你请求的下面这个地址</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49337858-f7cea180-f654-11e8-8f13-e5839892b4d2.png" alt="image"></p>
+<p>就会把 <code>Local path</code> 这个本地文件的内容返回给你</p>
+<p>所以 <code>Charles</code> 其实就是一个中间的代理服务器，可以抓取到浏览器的请求，如果有些接口是需要模拟的话，就可以使用 <code>Charles</code> 的 <code>Map Local</code> 这个功能去模拟数据</p>
+<p>当然，用脚手架的话，我们也可以在 public 文件夹中 mock 请求</p>
+<h1>结尾</h1>
+<p>这篇文章主要从编程思想入手剖析 <code>React</code>，包括如何快速构建组件和应用，让你快速了解 <code>React</code> 的编程原理</p>
+<p>当然，对于构建大型应用，我们还需要结合 <a href="https://github.com/lulujianglab/blog/issues/34">Redux</a> 、 <a href="https://github.com/lulujianglab/react-router-demo">react-router</a> 和 <a href="https://github.com/lulujianglab/blog/issues/44">axios</a>，大家有兴趣的话，都可以瞧瞧 ^_^</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

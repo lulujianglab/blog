@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>页面间的传值方法及问题 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">页面间的传值方法及问题</h1>
+          <p class="post-date">2018-04-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>在vue中官网中我们可以看到两种页面间传值的方法：query和params</p>
+<h1>query  跳转URL携带参数</h1>
+<p>首先在路由文件中定义类似的如下路由</p>
+<pre class="hljs"><code>{
+      <span class="hljs-attr">path</span>:<span class="hljs-string">"/user"</span>,
+      <span class="hljs-attr">name</span>:<span class="hljs-string">"user"</span>,
+      <span class="hljs-attr">component</span>:user
+    }
+</code></pre>
+<p>然后在页面中定义跳转路径和传值参数</p>
+<pre class="hljs"><code><span class="hljs-keyword">this</span>.$router.push({<span class="hljs-attr">path</span>:<span class="hljs-string">'/user'</span>,<span class="hljs-attr">query</span>:{<span class="hljs-attr">userName</span>:<span class="hljs-string">'ls'</span>,<span class="hljs-attr">userId</span>:<span class="hljs-string">'02'</span>}});
+</code></pre>
+<p>浏览器会显示</p>
+<pre class="hljs"><code>http://localhost:8080/<span class="hljs-comment">#/user?userName=ls&amp;userId=02</span>
+</code></pre>
+<p>我们已经了解了query传参会将参数都放到url中，所以当传递的值比较多的情况下，跳转的url会太长而受限制（取决于浏览器和服务器的限制）</p>
+<p>所以只建议在参数较少的情况下使用query传值</p>
+<h1>params</h1>
+<p>参数不带入url中，可在参数较多时使用</p>
+<p>同样的先在路由文件中定义类似的如下路由</p>
+<pre class="hljs"><code>{
+      <span class="hljs-attr">path</span>:<span class="hljs-string">"/user"</span>,
+      <span class="hljs-attr">name</span>:<span class="hljs-string">"user"</span>,
+      <span class="hljs-attr">component</span>:user
+    }
+</code></pre>
+<p>然后在页面中定义跳转路径和传值参数</p>
+<pre class="hljs"><code><span class="hljs-keyword">this</span>.$router.push({<span class="hljs-attr">path</span>:<span class="hljs-string">'/user'</span>,<span class="hljs-attr">query</span>:{<span class="hljs-attr">userName</span>:<span class="hljs-string">'ls'</span>,<span class="hljs-attr">userId</span>:<span class="hljs-string">'02'</span>}});
+</code></pre>
+<h2>问题来了，如果我们打印下面代码，结果肯定是 undefined</h2>
+<pre class="hljs"><code><span class="hljs-built_in">console</span>.log(<span class="hljs-keyword">this</span>.$route.params.userName )
+</code></pre>
+<h2>注意，这是因为使用params传值，只能用name来引入路由，可见官网</h2>
+<p>正确的写法</p>
+<pre class="hljs"><code><span class="hljs-keyword">this</span>.$router.push({<span class="hljs-attr">name</span>:<span class="hljs-string">'user'</span>,<span class="hljs-attr">query</span>:{<span class="hljs-attr">userName</span>:<span class="hljs-string">'ls'</span>,<span class="hljs-attr">userId</span>:<span class="hljs-string">'02'</span>}});
+</code></pre>
+<h2>问题又来了，如果我们刷新页面，参数就不见了</h2>
+<h2>注意，用params携带参数时，在注册路由时，需要在path后面加上/:参数名</h2>
+<pre class="hljs"><code>{
+      <span class="hljs-attr">path</span>:<span class="hljs-string">"/user/:userName/:userId"</span>,
+      <span class="hljs-attr">name</span>:<span class="hljs-string">"user"</span>,
+      <span class="hljs-attr">component</span>:user
+    }
+</code></pre>
+<p>浏览器会显示</p>
+<pre class="hljs"><code>http://localhost:8080/<span class="hljs-comment">#/user/ls/02</span>
+</code></pre>
+<p>这样做虽然解决了上面的问题，但是同样会在url后面显示传入的参数值</p>
+<h1>sessionStorage 会话存储</h1>
+<h2>优点：不仅可以解决传参较多问题，还可以传递一个完整的对象；对于临时数据，避免了参数值过期时间的设置</h2>
+<p>sessionStorage 是HTML5新增的一个会话存储对象，用于临时保存同一窗口(或标签页)的数据，在关闭窗口或标签页之后将会删除这些数据</p>
+<h2>存储数据</h2>
+<p>采用setItem()方法存储</p>
+<pre class="hljs"><code>sessionStorage.setItem(<span class="hljs-string">'userName'</span>,<span class="hljs-string">'ls'</span>); 
+</code></pre>
+<p>通过属性方式存储<br>
+　　<br>
+sessionStorage['userName'] = 'ls';</p>
+<h2>读取数据</h2>
+<p>通过getItem()方法取值</p>
+<pre class="hljs"><code>sessionStorage.getItem(<span class="hljs-string">'userName'</span>)
+</code></pre>
+<p>通过属性方式取值</p>
+<p>sessionStorage['userName']</p>
+<h2>存取对象</h2>
+<p>存储时，通过JSON.stringify()将对象转换为文本格式</p>
+<p>读取时，通过JSON.parse()将文本转换回对象</p>
+<pre class="hljs"><code><span class="hljs-keyword">let</span> userInf = {
+    <span class="hljs-attr">userName</span>: <span class="hljs-string">'ls'</span>,
+    <span class="hljs-attr">userId</span>: <span class="hljs-number">02</span>
+}
+
+<span class="hljs-comment">// 存储值：将对象转换为Json字符串</span>
+sessionStorage.setItem(<span class="hljs-string">'user'</span>, <span class="hljs-built_in">JSON</span>.stringify(userInf))
+
+<span class="hljs-comment">// 取值时：把获取到的Json字符串转换回对象</span>
+<span class="hljs-keyword">var</span> userJsonStr = sessionStorage.getItem(<span class="hljs-string">'user'</span>)
+
+userInf = <span class="hljs-built_in">JSON</span>.parse(userJsonStr);
+<span class="hljs-built_in">console</span>.log(userEntity.userName); <span class="hljs-comment">// =&gt; ls</span>
+</code></pre>
+<h2>对于永久存储的数据，本地存储传值可以用localStorage，方法与sessionStorage类似</h2>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

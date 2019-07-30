@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>移动端自适应rem的问题 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">移动端自适应rem的问题</h1>
+          <p class="post-date">2018-04-18</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>我们一般写移动端页面时，为了让页面适应各个尺寸，常常会给各个元素设一个相当单位</p>
+<p>一般常用的css单位有px，em，rem</p>
+<p>px: 多用于pc端，精准的描述元素大小，不随屏幕大小变化而变化，也可以说是一个绝对单位</p>
+<p>em: 相对于父元素的大小变化而变化，在嵌套层次多的情况下会导致元素大小值偏大或偏小</p>
+<p>rem: 全名也叫font size of the root element ,即相对于根元素的大小，常用来表示移动端元素大小</p>
+<p>最近在开发移动端页面，针对rem谈谈其心得体会</p>
+<h1>rem使用方法</h1>
+<p>首先，在开发页面之前，我们需要给根元素赋一个font-size值，也就是rem基准值</p>
+<pre class="hljs"><code>&lt;html  style=<span class="hljs-string">"font-size: 37.5px;"</span>&gt;...&lt;/html&gt;
+</code></pre>
+<p>浏览器默认的根元素font-size值是16px</p>
+<h2>rem基准值计算</h2>
+<p>为了方便计算，我们可以设置一个按屏幕大小整数倍缩放的值，比如10倍</p>
+<p>所以，对于iphone6的屏幕宽度375px，那么我们就可以将根元素的font-size设置为37.5px，缩小10个倍数</p>
+<p>同样的，对于iPhone5屏幕的宽度320px，缩小10倍根元素的font-size就是32px</p>
+<p>那缩放10倍是怎么定义的呢，其实这个值是随便定义的，假如不除以10，如果是除以100，这样在设置html的font-size时候会偏小，只有3.75px或者是3.2px等等，而</p>
+<h3>浏览器的font-size如果小于12px就显示不出效果了</h3>
+<p>假设根元素的字体设置的大小是37.5px（按iPhone6屏幕尺寸缩小10倍），设计稿的宽度是按iPhone6的屏幕宽度375px定义的，设计稿中p的大小是12px，那么p应该设置的相对字体大小是(12/37.5)rem</p>
+<p>如果设计稿的宽度是750px，设计稿中p的大小是12px，那么p应该设置的相对字体大小是(12/75)rem</p>
+<h2>动态设置html的font-size</h2>
+<p>为了将各个不同屏幕宽度根元素的font-size都缩小到屏幕宽度的10倍，可以在js中动态计算出当前屏幕所适配的font-size的大小</p>
+<pre class="hljs"><code><span class="hljs-built_in">document</span>.getElementsByTagName(<span class="hljs-string">'html'</span>)[<span class="hljs-number">0</span>].style.fontSize = <span class="hljs-built_in">window</span>.innerWidth / <span class="hljs-number">10</span> + <span class="hljs-string">'px'</span>;
+</code></pre>
+<p>或</p>
+<pre class="hljs"><code><span class="hljs-built_in">document</span>.documentElement.style.fontSize = innerWidth/<span class="hljs-number">10</span> + <span class="hljs-string">"px"</span>
+</code></pre>
+<p>或者用媒体查询设置</p>
+<pre class="hljs"><code>@media (min-device-width : 375px) and (max-device-width : 667px) and (-webkit-min-device-pixel-ratio : 2){
+      html{font-size: 37.5px;}
+}
+</code></pre>
+<h2>rem数值计算</h2>
+<p>考虑到元素很多很难换算的情况，我们可以用css构建工具scss</p>
+<pre class="hljs"><code>@<span class="hljs-keyword">function</span> px2rem(<span class="hljs-variable">$px</span>){
+    <span class="hljs-variable">$rem</span> : 37.5px;
+    @<span class="hljs-built_in">return</span> (<span class="hljs-variable">$px</span>/<span class="hljs-variable">$rem</span>) + rem;
+}
+</code></pre>
+<p>当我们写具体的数值时，就可以写成</p>
+<pre class="hljs"><code>height: px2rem(90px);
+width: px2rem(90px);;
+</code></pre>
+<p><a href="https://blog.csdn.net/u013022210/article/details/52513870">参考资料</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

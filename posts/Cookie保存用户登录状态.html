@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cookie保存用户登录状态 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Cookie保存用户登录状态</h1>
+          <p class="post-date">2018-08-02</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>cookie的工作流</h1>
+<p>Cookie可以通过服务器进行设置，相当于服务器给用户贴的一个标签，用于跟踪用户的状态</p>
+<p>HTTP协议本身是无状态的，而应用服务器想保存一些状态，cookie应运而生，由服务器颁发，通过服务器设置的cookie信息通过响应头返回给浏览器，浏览器将响应头中的cookie信息保存在本地，当下次向服务器发送HTTP请求时，就自动将保存的这些cookie信息添加到HTTP请求头中，传递给服务器</p>
+<p>这样的交互，服务器就可以在cookie里记录一些用户相关的信息，比如是否登录，账号等，然后根据这些信息做一些动作，比如接下来的示例中的保存登录状态的实现，就利用cookie。还有一些电子商务网站，实现购物车时也可能用到cookie</p>
+<h1>使用cookie保持登入态</h1>
+<p>在看cookie保存用户登录状态的效果前，我们先看下header中的cookies信息记录</p>
+<h2>header中的cookies</h2>
+<h3>首次登入</h3>
+<p>响应头信息中增加Set-Cookie参数，但请求头信息中没有Cookie参数</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/43559005-aa7fcdd0-963e-11e8-85bd-de2027aef587.png" alt="image"></p>
+<p>第一次登入后已经将cookie存到了内存中</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/43559068-f6ab1b74-963e-11e8-8393-1a0f8edf9082.png" alt="image"></p>
+<h3>非首次登入</h3>
+<p>如果再次点击登录请求按钮，且在没有清空cookie的情况下，发送不同于前一个用户的登录信息，就会出现以下头部信息</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/43559274-fdbd0e08-963f-11e8-8518-e344df27a45b.png" alt="image"></p>
+<p>此时本地的cookie信息也得到了更新</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/43559316-371eab02-9640-11e8-90a5-e0f316555987.png" alt="image"></p>
+<p>请求头中的Cookie字段是浏览器发送给服务器的cookie信息，cookie的值是之前存入内存中的userInfo（&quot;userName&quot;:&quot;zhangsan&quot;）。响应头中的Set-Cookie字段是服务器返回给浏览器的cookie信息（实际上，随着用户登录信息的更新，cookie的值又被重新设置了）</p>
+<p>因为没有使用删除已有cookie的直接方法，所以在使用相同的路径（path）、域（domain）和安全选项（secure）的情况下，会再次设置原cookie</p>
+<p>上面的登入状态，是当我们登录成功后，在这个页面刷新，页面没有保存登录状态。接下来的效果是，后台cookie保存了用户登录状态，登录后刷新页面直接显示首页信息</p>
+<h2>使用cookie保持登入态</h2>
+<p>效果demo主要是通过express+nodejs实现的</p>
+<h2>处理POST正文数据</h2>
+<p>我们在demo中使用了HTML表单来接收用户名和密码，当我们提交表单信息时，浏览器会把表单内的数据按一定的格式组织之后编码进body，POST到指定的服务器地址</p>
+<p>用户名和密码，在服务器端，可以通过HTML元素的名字属性的值找出来</p>
+<p>服务器解析表单数据这一过程，是用express的body-parser中间件，只需要简单的配置即可：</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> bodyParser = <span class="hljs-built_in">require</span>(<span class="hljs-string">"body-parser"</span>) <span class="hljs-comment">// 加载body-parser模块</span>
+...
+<span class="hljs-comment">// 应用中间件</span>
+app.use(bodyParser.urlencoded({<span class="hljs-attr">extended</span>:<span class="hljs-literal">false</span>}))
+app.use(bodyParser.json())
+</code></pre>
+<p>express.Request对象req内有解析好的body，使用</p>
+<pre class="hljs"><code>app.post(<span class="hljs-string">"/login"</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">req,res,next</span>)</span>{
+    <span class="hljs-keyword">var</span> userName = req.body.userName
+    <span class="hljs-keyword">var</span> password = req.body.password
+    ...
+}
+</code></pre>
+<p>就可以直接访问用户名和密码，也就是在HTML的input元素中的用户表单值，即建立关联</p>
+<h2>cookie</h2>
+<p>cookie存储的是一些key-value对。在express里，Request和Response都有cookie相关的方法。Request实例req的cookies属性，保存了解析出的cookie，如果浏览器没发送cookie，那这个cookies对象就是一个空对象</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> Cookies=<span class="hljs-built_in">require</span>(<span class="hljs-string">'cookies'</span>)
+app.use(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">req,res,next</span>) </span>{
+    req.cookies=<span class="hljs-keyword">new</span> Cookies(req,res)
+    next();
+})
+</code></pre>
+<p>实例化一个Cookies()方法，用来设置cookie，<code>res.cookies.set('userInfo',JSON.stringify(...))</code>，再通过<code>res.cookies.get('userInfo')</code>的方法来获取cookie</p>
+<pre class="hljs"><code>app.use(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">req,res,next</span>) </span>{
+    req.cookies=<span class="hljs-keyword">new</span> Cookies(req,res)
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'cookies'</span>,<span class="hljs-keyword">typeof</span> res.cookies.get(<span class="hljs-string">'userInfo'</span>)) <span class="hljs-comment">//返回 string</span>
+    <span class="hljs-comment">//解析用户的cookie信息</span>
+    req.userInfo={};
+    <span class="hljs-keyword">var</span> cookiesUserInfo=res.cookies.get(<span class="hljs-string">'userInfo'</span>)
+    <span class="hljs-keyword">if</span>(cookiesUserInfo){
+        <span class="hljs-keyword">try</span>{
+            req.userInfo=<span class="hljs-built_in">JSON</span>.parse(cookiesUserInfo)
+        }<span class="hljs-keyword">catch</span>(e){}
+    }
+    next()
+})
+</code></pre>
+<p>第一次点击登录按钮post用户数据时，可以看到已经将用户基本信息写入响应头的set-Cookie了</p>
+<pre class="hljs"><code>app.post(<span class="hljs-string">"/login"</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">req,res,next</span>)</span>{
+    <span class="hljs-keyword">var</span> userName = req.body.userName
+    <span class="hljs-keyword">var</span> password = req.body.password
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"User name = "</span>+ userName +<span class="hljs-string">",password is"</span> + password)
+    <span class="hljs-keyword">if</span>(userName===<span class="hljs-string">''</span>||password===<span class="hljs-string">''</span>) {
+        resoinseData.code = <span class="hljs-number">1</span>
+        resoinseData.message = <span class="hljs-string">"用户名和密码不能为空！"</span>
+        res.json(resoinseData) <span class="hljs-comment">// json格式返回给前端</span>
+        <span class="hljs-keyword">return</span>
+    }<span class="hljs-keyword">else</span> {
+        resoinseData.code = <span class="hljs-number">200</span>
+        resoinseData.message = <span class="hljs-string">"登录成功！请再次刷新页面"</span>
+        resoinseData.userInfo = {
+            <span class="hljs-attr">_id</span>:<span class="hljs-string">"5a40caa218013c1dd4eadcb0"</span>,
+            <span class="hljs-attr">userName</span>:userName,
+            <span class="hljs-attr">password</span>:password
+        }
+        req.cookies.set(<span class="hljs-string">'userInfo'</span>,<span class="hljs-built_in">JSON</span>.stringify(resoinseData.userInfo))
+        res.json(resoinseData)
+        <span class="hljs-keyword">return</span>
+    }
+})
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/43563690-ee23d4e8-9655-11e8-93eb-2d4b77a74f24.png" alt="image"></p>
+<p>再次刷新页面时，请求头中已经出现了设置的cookie，用户进入免登入状态</p>
+<pre class="hljs"><code>app.get(<span class="hljs-string">"/"</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">req,res,next</span>)</span>{
+    <span class="hljs-keyword">if</span>(req.userInfo.userName) {
+        res.sendFile(path.resolve(<span class="hljs-string">"index.html"</span>)) <span class="hljs-comment">// 如果请求头中有cookie信息，则加载首页</span>
+    }<span class="hljs-keyword">else</span> {
+        res.sendFile(path.resolve(<span class="hljs-string">"login.html"</span>)) <span class="hljs-comment">// 如果请求头中没有cookie信息，则重新跳转登录页</span>
+    }  
+})
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/43564641-329fc452-965a-11e8-858e-3774b43e66b9.png" alt="image"></p>
+<p>再次点击退出按钮时，通过<code>res.cookies.set('userInfo',null)</code>会将先前设置的cookie信息删除，再次进入登入页</p>
+<pre class="hljs"><code>app.post(<span class="hljs-string">"/loginout"</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">req,res,next</span>)</span>{
+    req.cookies.set(<span class="hljs-string">'userInfo'</span>,<span class="hljs-literal">null</span>)
+    res.sendFile(path.resolve(<span class="hljs-string">"login.html"</span>)) <span class="hljs-comment">// 用户登出后再次跳转登录页</span>
+})
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/43563920-d9ea6810-9656-11e8-82db-71e19f966e41.png" alt="image"></p>
+<p>整个保持登入态的工作流：</p>
+<p>用户登录 - 前端发送登录请求 - 后端保存用户cookie - 页面刷新 - 前端判断用户cookie存在 - 显示登录状态 - 用户退出 - 前端发送退出请求 - 后端清空用户cookie - 页面跳转登录页</p>
+<p>完整的demo可以查看<a href="https://github.com/lulujianglab/cookie">cookie-demo</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

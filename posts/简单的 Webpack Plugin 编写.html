@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>简单的 Webpack Plugin 编写 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">简单的 Webpack Plugin 编写</h1>
+          <p class="post-date">2019-01-13</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>前端技术发展迅速，各种框架工具库层出不穷，诸如'大前端'、'前后端分离'、'本地开发构建'等等热门词汇我们更是屡见不鲜，这些现代前端技术基石自然离不开 <code>webpack</code> ，webpack 的工作更离不开各类插件 Plugin 的支持</p>
+<p>相信不少小伙伴在平时的项目开发中使用过 <code>Webpack Plugins</code>， 我的上篇文章<a href="https://github.com/lulujianglab/blog/issues/41"> Webpack4 和 Babel 7 全套配置</a>也有介绍搭配 <code>Webpack Plugins</code> 的配置过程，但对于自己开坑写 webpack ,可能是比较少的（包括我寄几）,这两天抽空看了下<a href="https://webpack.css88.com/concepts/plugins.html"> webpack 中文文档(v4.15.1)</a>，又逢读到 <a href="https://segmentfault.com/a/1190000012840742">Webpack 原理-编写 Plugin</a> 好文章一篇，豁然开朗，所以简单的介绍下插件开发的过程</p>
+<p>例子中使用的插件我已经发到 npm 用来测试了</p>
+<h1>基本插件结构</h1>
+<blockquote>
+<p>webpack 插件是一个具有 <code>apply</code> 属性的 JavaScript 对象。<code>apply</code> 属性会被 <code>webpack compiler</code> 调用，并且 <code>compiler</code> 对象可在整个编译生命周期访问</p>
+</blockquote>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BasicPlugin</span></span>{
+  <span class="hljs-comment">// 在构造函数中获取用户给该插件传入的配置</span>
+  <span class="hljs-keyword">constructor</span>(options){
+  }
+  
+  <span class="hljs-comment">// Webpack 会调用 BasicPlugin 实例的 apply 方法给插件实例传入 compiler 对象</span>
+  apply(compiler){
+    compiler.hooks.run.tap(pluginName, compilation =&gt; {
+      <span class="hljs-comment">// console.log("webpack 构建过程开始！")</span>
+    })
+  }
+}
+
+<span class="hljs-comment">// 导出 Plugin</span>
+<span class="hljs-built_in">module</span>.exports = BasicPlugin
+</code></pre>
+<blockquote>
+<p><code>compiler hook</code> 的 <code>tap</code> 方法的第一个参数，应该是驼峰式命名的插件名称。建议为此使用一个常量，以便它可以在所有 <code>hook</code> 中复用</p>
+</blockquote>
+<h1>配置</h1>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> BasicPlugin = <span class="hljs-built_in">require</span>(<span class="hljs-string">'BasicPlugin.js'</span>)
+<span class="hljs-built_in">module</span>.export = {
+  <span class="hljs-attr">plugins</span>:[
+    <span class="hljs-keyword">new</span> BasicPlugin(options),
+  ]
+}
+</code></pre>
+<ul>
+<li>Webpack 启动后，在读取配置的过程中会先执行 <code>new BasicPlugin(options)</code> 初始化一个 BasicPlugin 获得其实例</li>
+<li>在初始化 compiler 对象后，再调用 <code>basicPlugin.apply(compiler)</code> 给插件实例传入 compiler 对象</li>
+<li>插件实例在获取到 compiler 对象后，就可以通过 <code>compiler hook</code> 的 <code>tap</code> 方法监听到 Webpack 广播出来的事件，hook 上绑定了事件名称，第二个参数是回调函数</li>
+</ul>
+<h1>Compiler 和 Compilation</h1>
+<p>在基本结构中比较重要的两个对象就是 <code>Compiler</code> 和 <code>Compilation</code> ，它们是 <code>Plugin</code> 和 <code>Webpack</code> 之间的桥梁</p>
+<blockquote>
+<p>Compiler 对象包含了 Webpack 环境所有的的配置信息，包含 options，loaders，plugins 这些信息，这个对象在 Webpack 启动时候被实例化，它是全局唯一的，可以简单地把它理解为 Webpack 实例</p>
+</blockquote>
+<blockquote>
+<p>Compilation 对象包含了当前的模块资源、编译生成资源、变化的文件等。当 Webpack 以开发模式运行时，每当检测到一个文件变化，一次新的 Compilation 将被创建。Compilation 对象也提供了很多事件回调供插件做扩展。通过 Compilation 也能读取到 Compiler 对象</p>
+</blockquote>
+<p>Compiler 和 Compilation 的区别在于</p>
+<p><strong>Compiler 代表了整个 Webpack 从启动到关闭的生命周期，而 Compilation 只是代表了一次新的编译</strong></p>
+<h1>事件流</h1>
+<p>webpack 就像一条生产线，要经过一系列处理流程后才能将源文件转换成输出结果</p>
+<p>插件就像是一个插入到生产线中的一个功能，在特定的时机对生产线上的资源做处理</p>
+<p>Webpack 在运行过程中会广播事件，插件只需要监听它所关心的事件，就能加入到这条生产线中，去改变生产线的运作</p>
+<p>Webpack 的事件流机制保证了插件的有序性，使得整个系统扩展性很好，<strong>事件流机制应用了观察者模式</strong></p>
+<pre class="hljs"><code><span class="hljs-comment">/**
+* 广播出事件
+* event-name 为事件名称，注意不要和现有的事件重名
+* params 为附带的参数
+*/</span>
+compiler.apply(<span class="hljs-string">'event-name'</span>,params)
+
+<span class="hljs-comment">/**
+* 监听名称为 event-name 的事件，当 event-name 事件发生时，函数就会被执行。
+* 同时函数中的 params 参数为广播事件时附带的参数。
+*/</span>
+compiler.hooks.event-name.tap(<span class="hljs-string">'plugin-name'</span>,<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">params</span>) </span>{
+  
+})
+</code></pre>
+<p><code>apply</code> 方法是必须要有的，因为当我们使用一个插件时（ <code>new somePlugins({})</code>），webpack 会去寻找插件的 apply 方法并执行</p>
+<p><code>compiler.hooks.event-name.tap()</code> 就相当于给 compiler 设置了事件监听，当监听到 <code>event-name</code> （Compilation）事件，应该做些相应操作，类似于 <code>document.addEventListener</code></p>
+<h1>实战</h1>
+<p>下面写一个插件名为 LogWebpackPlugin 的例子，作用是 Webpack 在执行过程中打印一些日志，实现该插件非常简单，完整代码如下</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">LogWebpackPlugin</span> </span>{
+
+  <span class="hljs-keyword">constructor</span>(doneCallback, emitCallback) {
+    <span class="hljs-comment">// 存下在构造函数中传入的回调函数</span>
+    <span class="hljs-keyword">this</span>.emitCallback = emitCallback
+    <span class="hljs-keyword">this</span>.doneCallback = doneCallback
+  }
+
+  apply(compiler) {
+    compiler.hooks.emit.tap(<span class="hljs-string">'LogWebpackPlugin'</span>, () =&gt; {
+      <span class="hljs-comment">// 在 emit 事件中回调 emitCallback</span>
+      <span class="hljs-keyword">this</span>.emitCallback()
+    })
+    compiler.hooks.done.tap(<span class="hljs-string">'LogWebpackPlugin'</span>, () =&gt; {
+      <span class="hljs-comment">// 在 done 事件中回调 doneCallback</span>
+      <span class="hljs-keyword">this</span>.doneCallback()
+    })
+    compiler.hooks.compilation.tap(<span class="hljs-string">'LogWebpackPlugin'</span>, () =&gt; {
+      <span class="hljs-comment">// compilation（'编译器'对'编译ing'这个事件的监听）</span>
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"The compiler is starting a new compilation..."</span>)
+    })
+    compiler.hooks.compile.tap(<span class="hljs-string">'LogWebpackPlugin'</span>, () =&gt; {
+      <span class="hljs-comment">// compile（'编译器'对'开始编译'这个事件的监听）</span>
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"The compiler is starting to compile..."</span>)
+    })
+  }
+}
+
+<span class="hljs-comment">// 导出插件 </span>
+<span class="hljs-built_in">module</span>.exports = LogWebpackPlugin
+</code></pre>
+<p>使用该插件的方法如下</p>
+<pre class="hljs"><code>npm i <span class="hljs-built_in">log</span>-webpack-plugin --D
+</code></pre>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> logWebpackPlugin = <span class="hljs-built_in">require</span>(<span class="hljs-string">'log-webpack-plugin'</span>) 
+
+<span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-attr">plugins</span>: [
+    <span class="hljs-comment">// 在初始化 logWebpackPlugin 时传入了两个参数，分别是在成功时的回调函数和模块完成转换的回调函数；</span>
+    <span class="hljs-keyword">new</span> logWebpackPlugin(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-comment">// Webpack 模块完成转换成功</span>
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'emit 事件发生啦，所有模块的转换和代码块对应的文件已经生成好~'</span>)
+    } , () =&gt; {
+      <span class="hljs-comment">// Webpack 构建成功，并且文件输出了后会执行到这里，在这里可以做发布文件操作</span>
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'done 事件发生啦，成功构建完成~'</span>)
+    })
+  ]
+}
+</code></pre>
+<p><code>npm run build</code> 编译结果</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/51093708-5c972300-17e1-11e9-8176-bbe2181bfa01.png" alt="image"></p>
+<p>完整插件可见 <a href="https://github.com/lulujianglab/log-webpack-plugin">log-webpack-plugin</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

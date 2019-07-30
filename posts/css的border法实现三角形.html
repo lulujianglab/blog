@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>css的border法实现三角形 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">css的border法实现三角形</h1>
+          <p class="post-date">2018-03-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>原理</h1>
+<p>先看下border的表现形式</p>
+<pre class="hljs"><code>#box{
+  width:100px;
+  height:100px;
+  background:yellow;
+  border-top: 20px solid red;
+  border-right:20px solid black;
+  border-bottom:20px solid green;
+  border-left:20px solid blue;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594425-0899ecb0-2bb0-11e8-991a-76b1c4e1f765.png" alt="150607240455"></p>
+<p>可以发现，border表现为梯形</p>
+<p>所以，当我们减少box的宽高，一直降到0时，border就变成了三角形</p>
+<p>所以我们就可以通过将元素宽高设置为0，而通过控制border来得到想要的三角形了</p>
+<h1>实现</h1>
+<p>只需要将不需要方向的border设置为透明（transparent），就可以用来实现三角形了</p>
+<p>比如想实现下三角形，就将border-left，border-bottom，border-right设置为transparent即可</p>
+<pre class="hljs"><code>#box{
+  width:0px;
+  height:0px;
+  border-top: 20px solid red;
+  border-right:20px solid transparent;
+  border-bottom:20px solid transparent;
+  border-left:20px solid transparent;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594549-79377852-2bb0-11e8-9f61-4cc57f9093a4.png" alt="150607295095"></p>
+<p>实现梯形也就简单了，比如</p>
+<pre class="hljs"><code>#box{
+  width:100px;
+  height:100px;
+  border-top: 60px solid red;
+  border-right:20px solid transparent;
+  border-bottom:0px solid transparent;
+  border-left:20px solid transparent;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594585-994ee36e-2bb0-11e8-8ec8-7ffb8e55d657.png" alt="150607308358"></p>
+<p>总而言之，通过调整border的大小和颜色/透明，就可以获得各种三角形和梯形了</p>
+<p>那如果实现是带边框的三角形呢？如果是一个正方形，我们写边时，会用到边框</p>
+<p>但这里的三角形本身就是border，不可能再给border添加border属性了，所以得用其他方法</p>
+<p>比如叠加层，思路就是将两个三角形叠加在一起，外层三角形稍大一些，颜色设置成边框所需的颜色；内层三角形绝对定位在里面。整体就能形成带边框三角形的假象</p>
+<h1>实现</h1>
+<pre class="hljs"><code>html:
+&lt;!-- 向上的三角形 --&gt;
+&lt;div class=&quot;triangle_border_up&quot;&gt;
+    &lt;span&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+css:
+/*向上*/
+.triangle_border_up{
+    width:0;
+    height:0;
+    border-width:0 30px 30px;
+    border-style:solid;
+    border-color:transparent transparent #333;/*透明 透明  灰*/
+    margin:40px auto;
+    position:relative;
+}
+.triangle_border_up span{
+    display:block;
+    width:0;
+    height:0;
+    border-width:0 28px 28px;
+    border-style:solid;
+    border-color:transparent transparent #fc0;/*透明 透明  黄*/
+    position:absolute;
+    top:0px;
+    left:0px;
+}
+</code></pre>
+<h1>效果</h1>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594750-15735056-2bb1-11e8-8524-7dd8ea053a87.png" alt="150607373635"></p>
+<p>但是并不是预想的这样</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594901-a802e292-2bb1-11e8-87ff-b1bbc84bcc47.png" alt="150607385068"></p>
+<p>原因是，我们看到的三角形是边，而不是真的具有内容的区域，绝对定位（position:absolute），是根据相对定位父层内容的边界计算的</p>
+<p>这个空的div，content的位置在中心，所以内部三角形是根据中心这个点来定位的</p>
+<p>添加阴影可以看到</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37594948-d8450f3e-2bb1-11e8-945f-d2417c9f3b92.png" alt="150607413038"></p>
+<p>所以，内部的三角形都是根据外部三角形实际内容的点来定位的，而非我们肉眼看到的三角形的边界定位</p>
+<p>将上述span的</p>
+<pre class="hljs"><code>top:0px;
+left:0px;
+</code></pre>
+<p>改为</p>
+<pre class="hljs"><code>top:1px;
+left:-28px;
+</code></pre>
+<p>就阔以了！</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

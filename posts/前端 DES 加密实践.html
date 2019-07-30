@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>前端 DES 加密实践 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">前端 DES 加密实践</h1>
+          <p class="post-date">2018-12-03</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>由于项目中需要对用户登录的密码进行加密处理，特意学习了下，网上有很多 DES 加密的 js 代码，也有一些 java 解密不成功的，问题大都是 解密出来乱码的问题</p>
+<p>今天分享的是前端 js 的 DES 加密 - 对称加密，后端使用 java 进行 DES 解密的，这里就不做介绍了</p>
+<p>JS端加密过程处理中，比较重要的对 key 的设定以及 DES 加密模式的配定</p>
+<ol>
+<li>
+<p>key 的处理：通过创建指定的 key ，key 必须是 16 位 / 24 位 / 32 位中的一种，常见的加密 Key 24 位的 16 进制</p>
+</li>
+<li>
+<p>DES 加密模式：常见的两种加密方式是 ECB 和 CBC 模式</p>
+</li>
+</ol>
+<p>我们可以直接采用谷歌的 <a href="https://github.com/brix/crypto-js">crypto-js</a></p>
+<p>根据它的文档介绍，需要先安装 <code>crypto-js</code> 依赖</p>
+<p><code>npm install crypto-js</code></p>
+<p>然后引入 <code>crypto-js</code> <code>const CryptoJS = require(&quot;crypto-js&quot;)</code></p>
+<p>在 github 上，我们可以看到其文档相当详细</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/49371435-6170ad80-f732-11e8-9ec6-b19c39f282a2.png" alt="image"></p>
+<p>根据文档介绍我们就可以写出具体的demo了</p>
+<h2>JS 端的 Demo ,通过DES加密，Base64 编码，需要引入封装好的 DES加密解密算法</h2>
+<pre class="hljs"><code><span class="hljs-comment">// DES加密用户密码</span>
+encryptByDES(message) {
+  <span class="hljs-keyword">const</span> now = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()
+  <span class="hljs-keyword">const</span> day = now.getDate() &lt; <span class="hljs-number">10</span>? <span class="hljs-string">`0<span class="hljs-subst">${now.getDate()}</span>`</span> : now.getDate()
+  <span class="hljs-keyword">const</span> username = <span class="hljs-string">'zhangsan'</span>
+  <span class="hljs-keyword">const</span> firstName = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(username)).charAt(<span class="hljs-number">0</span>)
+  <span class="hljs-keyword">const</span> secondName = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(username)).charAt(<span class="hljs-number">1</span>)
+  <span class="hljs-comment">// 秘钥 key</span>
+  <span class="hljs-keyword">const</span> key = <span class="hljs-string">`<span class="hljs-subst">${firstName}</span>HAH_<span class="hljs-subst">${secondName}</span><span class="hljs-subst">${day}</span>`</span>
+  <span class="hljs-comment">// 把私钥转换成24位的16进制的字符串，不足24位自动以0(最小位数是0)补齐,如果多余24位,则截取前24位,后面多余则舍弃掉</span>
+  <span class="hljs-keyword">const</span> keyHex = CryptoJS.enc.Utf8.parse(key);
+  <span class="hljs-comment">// 加密模式为ECB padding为PKcs7</span>
+  <span class="hljs-keyword">const</span> encrypted = CryptoJS.DES.encrypt(message, keyHex, {
+      <span class="hljs-attr">mode</span>: CryptoJS.mode.ECB, <span class="hljs-comment">// ECB 模式</span>
+      padding: CryptoJS.pad.Pkcs7 <span class="hljs-comment">// padding 处理</span>
+  });
+  <span class="hljs-comment">// 加密出来是一个16进制的字符串</span>
+  <span class="hljs-keyword">return</span> encrypted.toString();
+}
+
+encryptByDES(<span class="hljs-string">'123456'</span>)
+</code></pre>
+<p>这样就对 '123456' 密码进行了 DES 加密，key 在这里设置的是 'zHAH_h03', '03' 表示的当天的日期</p>
+<p>加密后的结果类似于</p>
+<p>1JQhSMa4Mhk=</p>
+<h2>参考资料</h2>
+<p><a href="https://blog.csdn.net/bob_Xing_Yang/article/details/80417383">https://blog.csdn.net/bob_Xing_Yang/article/details/80417383</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

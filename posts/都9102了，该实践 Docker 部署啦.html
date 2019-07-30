@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>都9102了，该实践 Docker 部署啦 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">都9102了，该实践 Docker 部署啦</h1>
+          <p class="post-date">2019-05-31</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>最近用 <code>Docker</code> 完成了 <code>eggjs</code> 后端项目的部署，不得不感叹，<code>Docker</code> 真的是太好用了。不仅能够一键安装 <code>mysql</code>，省去了很多搭环境的事宜，而且可以直接把项目发布到 <code>Docker</code> 容器上进行测试，等项目需要正式上线时，就直接把做好的 <code>Docker</code> 镜像部署上去就好了，省去了很多项目部署上线的风险</p>
+<h1>Docker 是什么</h1>
+<p><code>Docker</code> 是一个可以用来快速部署的<strong>轻量级虚拟技术</strong>，允许开发人员将自己的程序和运行环境一起打包，制作成一个 <code>Docker</code> 的 <code>Image</code> （镜像），然后部署到服务器上，通过下载这个 <code>Image</code> 就可以将程序跑起来，省去了每次都安装各种依赖和环境的麻烦</p>
+<h3>Docker 镜像</h3>
+<p>操作系统分为内核和用户空间。对于 Linux 而言，内核启动后，会挂载 root 文件系统为其提供用户空间支持。而 Docker 镜像（Image），就相当于是一个 root 文件系统。除了提供容器运行时所需的程序、库、资源、配置等文件外，还包含了一些为运行时准备的一些配置参数（如匿名卷、环境变量、用户等）</p>
+<h3>Docker 容器</h3>
+<p>镜像（Image）和容器（Container）的关系，就像是面向对象程序设计中的 类 和 实例 一样，镜像是静态的定义，容器是镜像运行时的实体</p>
+<h3>仓库（Docker Registry）</h3>
+<p>镜像构建完成后，可以很容易的在当前宿主机上运行，但是，如果需要在其它服务器上使用这个镜像，我们就需要一个集中的存储、分发镜像的服务，<code>Docker Registry</code> 就是这样的服务</p>
+<h1>Docker 部署应用有什么优点</h1>
+<p>使用 <code>Docker</code> 容器部署应用快速方便，特别是应用较多时部署迁移等使用 <code>Docker</code> 会更方便。另外，在同一台服务器上不能同时运行多个 <code>eggjs</code> 应用，除非停止另外一个 <code>eggjs</code> 应用</p>
+<p>更详细的介绍可以参考<a href="https://yeasy.gitbooks.io/docker_practice/introduction/why.html">非官方 Docker 中文文档</a></p>
+<h1>Docker 的架构</h1>
+<p>为了后续更好的理解 <code>Docker</code> 命令的操作，我们先来大致理清下 <code>Docker</code> 的架构</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/58628485-6347b200-830c-11e9-8d97-5ea5c44de12f.png" alt="image"></p>
+<p>上面这张图大致介绍了 <code>Docker</code> 的架构，中间是 host，也就是进行 <code>Docker</code> 操作的宿主机，宿主机上主要是运行 <code>Docker Daemon</code> 的核心程序，也就是负责做各种各样的操作，比如说下载 <code>Docker</code> 的镜像，比如说运行一个容器</p>
+<p>那宿主机如何和 <code>Docker Daemon</code> 交互呢？实际上是通过在客户端用命令比如 <code>build</code>、<code>run</code>、<code>put</code> 交给 <code>Daemon</code>，<code>Daemon</code> 来做实际的操作</p>
+<p>右边的蓝的是互联网的 Sass 服务，叫做 <code>registry</code>，<code>Daemon</code> 可以和 <code>registry</code> 交互，比如说 <code>push</code> 一个 <code>Image</code>，拖拉一个 <code>Image</code>，实际上是所有 <code>Docker</code> 用户共享 <code>Docker</code> 镜像的服务</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/58629065-f208fe80-830d-11e9-849b-6d91f88cf058.png" alt="image"></p>
+<p>简单来说，就是客户端和守护进程 <code>Daemon</code> 进行操作，把命令送给守护进程，守护进程来拖取镜像，运行容器，和远端的镜像仓库进行交互</p>
+<h1>项目部署实践</h1>
+<p>我这里已经用 <code>eggjs</code> 开发了一个后端项目，然后需要构建一个镜像，然后基于这个 <code>Image</code> 运行一个 <code>container</code>。从而快速实现部署</p>
+<p>大体流程</p>
+<ul>
+<li>服务器安装好 <code>Docker</code></li>
+<li>本地应用根目录编写好 <code>Dockerfile</code> 文件</li>
+<li>将整个应用一起上传到服务器目录下</li>
+<li>使用终端连接服务器执行命令构建 <code>Docker Image</code></li>
+<li>基于镜像运行 <code>container</code>，部署成功</li>
+</ul>
+<p>具体操作如下</p>
+<h2>创建 Dockerfile</h2>
+<p>如果不知道 <code>Dockerfile</code> 文件怎么写，可以直接到 github 上查找 eggjs / docker，就可以看到完整的 <a href="https://github.com/eggjs/docker/blob/master/Dockerfile">Dockerfile 文件</a>，直接拷贝粘贴到项目路径下即可</p>
+<pre class="hljs"><code><span class="hljs-comment"># 拉取要创建的新镜像的 base image（基础镜像），类似于面向对象里边的基础类</span>
+FROM node:8.11.3-alpine
+
+<span class="hljs-comment"># 设置时区</span>
+ENV TIME_ZONE=Asia/Shanghai
+
+<span class="hljs-comment"># 在容器内运行命令</span>
+RUN \
+  mkdir -p /usr/src/app \
+  &amp;&amp; apk add --no-cache tzdata \
+  &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">"<span class="hljs-variable">${TIME_ZONE}</span>"</span> &gt; /etc/timezone \ 
+  &amp;&amp; ln -sf /usr/share/zoneinfo/<span class="hljs-variable">${TIME_ZONE}</span> /etc/localtime 
+
+<span class="hljs-comment"># 创建 docker 工作目录</span>
+WORKDIR /usr/src/app
+
+<span class="hljs-comment"># 拷贝，把本机当前目录下的 package.json 拷贝到 Image 的 /usr/src/app/ 文件夹下</span>
+COPY package.json /usr/src/app/
+
+<span class="hljs-comment"># 使用 npm 安装 app 所需要的所有依赖</span>
+RUN npm i
+
+RUN npm i --registry=https://registry.npm.taobao.org
+
+<span class="hljs-comment"># 拷贝本地的所有文件到路径中去</span>
+COPY . /usr/src/app
+
+<span class="hljs-comment"># 暴露端口。如果程序是一个服务器，会监听一个或多个端口，可以用 EXPOSE 来表示这个端口</span>
+EXPOSE 7001
+
+<span class="hljs-comment"># 给容器指定一个执行入口</span>
+CMD npm run start
+</code></pre>
+<h2>注意事项</h2>
+<p>同时，我们还可以在 <code>eggjs</code> 的官网看到<a href="https://eggjs.org/zh-cn/core/deployment.html">应用部署</a>的文档,有两点需要防止踩坑的地方</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/58629605-832ca500-830f-11e9-86a8-fe8dccd81815.png" alt="image"></p>
+<ul>
+<li>第一点，因为我们的 <code>Docker</code> 已经是后台了，所以在部署的时候需要去掉 --daemon，不能运行在后台的后台</li>
+<li>第二点，我们需要加上 --port=7001，因为 <code>Docker</code> 里有环境变量 <code>PORT</code>，如果不加上，会默认使用 <code>Docker</code> 里的环境变量，而这个变量 <code>PORT</code> 的值是随机生成的数字，所以在正式部署的时候就会开启这个随机数生成的端口，从而报错</li>
+</ul>
+<p><img src="https://user-images.githubusercontent.com/26807227/58629905-54fb9500-8310-11e9-82ba-588a6242dc99.png" alt="image"></p>
+<p>以上修改都是在 package.json 文件中</p>
+<h2>构建 Image</h2>
+<p><code>Dockerfile</code> 创建完成后，我们就可以在 <code>Dockerfile</code> 文件所在的目录下运行下面的 <code>Docker</code> 命令来构建一个 <code>Image</code></p>
+<pre class="hljs"><code>docker build -t webshare-backend .
+</code></pre>
+<p>通过 -t 的参数，给它一个标签 <code>share</code>，然后给出一个 <code>.</code>， <code>.</code> 就是路径名 就是把这个路径底下的所有文件都送给 <code>Docker Engine</code> 让它来产生 <code>Image</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/58682972-3abfc680-83a5-11e9-881e-90b4adb71e3f.png" alt="image"></p>
+<p>运行完最后会出现 successfully，代表构建成功</p>
+<p>接着我们就可以通过 <code>Docker Images</code> 来查看是否真的生成了这个文件</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/58675256-07ba0a80-8386-11e9-8849-7a9797906e68.png" alt="image"></p>
+<p>的确是生成了一个新的 <code>Image</code>， 打了一个 <code>tag</code> 是 <code>latest</code>，有一个 <code>ImageId</code> 和大小 <code>size</code></p>
+<p>接着就可以运行这个 <code>Image</code></p>
+<h2>运行镜像</h2>
+<pre class="hljs"><code>docker run -d -p 7001:7001 webshare-backend
+</code></pre>
+<ul>
+<li>-d 是 <code>Demon</code> 守护进程，代表容器会在后台运行</li>
+<li>-p 7001:7001 是把端口暴露出来，<code>p</code> 是做端口映射的，<code>：</code>右边的是程序本身的端口，<code>：</code>左边是本地的 <code>host</code> 的端口，把本机的 7001 映射到 <code>container</code> 的7001，这样外网就能通过本机的 7001 访问我们的 web 了</li>
+</ul>
+<p><img src="https://user-images.githubusercontent.com/26807227/58675511-34225680-8387-11e9-84c3-faac07d252d3.png" alt="image"></p>
+<p>返回了一个容器的 <code>id</code>，这样就成功的用 <code>Dockerfile</code> 的方式来构建了一个自己的 <code>Image</code></p>
+<p>通过运行 <code>docker ps</code> 可以查看容器是否启动成功</p>
+<p>我们还可以用 <code>curl localhost:7001</code> 测试一下，会输出接口查询内容</p>
+<h2>上传镜像</h2>
+<p>可以通过 <code>docker push</code> 命令，把自己创建的镜像上传到仓库中来共享</p>
+<ul>
+<li>通常，一个仓库会包含同一个软件不同版本的镜像，而标签就常用于对应该软件的各个版本。我们可以通过 &lt;仓库名&gt;:&lt;标签&gt; 的格式来指定具体是这个软件哪个版本的镜像。如果不给出标签，将以 <code>latest</code> 作为默认标签。</li>
+</ul>
+<pre class="hljs"><code>docker tag webshare-backend:latest 服务器ip/webshare-backend:1.0
+</code></pre>
+<ul>
+<li>然后，登录镜像仓库</li>
+</ul>
+<pre class="hljs"><code>docker login -u 账号 -p 密码 服务器IP地址
+</code></pre>
+<p>后面显示 <code>Login Succeeded</code>，就是登录成功了</p>
+<blockquote>
+<p>这儿可能第一次会报 <code>Service Unavailable</code>，需要去根路径的 <code>.docker</code> 目录下的 <code>daemon.json</code> 里添加信任</p>
+</blockquote>
+<ul>
+<li>登录成功后，就可以上传自己的镜像到 <code>Docker</code> 仓库</li>
+</ul>
+<pre class="hljs"><code>docker push 服务器IP/目录名/webshare-backend:1.0
+</code></pre>
+<h2>更新应用</h2>
+<ul>
+<li>通过 <code>docker ps</code> 命令列出运行的容器</li>
+<li><code>docker stop xxx (CONTAINER ID )</code> 停止运行该容器</li>
+<li><code>docker stop $(docker ps -a -q)</code> 暂停所有运行的容器</li>
+<li><code>docker rm xxxx</code> 删除container</li>
+<li><code>docker rmi 9a52e8ccdd7a（image id）</code> 删除image</li>
+<li>提示无法删除的情况下，强制删除，<code>docker rmi -f imageId</code></li>
+<li>按照上面的步骤重新构建镜像和启动容器</li>
+</ul>
+<h2>其他常用命令</h2>
+<ul>
+<li>查看镜像构建工程，<code>docker history webshare-backend</code></li>
+<li>列出所有的容器，<code>docker ps -a</code></li>
+<li>查看具体的容器日志，<code>docker logs xxx (CONTAINER ID )</code></li>
+<li><code>docker cp src/. mycontainer:/target</code> 在 <code>host</code> 和 <code>container</code> 之间拷贝文件</li>
+</ul>
+<h1>镜像分层</h1>
+<p><code>Dockerfile</code> 中的每一行都产生一个新层，存在 <code>Image</code>里的层是只读的（RO）</p>
+<p>当 <code>Image</code> 被运行成为一个容器的时候，就会会产生一个新层，叫容器层 <code>container layer</code>，是可读可写的（RW）</p>
+<p>分层的好处：如果有很多的容器和 <code>Image</code>，比如 A <code>Image</code> 有 10 层， B <code>Image</code> 有 7 层，他们之间可能有 5 层是共享的，那么无形之中，存储压力就会小很多</p>
+<h1>Volume（ 数据卷）</h1>
+<p>提供独立于容器之外的持久化存储</p>
+<p>因为在容器中的改动是不会被保存的，<code>Volume</code> 提供了比较方便的、可以持久化存储的一个技巧，比如说运行一个数据库容器，数据库的真正数据应该是被持久化的，<code>Volume</code> 是可以实现的，并且还可以提供给容器之间的共享数据</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

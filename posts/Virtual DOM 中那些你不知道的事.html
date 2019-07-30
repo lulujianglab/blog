@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Virtual DOM 中那些你不知道的事 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Virtual DOM 中那些你不知道的事</h1>
+          <p class="post-date">2019-03-25</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h2>虚拟DOM是啥？以及diff算法原理</h2>
+<p>虚拟 dom 相当于在 js 和真实 dom 中间加了一个缓存，利用 dom diff 算法避免了没有必要的 dom 操作，从而提高性能<br>
+原理：</p>
+<ul>
+<li>把树形结构按照层级分解，只比较同级元素</li>
+<li>给列表结构的每个单元添加唯一的 key 属性，方便比较</li>
+<li>React 只会匹配相同 class 的 component（这里面的 class 指的是组件的名字）</li>
+<li>合并操作，调用 component 的 setState 方法的时候, React 将其标记为 dirty.到每一个事件循环结束, React 检查所有标记 dirty 的 component 重新绘制.</li>
+<li>选择性子树渲染。开发人员可以重写 shouldComponentUpdate 提高 diff 的性能</li>
+</ul>
+<h2>diff算法,DOM树对比过程</h2>
+<p><a href="https://github.com/lulujianglab/blog/issues/46">https://github.com/lulujianglab/blog/issues/46</a></p>
+<h2>为什么虚拟 dom 会提高性能?</h2>
+<ul>
+<li>DOM是浏览器中的概念，用js对象表示页面上的元素，并提供操作DOM对象的API</li>
+<li>虚拟DOM就是一个JS对象（数据+JXS模板），用一个js对象来描述真实的DOM</li>
+</ul>
+<p>虚拟DOM提高性能，不是说不操作DOM，而是减少操作DOM的次数，减少回流和重绘<br>
+虚拟 dom 相当于在 js 和真实 dom 中间加了一个缓存，利用 dom diff 算法避免了没有必要的 dom 操作，从而提高性能</p>
+<ul>
+<li>用 JavaScript 对象结构表示 DOM 树的结构；</li>
+<li>然后用这个树构建一个真正的 DOM 树，插到文档当中</li>
+<li>当状态变更的时候，重新构造一棵新的对象树。</li>
+<li>然后用新的树和旧的树进行比较，记录两棵树差异</li>
+<li>把记录的差异应用到真正的 DOM 树上，视图就更新了</li>
+</ul>
+<p>使用diff算法比较新旧虚拟DOM----即比较两个js对象不怎么耗性能，而比较两个真实的DOM比较耗性能，从而虚拟DOM极大的提升了性能</p>
+<h2>虚拟DOM的目的？</h2>
+<p>实现页面中DOM元素的高效更新</p>
+<h2>虚拟DOM会比真实DOM快吗？什么情况下用虚拟DOM好</h2>
+<p>虚拟DOM并不一定比原生操作DOM快。需不需要虚拟DOM，其实与框架的DOM操作机制有关<br>
+React 的基本思维模式是每次有变动就重新渲染整个应用。如果没有 Virtual DOM，简单来想就是直接重置 innerHTML。<br>
+比如，在一个大型列表所有数据都变了的情况下，重置 innerHTML 其实是一个还算合理的操作... 真正的问题是在 “全部重新渲染” 的思维模式下，即使只有一行数据变了，它也需要重置整个 innerHTML，这时候显然就有大量的浪费。</p>
+<p>可以比较一下 innerHTML vs. Virtual DOM 的重绘性能消耗：</p>
+<ul>
+<li>innerHTML: render html string O(template size) + 重新创建所有 DOM 元素 O(DOM size)</li>
+<li>Virtual DOM: render Virtual DOM + diff O(template size) + 必要的 DOM 更新 O(DOM change)</li>
+</ul>
+<p>Virtual DOM render + diff 显然比渲染 html 字符串要慢，但是！它依然是纯 js 层面的计算，比起patch简化的dom操作省下来的时间可观的多。<br>
+可以看到，innerHTML 的总计算量是和整个界面的大小相关，但 Virtual DOM 的计算量里面，只有 js 计算和界面大小相关，DOM 操作是和数据的变动量相关的。和 DOM 操作比起来，js 计算是极其快速的。<br>
+这才是为什么要有 Virtual DOM：它保证了<br>
+1）不管你的数据变化多少，每次重绘的性能都可以接受；<br>
+2) 你依然可以用类似 innerHTML 的思路去写你的应用。</p>
+<p>这也是 React 厉害的地方。并不是说它比 DOM 快，而是说不管你数据怎么变化，我都可以以最小的代价来进行更新 DOM。 方法就是我在内存里面用新的数据重新生成一个虚拟 DOM 树，然后比较新旧 DOM，找出差异，再更新到 DOM 树上。这就是所谓的 diff 算法</p>
+<ul>
+<li>虚拟DOM减少了真实DOM的操作，当修改数据的时候，就是修改虚拟DOM产生全新的虚拟DOM。新旧虚拟DOM使用diff算法，得到patch(也就是需要修改的部分)，然后将这个patch打到浏览器的DOM上（减少重绘和回流，从而达到性能优化的目的）</li>
+<li>每次DOM操作会引起重绘或者回流，频繁的真实DOM的修改会触发多次的排版和重绘相当耗性能。<br>
+总之，一切为了减弱频繁的大面积重绘引发的性能问题，不同框架不一定需要虚拟DOM，关键看框架是否频繁会引发大面积的DOM操作</li>
+</ul>
+<h2>react是怎么工作的，怎么提高性能</h2>
+<p>主要还是说了下react的生命周期，还有shouldComponentUpdate这个函数，以及diff算法<br>
+<a href="https://github.com/lulujianglab/blog/issues/47">https://github.com/lulujianglab/blog/issues/47</a></p>
+<h2>React 的工作原理</h2>
+<p>React 会创建一个虚拟 DOM(virtual DOM)。当一个组件中的状态改变时，React 首先会通过 &quot;diffing&quot; 算法来标记虚拟 DOM 中的改变，第二步是调节(reconciliation)，会用 diff 的结果来更新 DOM</p>
+<h2>react 事件绑定</h2>
+<p>由于类的方法默认不会绑定this，因此在调用的时候如果忘记绑定，this的值将会是undefined。<br>
+绑定方式有以下几种：</p>
+<ul>
+<li>在构造函数中使用bind绑定this<pre class="hljs"><code><span class="hljs-keyword">constructor</span>(props) {
+  <span class="hljs-keyword">super</span>(props)
+  <span class="hljs-keyword">this</span>.handleClick = <span class="hljs-keyword">this</span>.handleClick.bind(<span class="hljs-keyword">this</span>)
+}
+</code></pre>
+</li>
+<li>在调用的时候使用bind绑定this<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.handleClick.bind(this)}</span>&gt;</span>
+</code></pre>
+</li>
+<li>在调用的时候使用箭头函数绑定this<pre class="hljs"><code>&lt;button onClick={()=&gt;<span class="hljs-keyword">this</span>.handleClick()}&gt;
+</code></pre>
+</li>
+<li>使用属性初始化语法绑定this(实验性)<pre class="hljs"><code>  handleClick=<span class="hljs-function"><span class="hljs-params">()</span>=&gt;</span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'this is:'</span>, <span class="hljs-keyword">this</span>);
+  }
+  &lt;button onClick={<span class="hljs-keyword">this</span>.handleClick}&gt;
+</code></pre>
+</li>
+</ul>
+<p>比较：</p>
+<ul>
+<li>
+<p>方式2和方式3都是在调用的时候再绑定this</p>
+<ul>
+<li>写法比较简单，当组件中没有state的时候就不需要添加类构造函数来绑定this</li>
+<li>每一次调用的时候都会生成一个新的方法实例，因此对性能有影响，并且当这个函数作为属性值传入低阶组件的时候，这些组件可能会进行额外的重新渲染，因为每一次都是新的方法实例作为的新的属性传递。</li>
+</ul>
+</li>
+<li>
+<p>方式1在类构造函数中绑定this，调用的时候不需要再绑定</p>
+<ul>
+<li>优点：只会生成一个方法实例，并且绑定一次之后如果多次用到这个方法也不需要再绑定</li>
+<li>缺点：即使不用到state，也需要添加类构造函数来绑定this，代码量多一点</li>
+</ul>
+</li>
+<li>
+<p>利用属性初始化语法（箭头函数声明），将方法初始化为箭头函数，因此在创建函数的时候就绑定了this（只会生成一个）</p>
+<ul>
+<li>优点：创建方法就绑定this，不需要在类构造函数中绑定，调用的时候不需要再作绑定。结合了方式1、方式2、方式3的优点</li>
+<li>需要用babel转译，且不能带参数，要不然还得使用方式二和三</li>
+</ul>
+</li>
+</ul>
+<p>方式1是官方推荐的绑定方式，也是性能最好的方式。方式2和方式3会有性能影响并且当方法作为属性传递给子组件的时候会引起重渲问题。方式4目前是最好的绑定方式，需要结合bable转译<br>
+this 的本质就是：this跟作用域无关的，只跟执行上下文有关</p>
+<blockquote>
+<p>注意：只要是需要在调用的地方传参，就必须在事件绑定的地方使用bind或者箭头函数.又回到了方式二和方式三</p>
+</blockquote>
+<h2>生命周期</h2>
+<ul>
+<li>初始化
+<ul>
+<li>类的构造方法constructor():初始化props、state</li>
+</ul>
+</li>
+<li>挂载
+<ul>
+<li>componentWillMount()：组件即将被装载、渲染到页面上，整个生命周期中只会调用一次(在这里请求异步数据，render可能不会渲染到，因为componentWillMount执行后，render立马执行)</li>
+<li>render():创建虚拟dom，进行diff算法，更新dom树</li>
+<li>componentDidMount(): 组件被挂载到页面(渲染到 DOM 中)之后调用，整个生命周期只调用一次（可以异步请求数据，不建议使用setState函数，会触发额外的渲染，导致性能问题）</li>
+</ul>
+</li>
+<li>更新
+<ul>
+<li>componentWillReceiveProps(nextprops):组件从父组件中接受了新的props（初始化时不调用。可以调用setState来更新组件状态，旧的属性可以通过this.props获取）</li>
+<li>shouldComponentUpdate(nextprops,nextstate):组件接受到新属性或者新状态（组件接受新的props或state。返回布尔值，为true才更新组件。通过对比新旧数据避免生成新的dom树和旧的进行diff算法对比，从而优化性能。因为父组件render()调用会使得子组件render()也被执行）</li>
+<li>componentWillUpdate(nextprops,nextstate): 组件更新之前（componentshouldupdate返回true）时调用，组件初始化时不调用(不能调用setState，会导致死循环)</li>
+<li>render():创建虚拟dom，进行diff算法，更新dom树</li>
+<li>componentDidUpdate():组件更新完成之后调用，组件初始化时候不调用(可以在这里获取doms)</li>
+</ul>
+</li>
+<li>卸载
+<ul>
+<li>componentWillUnmount(): 组件即将被卸载时执行(在这里清除一些不需要的监听和计时器)</li>
+</ul>
+</li>
+</ul>
+<h2>函数式编程，纯函数</h2>
+<h2>React创建组件的方式</h2>
+<p>React 中有三种构建组件的方式<br>
+React.createClass()、ES6 class 和无状态函数</p>
+<h2>组件性能优化</h2>
+<h3>shouldComponentUpdate（react 性能优化是哪个周期函数？）</h3>
+<p>这个方法用来判断是否需要调用 render 方法重新描绘 dom。<br>
+因为 dom 的描绘非常消耗性能，如果我们能在 shouldComponentUpdate 方法中能够写出更优化的 dom diff 算法，可以极大的提高性能。</p>
+<h3>pureComponent</h3>
+<h3>不可变数据</h3>
+<h3>key</h3>
+<p>等等优化方法，每一点的优点和缺点</p>
+<h2>如何设计一个好组件？容器组件和展示组件</h2>
+<p>合理划分组件，分为业务组件和技术组件</p>
+<ul>
+<li>根据组件的职责通常把组件分为 UI 组件和容器组件</li>
+<li>UI 组件负责 UI 的呈现，容器组件负责管理数据和逻辑</li>
+<li>两者通过 React-Redux 提供 connect 方法联系起来</li>
+</ul>
+<h2>调用setState之后发生了什么</h2>
+<ul>
+<li>首先，React 会将传入的参数对象与组件当前的状态合并，然后触发调和过程。(对比新的virtual dom树以及旧的virtual dom树，接着找出两者所不同的地方，根据不同的地方来修改现有的DOM)</li>
+<li>调和（reconciliation）的最终目标是以最有效的方式，根据这个新的状态来更新UI。为此，React将构建一个新的 React 元素树。（UI的对象表示）</li>
+<li>在得到元素树之后，为了弄清 UI 如何响应新的状态而改变，React 会将这个新树与上一个元素树相比较。自动计算出新的树与老树的节点差异，然后根据差异对界面进行最小化重渲染</li>
+<li>在差异计算算法中，React 能够相对精确地知道哪些位置发生了改变以及应该如何改变，这就保证了按需更新，而不是全部重新渲染</li>
+</ul>
+<h2>refs的作用</h2>
+<p>Refs 是 React 提供给我们的安全访问 DOM 元素或者某个组件实例的句柄。<br>
+我们可以为元素添加 ref 属性然后在回调函数中接受该元素在 DOM 树中的句柄，该值会作为回调函数的第一个参数返回</p>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CustomForm</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  handleSubmit = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Input Value: "</span>, <span class="hljs-keyword">this</span>.input.value)
+  }
+  render () {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">onSubmit</span>=<span class="hljs-string">{this.handleSubmit}</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span>
+          <span class="hljs-attr">type</span>=<span class="hljs-string">'text'</span>
+          <span class="hljs-attr">ref</span>=<span class="hljs-string">{(input)</span> =&gt;</span> this.input = input} /&gt;
+        <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">'submit'</span>&gt;</span>Submit<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    )
+  }
+}
+</span></code></pre>
+<p>上述代码中的 input 域包含了一个 ref 属性，该属性声明的回调函数会接收 input 对应的 DOM 元素，我们将其绑定到 this 指针以便在其他的类函数中使用。<br>
+另外值得一提的是，refs 并不是类组件的专属，函数式组件同样能够利用闭包暂存其值：</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">CustomForm</span> (<span class="hljs-params">{handleSubmit}</span>) </span>{
+  <span class="hljs-keyword">let</span> inputElement
+  <span class="hljs-keyword">return</span> (
+    <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">onSubmit</span>=<span class="hljs-string">{()</span> =&gt;</span> handleSubmit(inputElement.value)}&gt;
+      <span class="hljs-tag">&lt;<span class="hljs-name">input</span>
+        <span class="hljs-attr">type</span>=<span class="hljs-string">'text'</span>
+        <span class="hljs-attr">ref</span>=<span class="hljs-string">{(input)</span> =&gt;</span> inputElement = input} /&gt;
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">'submit'</span>&gt;</span>Submit<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+  )
+}
+</span></code></pre>
+<h2>如果你创建了类似于下面的 Twitter 元素，那么它相关的类定义是啥样子的？</h2>
+<pre class="hljs"><code>&lt;Twitter username=<span class="hljs-string">'tylermcginnis33'</span>&gt;
+  {(user) =&gt; user === <span class="hljs-literal">null</span>
+    ? <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Loading</span> /&gt;</span>
+    : <span class="hljs-tag">&lt;<span class="hljs-name">Badge</span> <span class="hljs-attr">info</span>=<span class="hljs-string">{user}</span> /&gt;</span>}
+<span class="hljs-tag">&lt;/<span class="hljs-name">Twitter</span>&gt;</span>
+
+import React, { Component, PropTypes } from 'react'
+import fetchUser from 'twitter'
+// fetchUser take in a username returns a promise
+// which will resolve with that username's data.
+class Twitter extends Component {
+  // finish this
+}
+</span></code></pre>
+<p>回调渲染模式:这种模式中，组件会接收某个函数作为其子组件，然后在渲染函数中以 props.children 进行调用</p>
+<p>这种模式的优势在于将父组件与子组件解耦和，父组件可以直接访问子组件的内部状态而不需要再通过 Props 传递，这样父组件能够更为方便地控制子组件展示的 UI 界面</p>
+<p>譬如产品经理让我们将原本展示的 Badge 替换为 Profile，我们可以轻易地修改下回调函数</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> React, { Component, PropTypes } <span class="hljs-keyword">from</span> <span class="hljs-string">'react'</span>
+<span class="hljs-keyword">import</span> fetchUser <span class="hljs-keyword">from</span> <span class="hljs-string">'twitter'</span>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Twitter</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Component</span> </span>{
+  state = {
+    <span class="hljs-attr">user</span>: <span class="hljs-literal">null</span>,
+  }
+  <span class="hljs-keyword">static</span> propTypes = {
+    <span class="hljs-attr">username</span>: PropTypes.string.isRequired,
+  }
+  componentDidMount () {
+    fetchUser(<span class="hljs-keyword">this</span>.props.username)
+      .then(<span class="hljs-function">(<span class="hljs-params">user</span>) =&gt;</span> <span class="hljs-keyword">this</span>.setState({user}))
+  }
+  render () {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.props.children(<span class="hljs-keyword">this</span>.state.user)
+  }
+}
+</code></pre>
+<h2>何为 Children</h2>
+<ul>
+<li>在JSX表达式中，一个开始标签(比如<a>)和一个关闭标签(比如</a>)之间的内容会作为一个特殊的属性props.children被自动传递给包含着它的组件</li>
+<li>这个属性有许多可用的方法，包括 React.Children.map，React.Children.forEach， React.Children.count， React.Children.only，React.Children.toArray</li>
+</ul>
+<h2>展示组件(Presentational component)和容器组件(Container component)之间有何不同</h2>
+<ul>
+<li>展示组件关心组件看起来是什么。展示专门通过 props 接受数据和回调，并且几乎不会有自身的状态，但当展示组件拥有自身的状态时，通常也只关心 UI 状态而不是数据的状态</li>
+<li>容器组件则更关心组件是如何运作的。容器组件会为展示组件或者其它容器组件提供数据和行为(behavior)，它们会调用 Redux actions，并将其作为回调提供给展示组件。容器组件经常是有状态的，因为它们是(其它组件的)数据源</li>
+</ul>
+<h2>类组件(Class component)和函数式组件(Functional component)之间有何不同</h2>
+<ul>
+<li>类组件不仅允许你使用更多额外的功能，如组件自身的状态和生命周期钩子，也能使组件直接访问 store 并维持状态</li>
+<li>当组件仅是接收 props，并将组件自身渲染到页面时，该组件就是一个 '无状态组件(stateless component)'，可以使用一个纯函数来创建这样的组件。这种组件也被称为哑组件(dumb components)或展示组件</li>
+</ul>
+<h2>(组件的)状态(state)和属性(props)之间有何不同</h2>
+<ul>
+<li>State 是一种数据结构，用于组件挂载时所需数据的默认值。State 可能会随着时间的推移而发生突变，但多数时候是作为用户事件行为的结果.它是私有的</li>
+<li>Props(properties 的简写)则是组件的配置。props 由父组件传递给子组件，并且就子组件而言，props 是不可变的(immutable)。组件不能改变自身的 props，但是可以把其子组件的 props 放在一起(统一管理)。Props 也不仅仅是数据--回调函数也可以通过 props 传递</li>
+</ul>
+<h2>何为受控组件(controlled component)</h2>
+<ul>
+<li>在 HTML 中，类似 <code>&lt;input&gt;</code>, <code>&lt;textarea&gt;</code> 和 <code>&lt;select&gt;</code> 这样的表单元素会维护自身的状态，并基于用户的输入来更新。当用户提交表单时，前面提到的元素的值将随表单一起被发送。</li>
+<li>但在 React 中会有些不同，包含表单元素的组件将会在 state 中追踪输入的值，并且每次调用回调函数时，如 onChange 会更新 state，重新渲染组件。<strong>一个输入表单元素，它的值通过 React 的这种方式来控制</strong>，这样的元素就被称为&quot;受控元素&quot;。</li>
+</ul>
+<pre class="hljs"><code>handleChangeValue = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+  <span class="hljs-keyword">this</span>.setState({
+    <span class="hljs-attr">inputValue</span>: e.target.value
+  })
+}
+
+&lt;Input 
+  placeholder=<span class="hljs-string">"请输入"</span>
+  value={inputValue.trim()}
+  onChange={<span class="hljs-keyword">this</span>.handleChangeValue}
+  onPressEnter={<span class="hljs-keyword">this</span>.handleSearch}
+/&gt;
+</code></pre>
+<h2>高阶组件是什么和常见的高阶组件</h2>
+<p><strong>高阶组件是一个以组件为参数并返回一个新组件的函数。</strong><br>
+HOC 运行你重用代码、逻辑和引导抽象。<br>
+最常见的可能是 Redux 的 connect 函数和antD的Form.create()组件。<br>
+除了简单分享工具库和简单的组合，HOC 最好的方式是共享 React 组件之间的行为。如果你发现你在不同的地方写了大量代码来做同一件事时，就应该考虑将代码重构为可重用的 HOC</p>
+<h2>为什么建议传递给 setState 的参数是一个 callback 而不是一个对象</h2>
+<p>因为 this.props 和 this.state 的更新可能是异步的，不能依赖它们的值去计算下一个 state。而通过callback的第一个参数可以拿到上一次的prevState，此时的prevState也是合并了前面多次setState计算的结果</p>
+<blockquote>
+<p>setState第二个参数支持回调函数，在回调里state是最新的。并且<strong>回调的执行时机在于state合并处理之后</strong></p>
+</blockquote>
+<p>怎么立即获取到修改后的state呢？可以通过 setState 中传递函数的方式及回调去实现</p>
+<pre class="hljs"><code>state = {
+  <span class="hljs-attr">count</span>: <span class="hljs-number">0</span>
+}
+
+componentDidMount(){
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 0</span>
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">prevState</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from func: "</span> + prevState.count); <span class="hljs-comment">// 1</span>
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">count</span>: prevState.count + <span class="hljs-number">1</span>
+    };
+  }, ()=&gt;{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'last console: '</span>+ <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 2</span>
+  })
+}
+</code></pre>
+<p>如果只是通过回调去实现，只能立即获取上一步修改后的结果</p>
+<pre class="hljs"><code>state = {
+  <span class="hljs-attr">count</span>: <span class="hljs-number">0</span>
+}
+
+componentDidMount(){
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 0</span>
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> }, () =&gt; {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from callback: "</span> + <span class="hljs-keyword">this</span>.state.count); <span class="hljs-comment">// 1</span>
+  })
+}
+</code></pre>
+<p>demo-01:</p>
+<pre class="hljs"><code>state = {
+  <span class="hljs-attr">count</span>: <span class="hljs-number">0</span>
+}
+
+componentDidMount(){
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 一：0</span>
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> }, () =&gt; {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from callback: "</span> + <span class="hljs-keyword">this</span>.state.count); <span class="hljs-comment">// 四：2</span>
+  })
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">prevState</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from func: "</span> + prevState.count); <span class="hljs-comment">// 三：1</span>
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">count</span>: prevState.count + <span class="hljs-number">1</span>
+    };
+  }, ()=&gt;{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'last console: '</span>+ <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 五：2</span>
+  })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console-end: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 二：0</span>
+}
+</code></pre>
+<p>demo-02:</p>
+<pre class="hljs"><code>state = {
+  <span class="hljs-attr">count</span>: <span class="hljs-number">0</span>
+}
+
+componentDidMount(){
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 一：0</span>
+  <span class="hljs-keyword">this</span>.setState(<span class="hljs-function"><span class="hljs-params">prevState</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from func: "</span> + prevState.count); <span class="hljs-comment">// 三：1</span>
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">count</span>: prevState.count + <span class="hljs-number">1</span>
+    };
+  }, ()=&gt;{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'last console: '</span>+ <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 四：1</span>
+  })
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> }, () =&gt; {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console from callback: "</span> + <span class="hljs-keyword">this</span>.state.count); <span class="hljs-comment">// 五：1</span>
+  })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console-end: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 二：0</span>
+}
+</code></pre>
+<p>React 其实会维护着一个 state 的更新队列，每次调用 setState 都会先把当前修改的 state 推进这个队列，在最后，React 会对这个队列进行合并处理，然后去执行回调。根据最终的合并结果再去走下面的流程（更新虚拟dom，触发渲染）</p>
+<h2>setState为什么要设计成异步的？react的setState同步还是异步？</h2>
+<ul>
+<li>保证内部的一致性：即使state是同步更新，props也不是。（你只有在父组件重新渲染时才能知道props）</li>
+<li>将state的更新延缓到最后批量合并再去渲染对于应用的性能优化是有极大好处的，如果每次的状态改变都去重新渲染真实dom，那么它将带来巨大的性能消耗</li>
+</ul>
+<blockquote>
+<p>setState并不是真正意义上的异步操作，它只是模拟了异步的行为。React中会去维护一个标识（isBatchingUpdates），判断是直接更新还是先暂存state进队列。setTimeout以及原生事件都会直接去更新state，因此可以立即得到最新state。而合成事件和React生命周期函数中，是受React控制的，其会将isBatchingUpdates设置为 true，从而走的是类似异步的那一套</p>
+</blockquote>
+<pre class="hljs"><code>state = {
+  <span class="hljs-attr">count</span>: <span class="hljs-number">0</span>
+}
+
+componentDidMount(){
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> })
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"console: "</span> + <span class="hljs-keyword">this</span>.state.count) <span class="hljs-comment">// 0</span>
+  setTimeout(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> { <span class="hljs-comment">// setTimeout中调用</span>
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"setTimeout-first: "</span> + <span class="hljs-keyword">this</span>.state.count); <span class="hljs-comment">// 1</span>
+    <span class="hljs-keyword">this</span>.setState({ <span class="hljs-attr">count</span>: <span class="hljs-keyword">this</span>.state.count + <span class="hljs-number">1</span> });
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"setTimeout-end: "</span> + <span class="hljs-keyword">this</span>.state.count); <span class="hljs-comment">// 2</span>
+  }, <span class="hljs-number">0</span>)
+}
+</code></pre>
+<h2>(在构造函数中)调用 super(props) 的目的是什么</h2>
+<p>在 super() 被调用之前，子类是不能使用 this 的，在 ES6 中，子类必须在 constructor 中调用 super()。<br>
+传递 props 给 super() 的原因则是便于(在子类中)能在 constructor 访问 this.props</p>
+<h2>如何实现异步网络请求的？应该在 React 组件的何处发起 Ajax 请求，为什么</h2>
+<p>在 React 组件中，应该在 componentDidMount 中发起网络请求。<br>
+这个方法会在组件第一次“挂载”(被添加到 DOM)时执行，在组件的生命周期中仅会执行一次。<br>
+如果在之前发起请求，可能在组件挂载之前 Ajax 请求已经完成，如果是这样，也就意味着你将尝试在一个未挂载的组件上调用 setState，将不起作用。在 componentDidMount 中发起网络请求将保证这有一个组件可以更新了。</p>
+<h2>react16新特性</h2>
+<h3>尤其理解time slice和suspense</h3>
+<h2>在 React 当中 Element 和 Component 有何区别</h2>
+<p>简单地说，一个 React element 描述了你想在屏幕上看到什么。换个说法就是，一个 React element 是一些 UI 的对象表示。</p>
+<p>一个 React Component 是一个函数或一个类，它可以接受输入并返回一个 React element t（通常是通过 JSX ，它被转化成一个 createElement 调用）</p>
+<h2>路由实现原理</h2>
+<p>react-router等一众路由插件实现的功能是更新页面的视图，但是却不重新请求页面，也就是说，其实，他们并没有实际进行了跳转，而是修改了页面的DOM并通过修改页面的URL来模拟跳转<br>
+在HTML5之前，页面路由只有hash模式，而HTML5中History对象的新增方法，带来了另一种模式：history模式</p>
+<p>hash模式:<br>
+在HTML5之前，vue-router是通过修改URL的hash值来达到修改页面URL并生成历史记录,虽然不会重新请求页面，但会发现路径前总会有一个#，比如<code>http://localhost:8080/#/b</code><br>
+因为没开启history模式的情况下，vue-router是通过hashchange事件来监听URL中hash的改变并通过修改hash来模拟路径的变化<br>
+hash模式最大的优点是兼容性强，可以兼容一众老式浏览器。而它最大的缺点是，页面URL中一直挂着一个难看的#</p>
+<p>history模式:<br>
+HTML5发布后，又有了history模式<br>
+vue-router的history模式就是通过HTML5中History对象的pushState方法进行模拟的<br>
+HTML5还提供了一个popstate事件，当用户点击前进、后退按钮，或者调用back、forward、go方法时触发，可以监听URL的改变<br>
+不仅如此，还可以使用pushState的第一个参数进行传值，使用History的state属性进行取值。<br>
+但是目前只有兼容了HTML5的浏览器（IE10+）才能使用history模式</p>
+<h2>简述 flux 思想</h2>
+<p>Flux 的最大特点，就是数据的&quot;单向流动&quot;。</p>
+<ul>
+<li>用户访问 View</li>
+<li>View 发出用户的 Action</li>
+<li>Dispatcher 收到 Action，要求 Store 进行相应的更新</li>
+<li>Store 更新后，发出一个&quot;change&quot;事件</li>
+<li>View 收到&quot;change&quot;事件后，更新页面</li>
+</ul>
+<h2>React 项目用过什么脚手架</h2>
+<ul>
+<li>creat-react-app</li>
+<li>umijs</li>
+</ul>
+<h2>redux 有什么缺点</h2>
+<ul>
+<li>一个组件所需要的数据，必须由父组件传过来，而不能像 flux 中直接从 store 取。</li>
+<li>当一个组件相关数据更新时，即使父组件不需要用到这个组件，父组件还是会重新 render，可能会有效率影响，或者需要写复杂的 shouldComponentUpdate 进行判断</li>
+</ul>
+<h2>组件间通信</h2>
+<h2>React key是干嘛的？</h2>
+<p><strong>Keys 是 React 用于追踪哪些列表中元素被修改、被添加或者被移除的辅助标识</strong></p>
+<ul>
+<li>在开发过程中，我们需要保证某个元素的 key 在其同级元素中具有唯一性</li>
+<li>在 React Diff 算法中 React 会借助元素的 Key 值来判断该元素是新近创建的还是被移动而来的元素，从而减少不必要的元素重渲染</li>
+<li>此外，React 还需要借助 Key 值来判断元素与本地状态的关联关系</li>
+</ul>
+<h1>说一下 redux ，redux、react-redux等原理</h1>
+<p><a href="https://github.com/lulujianglab/blog/issues/34">https://github.com/lulujianglab/blog/issues/34</a></p>
+<ul>
+<li>redux 是一个应用数据流框架，主要是解决了组件间状态共享的问题，原理是集中式管理</li>
+<li>主要有三个核心方法，action，store，reducer</li>
+</ul>
+<h2>基本思想</h2>
+<p>整个应用的 state 保持在一个单一的 store 中<br>
+改变应用 state 的唯一方式是在应用中触发 actions，然后为这些 actions 编写 reducers 来修改 state</p>
+<h2>store</h2>
+<p>Store 是一个 javascript 对象，它保存了整个应用的 state。与此同时，Store 也承担以下职责：</p>
+<ul>
+<li>允许通过 getState() 访问 state</li>
+<li>运行通过 dispatch(action) 改变 state</li>
+<li>通过 subscribe(listener) 注册 listeners</li>
+<li>通过 subscribe(listener) 返回的函数处理 listeners 的注销</li>
+</ul>
+<h2>action</h2>
+<p>Actions 是一个纯 javascript 对象，它们必须有一个 type 属性表明正在执行的 action 的类型。实质上，action 是将数据从应用程序发送到 store 的有效载荷</p>
+<h2>reducer</h2>
+<p>一个 reducer 是一个纯函数，该函数以先前的 state 和一个 action 作为参数，并返回下一个 state</p>
+<h2>Redux Thunk 的作用是什么</h2>
+<p>Redux thunk 是一个允许你编写返回一个函数而不是一个 action 的 actions creators 的中间件。如果满足某个条件，thunk 则可以用来延迟 action 的派发(dispatch)，这可以处理异步 action 的派发(dispatch)</p>
+<h2>何为纯函数(pure function)</h2>
+<p>一个纯函数是一个不依赖于且不改变其作用域之外的变量状态的函数，这也意味着一个纯函数对于同样的参数总是返回同样的结果</p>
+<h2>combineReducers</h2>
+<p>combineReducers 函数主要用来接收一个对象，将参数过滤后返回一个函数。该函数里有一个过滤参数后的对象 finalReducers，遍历该对象，然后执行对象中的每一个 reducer 函数，最后将新的 state 返回</p>
+<h2>介绍Redux数据流的流程</h2>
+<p>view 到 redux 的过程中会派发一个 action , action 通过 Store 的 dispatch 方法,会派发给 store , store接收到 action ,再连同之前的 state 一起传给 reducer , reducer 返回一个新的数据给 store , store 就可以去改变自己的 state ,组件接收到新的 state 就可以重新渲染页面了</p>
+<p>其中，redux有三个基本属性，Action，Reducer，Store</p>
+<ul>
+<li>Action 是把数据从应用传到 store 的有效载体，也是 store 数据的唯一来源，用法是通过 store.dispatch() 把 action 传到 store。（Action 只是描述了有事情发生了这一事实，并没有指明应用如何更新 state。）</li>
+<li>这是 reducer 要做的事情。reducer 负责管理整个业务里边的数据，包括处理数据，存储数据等。刚刚说了store.dispatch() 会把 action 传到 store ，但是store并不知道怎么处理这个数据，需要去 reducer 进行查找，所以需要把当前 store 里存在的数据和接收的 action 转给 reducer , reducer 处理好了之后再转给 store。reducer 返回的必须是一个函数，这个函数里面接收两个参数，一个是 state ,另一个是 action。</li>
+<li>既然可以使用 action 来描述“发生了什么”，使用 reducers 来根据 action 更新 state 的用法。那Store 就是把它们联系到一起的对象,它负责存储项目应用中的所有数据，通过redux的createStore（）方法创建store公共数据存储区域，然后把 reducer 传给 store，就可以在 reducer 中查看数据并做处理，<code>const store = createStore(reducer)</code><br>
+Store提供了一些方法。让我们很方便的操作数据：</li>
+</ul>
+<ol>
+<li>维持应用的 state</li>
+<li>提供 getState() 方法获取 store 的数据内容state</li>
+<li>提供 dispatch(action) 方法派发 action ，更新 state</li>
+<li>通过 subscribe(listener) 注册监听器，订阅 store 的改变，只要 store 发生改变， store.subscrible 这个函数接收的这个回调函数就会被执行</li>
+</ol>
+<h2>Redux如何实现多个组件之间的通信，多个组件使用相同状态如何进行管理</h2>
+<p>react-redux(Provider 传入到最外层组件store 在需要用到的地方 用 connect 获取 (mapStateToProps, mapDispatchToProps) 在页面中引用)<br>
+类似发布订阅模式, 一个地方修改了这个值, 其他所有使用了这个相同状态的地方也会更改</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> App = (
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">Provider</span> <span class="hljs-attr">store</span>=<span class="hljs-string">{store}</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">TodoList</span> /&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">Provider</span>&gt;</span></span>
+)
+</code></pre>
+<ul>
+<li>Provider 是 react-redux 的一个核心API，连接着 store , Provider 里边所有的组件，都有能力获取到 store 里边的内容</li>
+<li>react-redux 的另一个核心方法叫做 connect ,接收三个参数，最后一个参数是连接的组件，前面两个是连接的规则,分别是 mapStateToProps 和mapDispatchToProps方法。mapStateToProps翻译为中文就是把 store 里的数据state映射到组件props这个位置，为组件的 props 的数据, mapDispatchToProps可以把store.dispatch 挂载到props上。因为想要改变 store 里的内容，就要调用 dispatch 方法, dispatch 方法被映射到了 props 上，所以就可以通过 this.props.dispatch 方法去调用了。</li>
+<li>当我们在页面进行操作时，会执行某些事件方法，比如增删改查，会改变数据的状态，todolist 组件恰好通过 connect 跟数据做了连接，所以这块就变成了自动的流程，数据一旦发生改变，这个组件自动就会跟的变化。以前还需要 store.subscribe 做订阅，现在连订阅都可以不用了，页面自动响应数据发生变化</li>
+<li>connect 方法可以这样理解，当你用 connect 把这个 UI 组件和一些数据和逻辑相结合时，返回的内容实际就是一个容器组件了，容器组件可以理解成数据处理包括派发这样的业务逻辑。所以 export default 导出的内容就是 connect 方法执行的结果，是一个容器组件</li>
+</ul>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> mapStateToProps = <span class="hljs-function">(<span class="hljs-params">state</span>) =&gt;</span> {
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">inputValue</span>: state.inputValue
+  }
+}
+<span class="hljs-keyword">const</span> mapDispatchToProps = <span class="hljs-function">(<span class="hljs-params">dispatch</span>) =&gt;</span> {
+  <span class="hljs-keyword">return</span> {
+    handleInputChange(e) {
+      <span class="hljs-keyword">const</span> action = {
+        <span class="hljs-attr">type</span>: <span class="hljs-string">'change_input_value'</span>,
+        <span class="hljs-attr">value</span>: e.target.value
+      }
+      dispatch(action)
+    }
+  }
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> connect(mapStateToProps, mapDispatchToProps)(TodoList)
+</code></pre>
+<h2>多个组件之间如何拆分各自的state，每块小的组件有自己的状态，它们之间还有一些公共的状态需要维护，如何思考这块</h2>
+<p>在实际项目开发中，如果 reducer 存放过多的数据，可能会造成代码的不可维护，我们需要把总的 reducer 拆分为多个子的 reducer，然后再做一个整合。<br>
+一个全局的 reducer , 页面级别的 reducer , 然后redux 里有个 combineReducers 把所有的 reducer 合在一起,小组件的使用与全局的使用是分开的互不影响</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { combineReducers } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> headerReducer <span class="hljs-keyword">from</span> <span class="hljs-string">'../common/header/store/reducer'</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> combineReducers({
+  <span class="hljs-attr">header</span>: headerReducer
+})
+</code></pre>
+<p>然后在页面中通过<code>state.header.focused</code>访问</p>
+<h2>使用过的Redux中间件</h2>
+<p><strong>react-redux</strong><br>
+React-Redux是 redux官方提供的 React 绑定库，可以在 react 中非常方便是使用 redux<br>
+React-redux有两个核心方法。一个是Provider,另一个是connect</p>
+<p><strong>redux-thunk</strong>(把action 返回的对象 换成一个异步函数) ：</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore, applyMiddleware } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> reducer <span class="hljs-keyword">from</span> <span class="hljs-string">'./reducer'</span>
+<span class="hljs-keyword">import</span> thunk <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-thunk'</span>
+
+<span class="hljs-keyword">const</span> store = createStore(
+  reducer,
+  applyMiddleware(thunk) <span class="hljs-comment">// applyMiddleware可以使用中间件模块</span>
+) 
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>因为reducer 必须是纯函数，是不能进行ajax这种异步操作的，而在组件中直接进行ajax异步操作或者复杂的业务逻辑处理，组件会显得过于臃肿。<br>
+有了redux-thunk，就可以将ajax异步请求或者是复杂的逻辑放到 action 去处理，原则上 action 返回的是一个对象，但当我们使用 redux-thunk 中间件后, action 就可以返回一个函数了，继而可以在函数里边进行异步操作，也就可以把组件中获取数据的请求放入这个函数中了</p>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> getTodoList = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  <span class="hljs-keyword">return</span> <span class="hljs-function">(<span class="hljs-params">dispatch</span>) =&gt;</span> {
+    axios.get(<span class="hljs-string">'/list.json'</span>).then(<span class="hljs-function">(<span class="hljs-params">res</span>) =&gt;</span> {
+      <span class="hljs-keyword">const</span> data = res.data
+      <span class="hljs-keyword">const</span> action = initListAction(data)
+      dispatch(action)
+    })
+  }
+}
+
+componentDidMount() {
+  <span class="hljs-keyword">const</span> action = getTodoList()
+  store.dispatch(action) <span class="hljs-comment">// 调用 store.dispatch()这个函数时，action这个函数就会被执行</span>
+}
+</code></pre>
+<p><strong>redux-saga</strong><br>
+虽然redux-thunk可以接受函数作为action，但函数的内部如果有多个异步操作，就需要为每一个异步操作都定义一个action，异步操作太为分散而不易维护<br>
+这个时候就可以用到redux-saga。 redux-saga也是做异步代码拆分的，可以完全替代 redux-thunk 。<br>
+要通过redux-saga的createSagaMiddleware()方法创建saga中间件，还需要有一个sagajs文件，这样通过sagaMiddleware.run(mySaga)来运行这个sagas文件，这样当组件dispatch一个action的时候，不仅reducer可以接收到，sagas文件中也可以接收到了</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { createStore, applyMiddleware } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux'</span>
+<span class="hljs-keyword">import</span> reducer <span class="hljs-keyword">from</span> <span class="hljs-string">'./reducer'</span>
+<span class="hljs-keyword">import</span> createSagaMiddleware <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-saga'</span>
+<span class="hljs-keyword">import</span> mySaga <span class="hljs-keyword">from</span> <span class="hljs-string">'./sagas'</span>
+
+<span class="hljs-keyword">const</span> sagaMiddleware = createSagaMiddleware() <span class="hljs-comment">// 创建saga中间件</span>
+<span class="hljs-keyword">const</span> store = createStore(
+  reducer,
+  applyMiddleware(sagaMiddleware)
+) 
+sagaMiddleware.run(mySaga)
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> store
+</code></pre>
+<p>sagajs导出的是个生成器函数，通过在生成器函数中使用takeEvery方法，捕捉派发出来的所有 action。takeEvery有两个参数，第一个参数时action type，第二个参数是函数，一旦接收到符合条件的 action type,就执行第二个参数方法，所以就可以把异步逻辑写到这个方法里集中处理了，这个方法中有一个put方法也可以派发action操作。类似于 redux 原始的 dispatch，都可以发出 action，且发出的 action 都会被 reducer 监听到</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { takeEvery, put  } <span class="hljs-keyword">from</span> <span class="hljs-string">'redux-saga/effects'</span>
+<span class="hljs-keyword">import</span> axios <span class="hljs-keyword">from</span> <span class="hljs-string">'axios'</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">getInitList</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">yield</span> axios.get(<span class="hljs-string">'/list.json'</span>)
+  <span class="hljs-keyword">const</span> action = initListAction(res.data)
+  <span class="hljs-keyword">yield</span> put(action)
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span>* <span class="hljs-title">mySaga</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">yield</span> takeEvery(GET_INIT_LIST, getInitList)
+}
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> mySaga
+</code></pre>
+<p>redux-saga 远比 redux-thunk 复杂的多, redux-saga 里边有非常多的api，我们只用了 takeEvery 、 put ,官方文档中还有很多我们经常用到的 call 、 takeLatest 等，在处理大型项目时, redux-saga 是要优于 redux-thunk 的；但是从另一角度来说， redux-thunk 几乎没有任何 api ,特点就是在 action 里面返回的内容不仅仅是个对象，还可以是个函数</p>
+<p>只要使用了中间件，就需要使用<code>applyMiddleware()</code>函数，顾名思义，是运行中间件的函数。它是Redux 的原生方法,作用是将所有中间件组成一个数组,依次执行。<br>
+中间件就是指的 dispatch 方法的一个封装或者升级。(redux-thunk中间件:对 dispatch 方法做了封装之后，既可以接收对象，又可以接收函数了)所以中间件本质上只是拓展了store.dispatch方法</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

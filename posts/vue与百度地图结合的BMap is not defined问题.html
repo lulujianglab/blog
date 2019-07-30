@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>vue与百度地图结合的BMap is not defined问题 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">vue与百度地图结合的BMap is not defined问题</h1>
+          <p class="post-date">2018-05-03</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>首先，得确保首页index.html引入的百度地图的秘钥</p>
+<pre class="hljs"><code>&lt;script <span class="hljs-built_in">type</span>=<span class="hljs-string">"text/javascript"</span> src=<span class="hljs-string">"//api.map.baidu.com/api?v=2.0&amp;ak=秘钥"</span>&gt;&lt;/script&gt;
+</code></pre>
+<p>在网上百度了很多方法，也一一尝试了，下面介绍一种实践成功了的方法</p>
+<p>跟<a href="http://lbsyun.baidu.com/index.php?title=jspopular/guide/introduction">百度api官网</a>里的异步加载很像</p>
+<h2>首先跟入口js文件一样，新建一个map.js文件</h2>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MP</span>(<span class="hljs-params">ak</span>) </span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">resolve, reject</span>) </span>{
+    <span class="hljs-built_in">window</span>.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+      resolve(BMap)
+    }
+    <span class="hljs-keyword">var</span> script = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"script"</span>);
+    script.type = <span class="hljs-string">"text/javascript"</span>;
+    script.src = <span class="hljs-string">"//api.map.baidu.com/api?v=2.0&amp;ak="</span>+ak+<span class="hljs-string">"&amp;callback=init"</span>;
+    script.onerror = reject;
+    <span class="hljs-built_in">document</span>.head.appendChild(script);
+  })
+}
+</code></pre>
+<h2>然后在要用到百度地图的页面调用(ak 就是密钥)</h2>
+<pre class="hljs"><code>&lt;script&gt;
+<span class="hljs-keyword">import</span> {MP} <span class="hljs-keyword">from</span> <span class="hljs-string">'./map.js'</span>  
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+    data() {
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-attr">ak</span>: <span class="hljs-string">'秘钥'</span>,
+            ....
+        }
+    }
+    mounted(){  
+          MP(<span class="hljs-keyword">this</span>.ak).then(<span class="hljs-function"><span class="hljs-params">BMap</span> =&gt;</span> {  
+              <span class="hljs-comment">//在此调用api  </span>
+          })
+     } 
+     ......
+}
+&lt;<span class="hljs-regexp">/script&gt;
+</span></code></pre>
+<p>同样的，挂载其他外部类库有问题时也可以尝试这样做</p>
+<p>具体可参考<a href="https://github.com/lulujianglab/DataVisualization">我的个人项目</a>中的<a href="https://github.com/lulujianglab/DataVisualization/blob/master/static/js/map.js">map.js</a>、<a href="https://github.com/lulujianglab/DataVisualization/blob/master/src/components/map/map.vue">百度地图初始化组件</a>、<a href="https://github.com/lulujianglab/DataVisualization/blob/master/src/components/multipleMap/multipleMap.vue">百度地图demo</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

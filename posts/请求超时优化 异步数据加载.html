@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>请求超时优化 异步数据加载 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">请求超时优化 异步数据加载</h1>
+          <p class="post-date">2018-03-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>场景</h1>
+<p>页面上有多个box，每个box下都会请求数据内容</p>
+<p>用户可以通过表单保存已选择的条件名和内容</p>
+<h1>目的</h1>
+<p>将首屏加载时同时请求数据的情况修改为首屏加载只加载上次用户保存的表单，其他box下的请求通过点击后异步加载</p>
+<p>对首屏数据加载和异步数据加载设置超时请求处理，再次加载数据，渲染页面</p>
+<h1>方法</h1>
+<h3>请求已保存条件数据的函数</h3>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getData</span>(<span class="hljs-params">url , requestData</span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(resolve,reject) =&gt; {
+        $.<span class="hljs-keyword">get</span>(url, requestData).done(function(data) {
+            <span class="hljs-keyword">if</span> (data.status ==<span class="hljs-number">1</span>) {
+                reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(data.message))
+             } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">if</span> (data.code === codeConfig.SUCCESS) {
+                    resolve(data.data)
+                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (data.code == <span class="hljs-literal">null</span>) {
+                    resolve(data)
+                }
+             }
+        }) 
+   }
+ }
+</code></pre>
+<h3>promise请求数据超时处理</h3>
+<p>定义一个延时函数，用于给请求计时，返回promise</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">timeout</span>(<span class="hljs-params">delay</span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve,reject</span>) =&gt;</span> {
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{
+            reject(<span class="hljs-string">"数据请求超时，请重试"</span>)
+        },delay)
+    })
+}
+</code></pre>
+<p>在路由接口处通过Promise.race方法，Promise的all方法和race方法是相对的，all方法是[谁跑的慢，以谁为准执行回调]，race则是[谁跑的快，以谁为准执行回调]。所以通过race给异步请求数据设置超时时间，超时后执行相应的操作</p>
+<pre class="hljs"><code>exports.list = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">type,identifier</span>) </span>{
+    <span class="hljs-keyword">var</span> timeout = commonUtil.timeout(<span class="hljs-number">5000</span>)
+    <span class="hljs-keyword">var</span> promise = commonUtil.getData(url,{
+        <span class="hljs-attr">type</span>:type，
+        user：<span class="hljs-built_in">window</span>.global_user_name
+    })
+    <span class="hljs-built_in">Promise</span>
+    .race([promise,timeout])
+    .then (<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">results</span>)</span>{
+       <span class="hljs-keyword">return</span> results
+     })
+     .catch(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">reason</span>)</span>{
+        commonUtil.showMsg(reason)
+     })
+ }
+</code></pre>
+<h1>模仿网络延时的方法</h1>
+<p>这里推荐一种模仿网络延时的方法：chrome开发者工具的network下有个throtting节流工具</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37502193-901ef41a-290c-11e8-89d8-942a2c42bd97.jpg" alt="150297072878"></p>
+<p>可以点Add自定义节流时间</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37502206-9e0d1746-290c-11e8-8fe2-596554642281.jpg" alt="150297073866"></p>
+<p>我测试时在promise延时函数中设置的时间为500ms，这里节流用的800ms</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37502221-b67d5688-290c-11e8-846f-e9b388fae818.jpg" alt="150297074452"></p>
+<p>设置好之后选中，Network会出现黄色的警告</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/37502241-d578d83c-290c-11e8-9cc3-bac575e5f9ab.jpg" alt="15029707482"></p>
+<p>这样可以在首次加载时选择节流，点击已保存条件时会出现请求数据失败的情景，然后再去掉节流，点击重试按钮，就可以发出去请求，正常请求到数据了，然后就可以渲染到页面</p>
+<p>在网络延时复现不了的情况下，很好的模拟了首次请求失败，点击刷新重新请求数据的情景</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>web端导出csv文件 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">web端导出csv文件</h1>
+          <p class="post-date">2018-03-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>导出文件，大部分方式还是服务端来处理的，通过服务端的方式生成文件，然后传递到客户端</p>
+<p>但是，有时候可能就想使用web前端直接把页面上的内容导出来</p>
+<p>前段时间做了一个多行多列导出页面的table表格，用的是a标签（支持firefox和Chrome）实现的（IE可以使用ActiveXObiect实现</p>
+<h1>忽视点</h1>
+<ul>
+<li>
+<p>如何分行，分列</p>
+<ul>
+<li>理论上，分列使用，号分割，分行用\n</li>
+<li>但是会出现列可以分开，但是不会换行的情况</li>
+<li>解决方法是，将生成的csv字符串使用encodeURIComponent编码</li>
+</ul>
+</li>
+<li>
+<p>csv导出出现中文乱码（Excel打开）</p>
+<ul>
+<li>少了一个BOM头，\ufeff，加上\ufeff BOM头，csv=&quot;\ufeff&quot;+csv</li>
+<li>页面的charset需设置成UTF-8</li>
+</ul>
+</li>
+<li>
+<p>a的download属性可以指定下载的文件名及后缀，但是Chrome执行的时候会有bug</p>
+<ul>
+<li>之前写的a.href = &quot;data:text/csv;charset=utf-8,\ufeff&quot;+str;Chrome不理会</li>
+<li>改成如下代码，使用Blob和URL来封装和转换，问题解决<pre class="hljs"><code><span class="hljs-keyword">var</span> blob = <span class="hljs-keyword">new</span> Blob([csv],{
+   <span class="hljs-attr">type</span>: <span class="hljs-string">'text/csv,charset=UTF-8'</span>
+})
+</code></pre>
+</li>
+</ul>
+<p>var csvUrl = window.URL.createObjectURL(blob)<br>
+var a = document.createElement('a')<br>
+a.href = csvUrl</p>
+<pre class="hljs"><code></code></pre>
+</li>
+</ul>
+<h1>导出报表源码</h1>
+<pre class="hljs"><code>exportData(list) {
+    <span class="hljs-keyword">let</span> tableHeader = [{
+       <span class="hljs-attr">type</span>: <span class="hljs-string">'theme'</span>,
+       <span class="hljs-attr">name</span>: <span class="hljs-string">'报表名称'</span>
+      },{...},...]
+     <span class="hljs-keyword">let</span> tableBody = []
+     <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> item <span class="hljs-keyword">of</span> list) {
+        <span class="hljs-keyword">let</span> object = {<span class="hljs-attr">theme</span>:<span class="hljs-string">''</span>,...}
+        object.theme = item.title.replace(<span class="hljs-string">'{DATE}'</span>,<span class="hljs-string">''</span>)+<span class="hljs-string">'('</span>+item.info+<span class="hljs-string">')'</span>
+         ...
+         for (<span class="hljs-keyword">let</span> to <span class="hljs-keyword">of</span> item.to) {
+           object.to += to + <span class="hljs-string">";\n"</span>
+         }
+         ...
+        tableBody.push({
+           <span class="hljs-attr">theme</span> : object.theme || <span class="hljs-string">''</span>,
+          ...
+       })
+    }  
+    <span class="hljs-keyword">var</span> csv = <span class="hljs-string">'\ufeff'</span>
+    <span class="hljs-keyword">var</span> keys= []
+    tableHeader.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">item</span>)</span>{
+       csv+=<span class="hljs-string">'"'</span>+item.name+<span class="hljs-string">'",'</span>
+       keys.push(item.type)
+   })
+   csv=csv.replace(<span class="hljs-regexp">/\,$/</span>, <span class="hljs-string">'\n'</span>)
+   tableBody.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">item</span>)</span>{
+      keys.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">key</span>)</span>{
+        csv+=<span class="hljs-string">'"'</span>+item[key] +<span class="hljs-string">'",'</span>
+     })
+     csv=csv.replace(<span class="hljs-regexp">/\,$/</span>, <span class="hljs-string">'\n'</span>)
+  })
+  csv=csv.replace(<span class="hljs-regexp">/"null"/g</span>, <span class="hljs-string">'""'</span>) 
+  <span class="hljs-keyword">var</span>  blob=<span class="hljs-keyword">new</span> Blob([csv],{
+     <span class="hljs-attr">type</span>:<span class="hljs-string">'text/csv,charset=UTF-8'</span>
+  })
+  <span class="hljs-keyword">var</span> csvUrl=<span class="hljs-built_in">window</span>.URL.createObjectURL(blob)
+  <span class="hljs-keyword">var</span> a=<span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">'a'</span>)
+  <span class="hljs-keyword">var</span> now=newDate()
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">to2</span>(<span class="hljs-params">num</span>) </span>{
+     returnnum&gt;<span class="hljs-number">9</span>?num:<span class="hljs-string">'0'</span>+num
+  }
+  a.download=<span class="hljs-string">'报表信息导出'</span>+now.getFullYear() +to2((now.getMonth() +<span class="hljs-number">1</span>)) +to2(now.getDate()) 
+  +to2(now.getHours()) +to2(now.getMinutes()) +to2(now.getSeconds()) +<span class="hljs-string">'.csv'</span>
+   a.href=csvUrl
+   <span class="hljs-built_in">document</span>.body.appendChild(a)
+   a.click()
+   <span class="hljs-built_in">document</span>.body.removeChild(a)
+ }
+</code></pre>
+<p>注：tableHead存放表头，tableBody存放表格内容<br>
+download设置下载的文件名<br>
+点击click是下载文件</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

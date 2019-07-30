@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>react实现表单事件 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">react实现表单事件</h1>
+          <p class="post-date">2018-11-01</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>相信使用过React.js的小伙伴都应该知道其数据双向绑定的灵活性，在处理表单，人机交互方面都具能发挥极大的优势，而且实现起来也比较方便</p>
+<p>最近在项目中刚好用到了这系列操作，下面以类似于单选框、复选框和下拉框为例介绍他们在ant-design-pros中的具体实现方式</p>
+<h1>单选事件</h1>
+<p>在项目中我们经常会遇到类似单选事件的小功能，比如点击或悬浮的元素高亮，页面上有很多的item元素，要实现点击或者悬浮到哪个就哪个高亮</p>
+<p>用jq实现的话，就是选中的元素给加个<code>addClass的</code>事件，添加active的样式，然后它的兄弟元素<code>removeClass</code>，去掉active样式</p>
+<p>同样的，用react实现，我们可以用相同的思路，比如用一个<code>currentIndex</code>，通过它来判断是在哪个元素实现切换的，而<code>currentIndex</code>的值又可以通过选中元素的某个元素属性来动态改变</p>
+<h2>效果图</h2>
+<p><img src="https://user-images.githubusercontent.com/26807227/47844412-58bc4d00-ddfd-11e8-9e31-d32ce26359ee.png" alt="image"></p>
+<h2>代码</h2>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Radio</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PureComponent</span> </span>{
+  state= {
+    <span class="hljs-attr">currentIndex</span>: <span class="hljs-literal">null</span>,
+    <span class="hljs-attr">value</span>: <span class="hljs-literal">null</span>
+  }
+
+  setCurrentIndex = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+    <span class="hljs-keyword">this</span>.setState({
+      <span class="hljs-attr">currentIndex</span>: <span class="hljs-built_in">parseInt</span>(e.currentTarget.getAttribute(<span class="hljs-string">'index'</span>), <span class="hljs-number">10</span>)
+    })
+  }
+
+  handleChange = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+    <span class="hljs-keyword">this</span>.setState({
+      <span class="hljs-attr">value</span>: e.target.value
+    })
+  }
+
+  render () {
+    <span class="hljs-keyword">const</span> arr = [<span class="hljs-string">'京东超市'</span>, <span class="hljs-string">'天猫超市'</span>, <span class="hljs-string">'京东生鲜'</span>, <span class="hljs-string">'京东到家'</span>, <span class="hljs-string">'果蔬好'</span>, <span class="hljs-string">'盒马生鲜'</span>, <span class="hljs-string">'无人超市'</span>, <span class="hljs-string">'每日生鲜'</span>]
+    <span class="hljs-keyword">const</span> itemList = arr.map(<span class="hljs-function">(<span class="hljs-params">item, index</span>) =&gt;</span> {
+      <span class="hljs-keyword">return</span> (
+        <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">li</span> 
+          <span class="hljs-attr">key</span>=<span class="hljs-string">{index}</span> 
+          <span class="hljs-attr">className</span>=<span class="hljs-string">{</span>`${<span class="hljs-attr">styles.item</span>} ${<span class="hljs-attr">this.state.currentIndex</span> === <span class="hljs-string">index</span> ? <span class="hljs-attr">styles.active</span> <span class="hljs-attr">:</span> ''}`} 
+          <span class="hljs-attr">index</span>=<span class="hljs-string">{index}</span> 
+          <span class="hljs-attr">onClick</span>=<span class="hljs-string">{this.setCurrentIndex}</span>
+        &gt;</span>
+          {item}
+        <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span></span>
+      )
+    })
+    <span class="hljs-keyword">return</span> (
+      &lt;Card title="单选列表" bordered={false} className={styles.main}&gt;
+        &lt;div className={styles.content}&gt;
+          &lt;div className={styles.top}&gt;
+            &lt;div className={styles.name}&gt;点击或悬浮选中的li高亮：&lt;/div&gt;
+            &lt;ul className={styles.list}&gt;{itemList}&lt;/ul&gt;
+          &lt;/div&gt;
+          &lt;div className={styles.bottom}&gt;
+            &lt;div className={styles.name}&gt;您的性别为：&lt;/div&gt;
+            &lt;div className={styles.list}&gt;
+              &lt;label className={styles.item}&gt;&lt;input type="radio" name='gender' value="男生" onChange={this.handleChange}/&gt;男生&lt;/label&gt;
+              &lt;label className={styles.item}&gt;&lt;input type="radio" name='gender' value="女生" onChange={this.handleChange}/&gt;女生&lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div className={styles.sex}&gt;性别: {this.state.value}&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;     
+      &lt;/Card&gt;
+    )
+  }
+}
+</code></pre>
+<p>总的来说，就是生成这些li的时候给元素添加一个index标志位，然后通过相应的点击事件，把这个index用<code>e.currentTarget.getAttribute('index')</code>取出来，然后去设置<code>currentTarge</code>t的值，再通过赋给选中的css的active样式就可以了</p>
+<h1>复选事件</h1>
+<p>在页面中，有时候会根据用户的一些操作更新属性值，但不同的对象间的操作就涉及到对多个值的状态管理，这些可变的状态通常都保存在组件的状态属性中，并且只能用<code>setState()</code>方法更新</p>
+<p>复选事件和单选事件类似，也需要通过监听各个标签元素的点击或者悬浮等事件来实现</p>
+<h2>效果图</h2>
+<p><img src="https://user-images.githubusercontent.com/26807227/47845373-ccf7f000-ddff-11e8-9e73-a1c208634148.png" alt="image"></p>
+<h2>代码</h2>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Checkbox</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PureComponent</span> </span>{
+  state = {
+    <span class="hljs-attr">fruit</span>: [],
+    <span class="hljs-attr">value</span>: []
+  }
+
+  handleChange  = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+      <span class="hljs-keyword">let</span> item = e.target.value
+      <span class="hljs-keyword">let</span> items = <span class="hljs-keyword">this</span>.state.fruit.slice()
+      <span class="hljs-keyword">let</span> index = items.indexOf(item)
+      index === <span class="hljs-number">-1</span> ? items.push(item) : items.splice(index, <span class="hljs-number">1</span>)
+      <span class="hljs-keyword">this</span>.setState({<span class="hljs-attr">fruit</span>: items})
+  }
+
+  onclickIcon = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+    <span class="hljs-keyword">let</span> item = <span class="hljs-built_in">parseInt</span>(e.currentTarget.getAttribute(<span class="hljs-string">'index'</span>), <span class="hljs-number">10</span>)
+    <span class="hljs-keyword">let</span> items = <span class="hljs-keyword">this</span>.state.value.slice()
+
+    <span class="hljs-keyword">let</span> index = items.indexOf(item)
+    index === <span class="hljs-number">-1</span> ? items.push(item) : items.splice(index,<span class="hljs-number">1</span>)
+    <span class="hljs-keyword">this</span>.setState({
+      <span class="hljs-attr">value</span>: items
+    })
+  }
+
+  render() {
+    <span class="hljs-keyword">const</span> listArr = [<span class="hljs-string">'羽绒服'</span>, <span class="hljs-string">'裙子'</span>, <span class="hljs-string">'帽子'</span>, <span class="hljs-string">'围巾'</span>]
+    <span class="hljs-keyword">return</span> (
+      &lt;Card title="多选列表" bordered={false} className={styles.main}&gt;
+        &lt;div className={styles.content}&gt;
+          &lt;div className={styles.left}&gt;
+            &lt;div className={styles.title}&gt;Choose fruit : &lt;/div&gt;
+            &lt;div className={styles.list}&gt;
+              &lt;label className={styles.item}&gt;&lt;input type="checkbox" name="fruit" value="apple"
+                            onChange={this.handleChange}/&gt;apple&lt;/label&gt;
+              &lt;label className={styles.item}&gt;&lt;input type="checkbox" name="fruit" value="banana"
+                            onChange={this.handleChange}/&gt;banana&lt;/label&gt;
+              &lt;label className={styles.item}&gt;&lt;input type="checkbox" name="fruit" value="pear"
+                            onChange={this.handleChange}/&gt;pear&lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div&gt;Choosen : {this.state.fruit.join('-')}&lt;/div&gt;
+          &lt;/div&gt; 
+          &lt;div className={styles.right}&gt;    
+            &lt;div className={styles.tag}&gt;点亮我的喜欢：&lt;/div&gt;
+            &lt;ul className={styles.card}&gt;
+            {
+              listArr.map((item,index) =&gt; {
+                return (
+                  &lt;li 
+                    key={index} 
+                    className={styles.item} 
+                    index={index} 
+                    onClick={this.onclickIcon}
+                  &gt;
+                    &lt;svg 
+                      className={`${styles.svg} ${this.state.value.indexOf(index) === -1? styles.icon : styles.iconColor}`} aria-hidden="true"&gt;
+                      &lt;use xlinkHref={this.state.value.indexOf(index) === -1? "#icon-lovetaoxin" : "#icon-shixintaoxin"}&gt;&lt;/use&gt;
+                    &lt;/svg&gt;
+                    &lt;span to='#' target="_blank" className={styles.text}&gt;{item}&lt;/span&gt;
+                  &lt;/li&gt;
+                )
+              })
+            }
+            &lt;/ul&gt; 
+          &lt;/div&gt; 
+        &lt;/div&gt;           
+      &lt;/Card&gt;
+    )
+  }
+}
+</code></pre>
+<p>总的来说，我们通过在组件状态state中定义数组，存放选中的信息，主要是通过先在li元素中添加index标志位，然后通过相应事件的触发，把这个index用<code>e.currentTarget.getAttribute('index')</code>取出来，存放到state中定义的数组中</p>
+<p>需要注意的是，在更新value时，必须使用<code>setState</code>函数，否则代码不会被重新渲染，在return中显示已选中的选项不会实时更新</p>
+<h1>下拉事件</h1>
+<p>下拉的实现方式和单选、复选有些类似，而且在ant-design中也有下拉Dropdown的组件，可以复用加以修改，可以直接看例子说明</p>
+<h2>效果图</h2>
+<p><img src="https://user-images.githubusercontent.com/26807227/47846059-ae92f400-de01-11e8-88cd-26f8257a5f47.png" alt="image"></p>
+<h2>代码</h2>
+<pre class="hljs"><code><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewDropdown</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PureComponent</span> </span>{
+  state = {
+    <span class="hljs-attr">value</span>: <span class="hljs-string">'basketball'</span>
+  }
+
+  handleChange = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+    <span class="hljs-keyword">this</span>.setState({
+      <span class="hljs-attr">value</span>: e.target.value
+    })
+  }
+
+  handleMenuClick = <span class="hljs-function">(<span class="hljs-params">{ key }</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (key === <span class="hljs-string">'radio'</span>) {
+      router.push(<span class="hljs-string">'/selector/radio'</span>);
+      <span class="hljs-keyword">return</span>;
+    }
+    <span class="hljs-keyword">if</span> (key === <span class="hljs-string">'checkbox'</span>) {
+      router.push(<span class="hljs-string">'/selector/checkbox'</span>);
+      <span class="hljs-keyword">return</span>;
+    }
+    <span class="hljs-keyword">if</span> (key === <span class="hljs-string">'dropdown'</span>) {
+      <span class="hljs-keyword">return</span>;
+    }
+  };
+
+  render () {
+    <span class="hljs-keyword">const</span> menu = (
+      &lt;Menu className={styles.menu} selectedKeys={[]} onClick={this.handleMenuClick}&gt;
+        &lt;Menu.Item key="radio"&gt;
+          &lt;Icon type="user" /&gt;
+          &lt;FormattedMessage id="menu.selector.radio" defaultMessage="radio" /&gt;
+        &lt;/Menu.Item&gt;
+        &lt;Menu.Item key="checkbox"&gt;
+          &lt;Icon type="setting" /&gt;
+          &lt;FormattedMessage id="menu.selector.checkbox" defaultMessage="checkbox" /&gt;
+        &lt;/Menu.Item&gt;
+        &lt;Menu.Item key="dropdown"&gt;
+          &lt;Icon type="close-circle" /&gt;
+          &lt;FormattedMessage id="menu.selector.dropdown" defaultMessage="dropdown" /&gt;
+        &lt;/Menu.Item&gt;
+      &lt;/Menu&gt;
+    );
+    return (
+      &lt;Card title="下拉列表" bordered={false} className={styles.main}&gt;
+        &lt;div className={styles.content}&gt;
+          &lt;div className={styles.left}&gt;
+            &lt;label className={styles.select}&gt;choose favorite sports：
+              &lt;select value={this.state.value} onChange={this.handleChange}&gt;
+                  &lt;option value="running"&gt;running&lt;/option&gt;
+                  &lt;option value="basketball"&gt;basketball&lt;/option&gt;
+                  &lt;option value="skiing"&gt;skiing&lt;/option&gt;
+              &lt;/select&gt;
+            &lt;/label&gt;
+            &lt;div className={styles.chosen}&gt;chosen: {this.state.value}&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div className={styles.right}&gt;
+            &lt;Dropdown overlay={menu}&gt;
+              &lt;span className={styles.action}&gt;
+                &lt;span className={styles.name}&gt;查看示例&lt;/span&gt;
+              &lt;/span&gt;
+            &lt;/Dropdown&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/Card&gt;
+    )
+  }
+}
+</code></pre>
+<p>总的来说，是通过在组件状态中设置一个value值，并在return中的select标签中使用，上述实现的是一个默认选中的功能</p>
+<p><strong>在用react实现表单时，其原理都是相同的，利用一个组件状态state来存储选中信息，然后监听各个标签元素的点击、悬浮、切换等事件，并在响应函数中更新组件状态</strong></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

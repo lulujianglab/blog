@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>全面解析微信小程序开发之登录∕授权 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">全面解析微信小程序开发之登录∕授权</h1>
+          <p class="post-date">2018-09-21</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>体验过小程序的童鞋应该都知道，最初进入一个新的小程序，会让我们进行一系列授权操作，同意过后就可以正常使用了，并且在下次进入的时候依然保持授权后的状态</p>
+<p>那这一系列操作是怎么完成的呢？我们的授权登入态是怎么维护的呢？</p>
+<p>下面就来说说我根据官方给出的方法来写出的维护登录态的方法吧</p>
+<h1>登录态维护</h1>
+<p>微信小程序的运行环境不是在浏览器下运行的，所以就不能用浏览器下那套cookie实现机制来维护登录态了，但我们可以仿浏览器来实现</p>
+<p><a href="https://mp.weixin.qq.com/debug/wxadoc/dev/api/api-login.html#wxloginobject">官方文档</a>给出了<code>wx.login()</code>的方法来获取用户登录态：</p>
+<h2>登录时序图</h2>
+<p><img src="https://user-images.githubusercontent.com/26807227/45873116-41348200-bdc4-11e8-8206-c49dafe5a4a0.png" alt="image"></p>
+<ol>
+<li>
+<p>小程序在调用<code>wx.login()</code>时会获取到临时登录凭证code，然后将code发送到后台服务器</p>
+<p>前端具体实现如下(app.js)</p>
+<pre class="hljs"><code><span class="hljs-comment">// 登录</span>
+login() {
+  <span class="hljs-keyword">return</span> util.promisify(wx.login)().then(<span class="hljs-function">(<span class="hljs-params">{ code }</span>) =&gt;</span> {
+    <span class="hljs-keyword">return</span> http.post(<span class="hljs-string">'/oauth/login'</span>, {
+    code,
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'wxapp'</span>
+    })
+  }).then(<span class="hljs-function">(<span class="hljs-params">{ data }</span>) =&gt;</span> {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getUserInfo()
+  })
+}
+</code></pre>
+</li>
+<li>
+<p>后台服务器再通过code去请求微信服务器，换取对应的用于用户唯一标识的openid和会话密钥（解密用户的敏感信息）session_key</p>
+<p>后端具体实现如下(server.js)</p>
+<pre class="hljs"><code>axios.get(<span class="hljs-string">'https://api.weixin.qq.com/sns/jscode2session'</span>, {
+  <span class="hljs-attr">params</span>: {
+    <span class="hljs-attr">appid</span>: config.appId,
+    <span class="hljs-attr">secret</span>: config.appSecret,
+    <span class="hljs-attr">js_code</span>: code,
+    <span class="hljs-attr">grant_type</span>: <span class="hljs-string">'authorization_code'</span>
+  }
+}).then(<span class="hljs-function">(<span class="hljs-params">{data}</span>) =&gt;</span> {
+  <span class="hljs-keyword">var</span> openId = data.openid
+  <span class="hljs-keyword">var</span> user = userList.find(<span class="hljs-function"><span class="hljs-params">user</span> =&gt;</span> {
+    <span class="hljs-keyword">return</span> user.openId === openId
+  })
+</code></pre>
+</li>
+<li>
+<p>后台服务器紧接着可以根据用户标识来生成自定义登录态，以便于维护后续业务逻辑中前后端交互时的身份</p>
+<p>需要注意的是，后台服务器在拿到session_key、openid等字段时，不应该直接作为用户的标识或者session的标识，而应该自己生成一个session登录态（可以参考登录时序图），在保证其安全性的角度上不设置较长的过期时间</p>
+<p>后端具体实现如下(server.js)</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> sessionMap = {}
+
+app
+  .use(bodyParser.urlencoded({ <span class="hljs-attr">extended</span>: <span class="hljs-literal">false</span> }))
+  .use(bodyParser.json())
+  .use(session({
+    <span class="hljs-attr">secret</span>: <span class="hljs-string">'alittlegirl'</span>,
+    <span class="hljs-attr">resave</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">saveUninitialized</span>: <span class="hljs-literal">true</span>
+  }))
+
+  .use(<span class="hljs-function">(<span class="hljs-params">req, res, next</span>) =&gt;</span> {
+    req.user = sessionMap[req.session.id] <span class="hljs-comment">// 通过不同的session.id映射不同的user</span>
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`req.url: <span class="hljs-subst">${req.url}</span>`</span>)
+    <span class="hljs-keyword">if</span> (req.user) {
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`wxapp openId`</span>, req.user.openId)
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`session`</span>, req.session.id)
+    }
+    next()
+  })
+</code></pre>
+</li>
+<li>
+<p>session通过响应头派发到小程序客户端之后，可将其存储在storage中，然后每次发请求时再加在请求头上，用于后续通信的登录态校验</p>
+<p>前端具体实现如下(util.js)</p>
+<h3>响应头拦截器</h3>
+<pre class="hljs"><code>http.interceptors.response.use(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> {
+  <span class="hljs-keyword">var</span> { headers, data, status } = response
+  <span class="hljs-keyword">if</span> (data &amp;&amp; <span class="hljs-keyword">typeof</span> data === <span class="hljs-string">'object'</span>) {
+    <span class="hljs-built_in">Object</span>.assign(response, data)
+    <span class="hljs-keyword">if</span> (data.code !== <span class="hljs-number">0</span>) {
+      <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(data.message || <span class="hljs-string">'error'</span>))
+    }
+  }
+  <span class="hljs-keyword">if</span> (status &gt;= <span class="hljs-number">400</span>) {
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'error'</span>))
+  }
+  <span class="hljs-keyword">var</span> setCookie = headers[<span class="hljs-string">'set-cookie'</span>] || <span class="hljs-string">''</span>
+  <span class="hljs-keyword">var</span> cookie = setCookie.split(<span class="hljs-string">'; '</span>)[<span class="hljs-number">0</span>]
+  <span class="hljs-keyword">if</span> (cookie) {
+    <span class="hljs-keyword">var</span> cookie = qs.parse(cookie)
+    <span class="hljs-keyword">return</span> util.promisify(wx.getStorage)({
+      <span class="hljs-attr">key</span>: <span class="hljs-string">'cookie'</span>
+    }).catch(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> { }).then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+      res = res || {}
+      <span class="hljs-keyword">var</span> allCookie = res.allCookie || {}
+      <span class="hljs-built_in">Object</span>.assign(allCookie, cookie)
+      <span class="hljs-keyword">return</span> util.promisify(wx.setStorage)({
+        <span class="hljs-attr">key</span>: <span class="hljs-string">'cookie'</span>,
+        <span class="hljs-attr">data</span>: allCookie
+      })
+    }).then(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-keyword">return</span> response
+    })
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">return</span> response
+  }
+})
+</code></pre>
+<h3>请求头拦截器</h3>
+<pre class="hljs"><code>http.interceptors.request.use(<span class="hljs-function"><span class="hljs-params">config</span> =&gt;</span> {
+  <span class="hljs-keyword">return</span> util.promisify(wx.getStorage)({
+    <span class="hljs-attr">key</span>: <span class="hljs-string">'cookie'</span>
+  }).catch(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> { }).then(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+    <span class="hljs-keyword">if</span> (res &amp;&amp; res.data) {
+      <span class="hljs-built_in">Object</span>.assign(config.headers, {
+        <span class="hljs-attr">Cookie</span>: qs.stringify(res.data, <span class="hljs-string">';'</span>, <span class="hljs-string">'='</span>)
+      })
+    }
+    <span class="hljs-keyword">return</span> config
+  })
+  <span class="hljs-keyword">return</span> config
+})
+</code></pre>
+</li>
+</ol>
+<p>以上就是整个登录态维护的实现方法，总结来说就是</p>
+<ul>
+<li>
+<p>调用<code>wx.login()</code>得到<code>code</code>后请求服务器获取<code>openid</code>和<code>session_key</code>缓存到服务器当中</p>
+</li>
+<li>
+<p>其中生成一个随机数为<code>key</code>，<code>value</code>为<code>openid</code>与<code>session_key</code></p>
+</li>
+<li>
+<p>然后返回到小程序通过<code>wx.setStorage</code>('token',得到的随机数key)存在小程序当中</p>
+</li>
+<li>
+<p>每当我们去请求服务器时带上<code>token</code>即可给服务器读取从而判断用户是否在登录</p>
+</li>
+</ul>
+<h1>自定义登录态有效期</h1>
+<p>上述维护登录态的实现，我们已经了解到最关键的是生成与<code>openid</code>与<code>session_key</code>对应的<code>key</code>值，来保持用户唯一身份的识别</p>
+<p>而我们每调用一次<code>wx.login()</code>时，就会更新用户的<code>session_key</code>，从而导致旧的<code>session_key</code>失效</p>
+<p>所以我们必须明确只有在需要重新登录时才调用<code>wx.login()</code></p>
+<p>那怎么确定什么时候才是需要重新登录的呢？换句话说就是怎么知道<code>session_key</code>的有效期呢？</p>
+<p>我们可以先看下<a href="https://developers.weixin.qq.com/miniprogram/dev/api/signature.html#wxchecksessionobject">官方文档</a></p>
+<blockquote>
+<p>微信不会把session_key的有效期告知开发者。我们会根据用户使用小程序的行为对session_key进行续期。用户越频繁使用小程序，session_key有效期越长。</p>
+</blockquote>
+<blockquote>
+<p>开发者在session_key失效时，可以通过重新执行登录流程获取有效的session_key。使用接口wx.checkSession()可以校验session_key是否有效，从而避免小程序反复执行登录流程。</p>
+</blockquote>
+<blockquote>
+<p>当开发者在实现自定义登录态时，可以考虑以session_key有效期作为自身登录态有效期，也可以实现自定义的时效性策略。</p>
+</blockquote>
+<p>也就是说小程序通过<code>wx.login()</code>接口获得的用户登录态是具有一定的时效性的，可以通过<code>wx.checkSession()</code>来判断登录态是否过期，从而决定是否更新登录态</p>
+<p>前端具体实现如下(app.js)</p>
+<pre class="hljs"><code>onLaunch: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'build time'</span>, date.formatTime(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>()))
+  util.promisify(wx.checkSession)().then(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'session 有效'</span>)
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getUserInfo()
+  }).then(<span class="hljs-function">(<span class="hljs-params">userInfo</span>) =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'登录成功'</span>, userInfo)
+  }).catch(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'自动登录失败'</span>)
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.login()
+  }).catch(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`手动登录失败`</span>)
+  })
+},
+</code></pre>
+<h1>微信授权&amp;获取用户数据</h1>
+<p>通过<code>wx.login()</code>实现登录态维护之后，我们就可以通过<code>wx.getUserInfo()</code>获取用户信息、<code>wx.getPhoneNumber()</code>获取手机号信息了</p>
+<p>得到的用户数据包含两部分，一部分是敏感信息，需要从密文中解密出来，密文在<a href="https://developers.weixin.qq.com/miniprogram/dev/api/signature.html#wxchecksessionobject">encryptedData</a>这个字段中，去请求后台服务器去解密然后就可以得到敏感信息并保存下来了；另一部分是不敏感的信息，在result的userInfo里</p>
+<p>如下图所示</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/45927007-d66b7e00-bf5e-11e8-92e2-cd03f1d2d388.png" alt="image"></p>
+<p>有一点需要注意的是，微信5月份出了最新的策略，这俩操作都需要用户主动点击点击按钮，完成统一授权后才能触发</p>
+<p>wxml代码如下(index. wxml)</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"container"</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"userinfo"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">wx:if</span>=<span class="hljs-string">"{{!userInfo.nickName}}"</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span> 
+        <span class="hljs-attr">open-type</span>=<span class="hljs-string">"getUserInfo"</span> 
+        <span class="hljs-attr">bindgetuserinfo</span>=<span class="hljs-string">"bindUserInfo"</span>&gt;</span> 
+        获取头像昵称 
+      <span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">block</span> <span class="hljs-attr">wx:else</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">image</span> <span class="hljs-attr">bindtap</span>=<span class="hljs-string">"bindViewTap"</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"userinfo-avatar"</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"{{userInfo.avatarUrl}}"</span> <span class="hljs-attr">mode</span>=<span class="hljs-string">"cover"</span> <span class="hljs-attr">bindtap</span>=<span class="hljs-string">'bindViewTap'</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">image</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">text</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"userinfo-nickname"</span>&gt;</span>{{userInfo.nickName}}<span class="hljs-tag">&lt;/<span class="hljs-name">text</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">block</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"userinfo"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">wx:if</span>=<span class="hljs-string">"{{!userInfo.phoneNumber}}"</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">button</span>
+        <span class="hljs-attr">open-type</span>=<span class="hljs-string">"getPhoneNumber"</span> 
+        <span class="hljs-attr">bindgetphonenumber</span>=<span class="hljs-string">"bindPhoneNumber"</span>&gt;</span>
+          获取手机号码
+      <span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>     
+    <span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">text</span> <span class="hljs-attr">wx:else</span>&gt;</span>{{userInfo.phoneNumber}}<span class="hljs-tag">&lt;/<span class="hljs-name">text</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span> 
+  <span class="hljs-tag">&lt;<span class="hljs-name">view</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"usermotto"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">text</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"user-motto"</span>&gt;</span>{{motto}}<span class="hljs-tag">&lt;/<span class="hljs-name">text</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">view</span>&gt;</span>
+</code></pre>
+<p>在实际项目开发中，我们每进行一次不同的授权操作，都会将微信服务器请求授权的用户数据返回到后台服务器，然后写入统一的用户信息接口，再返回给小程序</p>
+<p>每次授权后前端也都需要进行用户信息更新，以便于将所有有关用户的信息都存于统一的接口，便于调用</p>
+<p>如果每进行一次授权操作，都重新写一遍请求后台用户信息接口的逻辑，难免让代码显得冗余</p>
+<p>那正确的操作是怎样的呢？</p>
+<p>我们可以在入口app.js文件中声明调用的后台接口，将用户信息存入全局定义的数组中(暂且称之为userInfo)</p>
+<p>前端代码如下(app.js)</p>
+<pre class="hljs"><code><span class="hljs-comment">// 获取用户信息</span>
+getUserInfo() {
+  <span class="hljs-keyword">return</span> http.get(<span class="hljs-string">'/user/info'</span>).then(<span class="hljs-function">(<span class="hljs-params">{ data }</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (data &amp;&amp; <span class="hljs-keyword">typeof</span> data === <span class="hljs-string">'object'</span>) {
+      <span class="hljs-keyword">this</span>.globalData.userInfo = data
+      <span class="hljs-comment">// 延时函数</span>
+      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.userInfoReadyCallback) {
+        <span class="hljs-keyword">this</span>.userInfoReadyCallback(data)
+      }
+      <span class="hljs-keyword">return</span> data
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.reject(response)
+  })
+},
+
+<span class="hljs-attr">globalData</span>: {
+  <span class="hljs-attr">userInfo</span>: <span class="hljs-literal">null</span>
+}
+</code></pre>
+<p>这样即使在授权过后，再次使用该小程序时，我们也能够从全局直接拿到用户信息，然后在各个页面调用全局数据即可</p>
+<p>比如微信授权页面（index.js）</p>
+<pre class="hljs"><code>onLoad: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">if</span> (app.globalData.userInfo) {
+    <span class="hljs-keyword">this</span>.setData({
+      <span class="hljs-attr">userInfo</span>: app.globalData.userInfo
+    })
+  }<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.data.canIUse){
+    <span class="hljs-comment">// 由于 getUserInfo 是网络请求，可能会在 Page.onLoad 之后才返回</span>
+    <span class="hljs-comment">// 所以此处加入 callback 以防止这种情况</span>
+    app.userInfoReadyCallback = <span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+      <span class="hljs-keyword">this</span>.setData({
+        <span class="hljs-attr">userInfo</span>: res
+      })
+    }
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-comment">// 在没有 open-type=getUserInfo 版本的兼容处理</span>
+    wx.getUserInfo({
+      <span class="hljs-attr">success</span>: <span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> {
+        app.globalData.userInfo = res.userInfo
+        <span class="hljs-keyword">this</span>.setData({
+          <span class="hljs-attr">userInfo</span>: res.userInfo
+        })
+      }
+    })
+  }
+}
+</code></pre>
+<p>那前后端是怎么实现微信授权操作中从微信服务器读取数据然后存入后台数据库的呢？</p>
+<h2>获取用户信息（头像昵称等）</h2>
+<p>前端代码如下（index.js）</p>
+<pre class="hljs"><code>bindUserInfo: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+  <span class="hljs-keyword">var</span> detail = e.detail
+  <span class="hljs-keyword">if</span> (detail.iv) {
+    http.post(<span class="hljs-string">'/user/bindinfo'</span>, {
+      <span class="hljs-attr">encryptedData</span>: detail.encryptedData
+      iv: detail.iv
+      signature: detail.signature
+    }).then(<span class="hljs-function"><span class="hljs-params">()</span>=&gt;</span>{
+      <span class="hljs-keyword">return</span> app.getUserInfo().then(<span class="hljs-function"><span class="hljs-params">userInfo</span> =&gt;</span> {
+        <span class="hljs-keyword">this</span>.setData({
+          <span class="hljs-attr">userInfo</span>: userInfo
+        })
+      })
+    })
+  }
+}
+</code></pre>
+<p>服务端接口代码如下（server.js）</p>
+<pre class="hljs"><code>.post(<span class="hljs-string">'/user/bindinfo'</span>, (req, res) =&gt; {
+  <span class="hljs-keyword">var</span> user = req.user
+  <span class="hljs-keyword">if</span> (user) {
+    <span class="hljs-keyword">var</span> {encryptedData, iv} = req.body
+    <span class="hljs-keyword">var</span> pc = <span class="hljs-keyword">new</span> WXBizDataCrypt(config.appId, user.sessionKey)
+    <span class="hljs-keyword">var</span> data = pc.decryptData(encryptedData, iv)
+    <span class="hljs-built_in">Object</span>.assign(user, data)
+    <span class="hljs-keyword">return</span> res.send({
+      <span class="hljs-attr">code</span>: <span class="hljs-number">0</span>
+    })
+  }
+  <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'用户未登录'</span>)
+})
+</code></pre>
+<h2>获取用户手机号</h2>
+<p>前端代码如下（inde.js）</p>
+<pre class="hljs"><code>bindPhoneNumber(e) {
+  <span class="hljs-keyword">var</span> detail = e.detail
+  <span class="hljs-keyword">if</span> (detail.iv) {
+    http.post(<span class="hljs-string">'/user/bindphone'</span>, {
+      <span class="hljs-attr">encryptedData</span>: detail.encryptedData,
+      <span class="hljs-attr">iv</span>: detail.iv
+    }).then(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+      <span class="hljs-keyword">return</span> app.getUserInfo().then(<span class="hljs-function"><span class="hljs-params">userInfo</span> =&gt;</span> {
+        <span class="hljs-keyword">this</span>.setData({
+          <span class="hljs-attr">userInfo</span>: userInfo
+        })
+      })
+    })
+  }
+}
+</code></pre>
+<p>服务端接口如下（server.js）</p>
+<pre class="hljs"><code>.post(<span class="hljs-string">'/user/bindphone'</span>, (req, res) =&gt; {
+  <span class="hljs-keyword">var</span> user = req.user
+  <span class="hljs-keyword">if</span> (user) {
+    <span class="hljs-keyword">var</span> {encryptedData, iv} = req.body
+    <span class="hljs-keyword">var</span> pc = <span class="hljs-keyword">new</span> WXBizDataCrypt(config.appId, user.sessionKey)
+    <span class="hljs-keyword">var</span> data = pc.decryptData(encryptedData, iv)
+    <span class="hljs-built_in">Object</span>.assign(user, data)
+    <span class="hljs-keyword">return</span> res.send({
+      <span class="hljs-attr">code</span>: <span class="hljs-number">0</span>
+    })
+  }
+  <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'用户未登录'</span>)
+})
+</code></pre>
+<h1>代码</h1>
+<p>可见我的<a href="https://github.com/lulujianglab/wxapp-authorization-demo">wxapp-authorization-demo</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

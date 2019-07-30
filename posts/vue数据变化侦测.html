@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>vue数据变化侦测 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">vue数据变化侦测</h1>
+          <p class="post-date">2018-01-24</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>关于vue的内部原理其实有很多个重要的部分，变化侦测，模板编译，virtualDOM，整体运行流程等</p>
+<p>今天主要分析下变化侦测的原理</p>
+<h1>如何侦测变化</h1>
+<p>关于变化侦测首先要问一个问题，在 js 中，如何侦测一个对象的变化</p>
+<p>学过js的都能知道，js中有两种方法可以侦测到变化，Object.defineProperty 和 ES6 的proxy</p>
+<p>到目前为止vue还是用的 Object.defineProperty</p>
+<p>在vue的官网中，有这样一段关于vue追踪变化的原理</p>
+<blockquote>
+<p>把一个普通对象传给Vue实例作为它的data选项，Vue.js将遍历它的属性，用Object.defineProperty将它们转换为getter/setter<br>
+用户看不到getter/setters，但是在内部它们让Vue.js追踪依赖，在属性被访问和修改时通知变化<br>
+模板中每个指令/数据绑定都有一个对应的watcher对象，在计算过程中它把属性记录为依赖；之后当依 赖的setter被调用时，会触发watcher重新计算，也就会导致它的关联指令更新DOM</p>
+</blockquote>
+<p>接下来是小段源码</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35327404-7bebb190-0134-11e8-8b1a-b65149d6b44e.png" alt="image"></p>
+<p>可以看到defineproperty中给属性getter，setter的设置，一旦该属性被获取，便会添加依赖；同样的，一旦该属性被更改，便会发出通知</p>
+<h2>观察所有数据</h2>
+<p>知识点补充：</p>
+<p>访问器属性不能直接定义，必须使用Object.defineProperty()来定义；包含一对getter函数和setter函数（这两个函数不是必须的）</p>
+<p>在读取访问器属性时，会调用getter函数，这个函数负责返回有效的值；在写入访问器属性是，会调用setter函数并传入新值，这个函数负责决定如何处理数据</p>
+<p>拿 Object.defineProperty来举例说明这个原理</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35335566-e8fcbde4-0150-11e8-8823-88d506655850.png" alt="image"></p>
+<p>所以，当对象下的访问器属性值发送改变之后（vue会将属性都转化为访问器属性），那么就会调用set函数，这时vue就可以通过这个set函数来追踪变化，调用相关函数来实现view视图的更新</p>
+<p>每个组件实例都有相应的watcher实例对象，它会在组件渲染的过程中把属性记录为依赖，之后当依赖项的setter被调用时，会通知watcher重新计算，从而让致使它关联的组件得以更新</p>
+<h2>怎么观察</h2>
+<p>即在渲染的过程中就会调用对象属性的getter函数，然后getter函数通知watcher对象将之声明为依赖，依赖之后，如果对象属性发生变化，那么就会调用setter函数来通知watcher，watcher就会在重新渲染组件，以此来完成更新</p>
+<p>总结起来一句话，getter中，收集依赖，setter中，触发依赖</p>
+<h2>依赖收集</h2>
+<p>首先想到的是每个key都有一个数组，用来存储当前key的依赖</p>
+<p>在<a href="https://github.com/lulujianglab/mvvm/blob/master/src/mvvm.js">实例</a>中新增了对象数组model，用来存储被收集的依赖</p>
+<p>然后在触发set触发时，循环model把收集到的依赖触发，递归侦测所有key<br>
+‘</p>
+<h2>收集目标</h2>
+<p>收集谁，当数据变化通知谁？</p>
+<p>watcher--变化侦测和更新view的一个纽带</p>
+<p>watcher会主动将自己push到属性的依赖中，只有通过watcher读取属性的值才会收集依赖，模板是通过watcher读取属性的值的</p>
+<h1>总结</h1>
+<p><img src="https://user-images.githubusercontent.com/26807227/35328527-9f2883f6-0137-11e8-904d-141e48d4ffff.png" alt="image"></p>
+<p>这是vue官网上的一张图，这张图其实非常清晰，就是一个变化侦测的原理图</p>
+<p>getter到watcher有一条线，上面写着收集依赖，意思是说 getter 里收集 watcher，也就是说当数据发生 get 动作时开始收集 watcher</p>
+<p>setter 到 watcher 有一条线，写着 Notify 意思是说在 setter 中触发消息，也就是当数据发生 set动作时，通知 watcher</p>
+<p>Watcher 到 ComponentRenderFunction 有一条线，写着 Trigger re-render 意思很明显了</p>
+<p><a href="https://github.com/lulujianglab/mvvm">原生JS实现数据双向绑定</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

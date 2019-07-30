@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>通俗地解析background属性 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">通俗地解析background属性</h1>
+          <p class="post-date">2018-08-17</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>我们在做项目的时候，通常会遇到设置背景图与屏幕大小相适应问题</p>
+<p>而background中一些属性的取值是可以直接影响到背景图的呈现效果，包括CSS3当中新增的几个新的属性值：background-size，background-origin，background-clip，还有CSS1当中的background-position</p>
+<p>之前在项目中达不到想要的背景图效果，总是将各种取值都试一遍，现在认真解析了一遍，每个值都要特点的效果，本篇文章主要是对上述几个属性做一下通俗易懂的解释</p>
+<h1>background-size</h1>
+<h2>取值</h2>
+<pre class="hljs"><code>background-size: auto || &lt;length&gt; || &lt;percentage&gt; || cover || contain
+</code></pre>
+<p>auto:  默认值，保持背景图原有高度和宽度</p>
+<p>length: 具体像素值，改变背景图大小</p>
+<p>percentage：百分值(0％〜100％)，作用于块元素，背景图大小取决于所在块元素的宽度百分比</p>
+<p>cover: 背景图放大到铺满整个容器，适应于图片尺寸小于元素容器</p>
+<p>container：背景图缩小到铺满整个容器，适应于图片尺寸大于元素容器</p>
+<p>当取值为length或percentage，可以设置一个值  第二个值相当于auto  auto的值与第一个值相同</p>
+<h2>DEMO结构和效果</h2>
+<h3>HTML Code</h3>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span> = <span class="hljs-string">"test"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<p>先加上初步的效果</p>
+<pre class="hljs"><code><span class="hljs-selector-class">.test</span> {
+     <span class="hljs-attribute">background</span>: <span class="hljs-built_in">url</span>(<span class="hljs-string">"./images/background_image.jpg"</span>) no-repeat;
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">800px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">450px</span>;
+     <span class="hljs-attribute">line-height</span>: <span class="hljs-number">450px</span>;
+     <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#999999</span>;
+     <span class="hljs-attribute">margin</span>: <span class="hljs-number">30px</span>;
+ }
+</code></pre>
+<p>找了张(380px*300px)左右的图片来当作背景图片使用</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44180677-5157a280-a130-11e8-8000-c4b09cece27a.png" alt="image"></p>
+<h3>background-size:auto</h3>
+<p>在上述<code>.test{...}</code>中增加一行</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">background-size</span><span class="hljs-selector-pseudo">:auto</span>;
+</code></pre>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44180685-5ae10a80-a130-11e8-9450-e72e315ed67a.png" alt="image"></p>
+<p>效果等同于没加background-size效果一样</p>
+<h3>background-size:'length'</h3>
+<p>同样的增加一行,如</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">background-size</span>: 550<span class="hljs-selector-tag">px</span> 300<span class="hljs-selector-tag">px</span>;
+</code></pre>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44180694-65030900-a130-11e8-8fae-f7d8ecb77139.png" alt="image"></p>
+<p>从上张取值的效果图可以看出来，背景图片由（380px<em>300px）变为（550px</em>300px），已经变形失真</p>
+<p>如果只取了一个值，比如background-size:350px ，相当于background-size:350px auto，此时auto的取值为350px/380px*300px</p>
+<h3>background-size:'percentage'</h3>
+<p>同样的增加一行，如</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">background-size</span><span class="hljs-selector-pseudo">:80</span>% 50%;
+</code></pre>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44181615-2de32680-a135-11e8-88ba-0f6f1d5697d9.png" alt="image"></p>
+<p>从这张效果图我们可以看出来，背景图大小并不是按背景图的百分比来缩放的，而是按装载背景图的容器元素的百分比计算的，也就是长800px(div.width)*80%，高450px(div.height)*50%</p>
+<p>如果只有一个值时，比如background-size:50%，相当于background-size:50%  auto，相当于background-size: 50%*800px(div.width)  50%*800px(div.width)/380px(背景图长度)*300px(背景图高度)</p>
+<p>上述两种取值也可以搭配使用，如</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">background-size</span><span class="hljs-selector-pseudo">:47.5</span>% 300<span class="hljs-selector-tag">px</span>;
+</code></pre>
+<p><code>background-size:47.5% 300px;</code>的取值实际上就是图片自身的大小(380px*300px)了，效果也等同于一个值<code>background-size:47.5%;</code></p>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44183607-43a91980-a13e-11e8-8190-c7c081619a00.png" alt="image"></p>
+<h3>background-size: cover</h3>
+<p>同样的增加一行，如</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">background-size</span><span class="hljs-selector-pseudo">:cover</span>;
+</code></pre>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44183824-23c62580-a13f-11e8-97a4-62f92bbc5561.png" alt="image"></p>
+<p>从上述效果图可以看到，背景图会放大到适合容器元素的尺寸，原则是背景图的width和height都需要等比例放大到填满容器，以至背景图在装载它的容器元素中占比大的一方向可能超出容器，比如上图中背景图的height明显超出了容器。和上一种取值<code>background-size:100%</code>的效果一样</p>
+<h3>background-size:contain</h3>
+<p>上面的cover取值是把背景图片放大到适合容器元素的尺寸，这时的contain刚好是跟cover相反，是把背景图片缩小到适合容器元素的尺寸</p>
+<p>这里再重新定义一下容器元素的宽高</p>
+<pre class="hljs"><code><span class="hljs-selector-tag">width</span><span class="hljs-selector-pseudo">:200px</span>;
+<span class="hljs-selector-tag">height</span><span class="hljs-selector-pseudo">:200px</span>;
+<span class="hljs-selector-tag">background-size</span><span class="hljs-selector-pseudo">:contain</span>;
+</code></pre>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44184884-bec0fe80-a143-11e8-9c89-85ba945d086e.png" alt="image"></p>
+<p>前面已经介绍了背景图片的大小是380px<em>300px，而现在将容器元素改为200px</em>200px</p>
+<p>从效果图中我们可以看到背景图等比例的缩小到适合元素容器的尺寸，以至背景图在超出它的容器元素较少的一方向可能与容器有间隙，比如上图中背景图的height超出了100px,width超出了180px，所以等比缩小后height与容器间多出了空隙</p>
+<p>从上边的几个效果值可以看出来，cover、contain的值、或者只设置一个值，另一个值为auto时，都不会出现失真的情况，但会出现图片显示不全或者与容器元素出现留白的情况</p>
+<p>所以我们在项目开发中合理的定义容器元素的尺寸大小，根据容器尺寸大小和背景图大小合理的选用background-size的取值</p>
+<h1>background-position</h1>
+<p>图片定位的问题，比较容易理解，但也有需要注意的点。接下来还是从取值讲起</p>
+<h2>取值</h2>
+<pre class="hljs"><code>background-position:  &lt;关键词&gt; || &lt;百分比&gt; || &lt;像素值&gt; 
+</code></pre>
+<p>关键词：类似于<code>background-position:top left</code></p>
+<p>像素：类似于<code>background-position: 0px 0px</code></p>
+<p>百分比：类似于<code>background-position: 0% 0%</code></p>
+<h2>DEMO结构和效果</h2>
+<p>上面前两种定位都是</p>
+<h5>将背景图左上角的原点放置到属性值位置</h5>
+<p>同样，在上述<code>.test{...}</code>中增加一行<code>background-position: 50px 50px;</code></p>
+<pre class="hljs"><code><span class="hljs-selector-class">.test</span> {
+     <span class="hljs-attribute">background</span>: <span class="hljs-built_in">url</span>(<span class="hljs-string">"./images/background_image.jpg"</span>) no-repeat;
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">800px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">450px</span>;
+     <span class="hljs-attribute">line-height</span>: <span class="hljs-number">450px</span>;
+     <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#999999</span>;
+     <span class="hljs-attribute">margin</span>: <span class="hljs-number">30px</span>;
+     <span class="hljs-attribute">background-position</span>: <span class="hljs-number">50px</span> <span class="hljs-number">50px</span>;
+ }
+</code></pre>
+<h4>background-position: 50px 50px</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44215470-36734580-a1a5-11e8-96fa-1f97db4c1deb.png" alt="image"></p>
+<p>可以看到，规定的位置是&quot;50px 50px&quot;，也就是图片的左上角的原点在那个位置上</p>
+<p>同理，当取值<code>background-position: top left ;</code></p>
+<h4>background-position: top left</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44216549-bc908b80-a1a7-11e8-9b63-971b94f133ca.png" alt="image"></p>
+<p>但是第三种取值方法 百分比定位 就不是将背景图左上角的原点放置到属性值位置了，接下来我们设置<code>background-position: 10% 10%;</code></p>
+<h4>background-position: x% y%</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44248656-7a566100-a21e-11e8-9293-ae3b90f9ec65.png" alt="image"></p>
+<p>我们先将看百分比定位转换为像素值定位，那width和height的10%，转换为像素值就是</p>
+<p><code>background-position: 80px 45px;</code></p>
+<h4>效果</h4>
+<p><img src="https://user-images.githubusercontent.com/26807227/44248659-84785f80-a21e-11e8-8ed9-e64aba3ae5a2.png" alt="image"></p>
+<p>对比这两张图，是不是效果很明显不一样，说明百分比定位有自己特有的定位原则</p>
+<h5>图片本身（x%,y%）的那个点，与背景区域的（x%,y%）的那个点重合</h5>
+<p>那有人好奇既然这样就直接用像素值定位好了，其实并不是</p>
+<p>使用百分比设置的主要优势在于，当页面缩放的时候，背景图片也会跟着一起缩放</p>
+<h1>background-origin</h1>
+<p>上面讲到的background-position规定背景显示的位置，但是位置总要有个标准来确定吧，这个标准呢，就是由background-origin这个属性设置的</p>
+<p>同样的，我们先来看标准的取值</p>
+<h2>取值</h2>
+<pre class="hljs"><code>background-origin: padding-box || border-box || content-box;
+</code></pre>
+<p>padding-box：默认值，背景图相对于内边距框来定位(包括padding)</p>
+<p>border-box: 背景图相对于边框盒来定位(包括padding+border)</p>
+<p>content-box: 背景图相对于内容框来定位(只包括内容width/height里边的内容)</p>
+<h2>DEMO结构和效果</h2>
+<p>我们来看下实际的效果</p>
+<h3>DEMO</h3>
+<p>重新修改上述test元素样式</p>
+<pre class="hljs"><code><span class="hljs-selector-class">.test</span> {
+     <span class="hljs-attribute">background</span>: <span class="hljs-built_in">url</span>(<span class="hljs-string">"./images/background_image.jpg"</span>) no-repeat;
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">400px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">400px</span>;
+     <span class="hljs-attribute">line-height</span>: <span class="hljs-number">400px</span>;
+     <span class="hljs-attribute">border</span>: <span class="hljs-number">10px</span> dotted <span class="hljs-number">#999999</span>;
+     <span class="hljs-attribute">margin</span>: <span class="hljs-number">30px</span>;
+     <span class="hljs-attribute">background-size</span>:<span class="hljs-number">100%</span>;        
+}
+</code></pre>
+<h3>效果</h3>
+<p><img src="https://user-images.githubusercontent.com/26807227/44249036-ab379580-a220-11e8-963e-91a835efec7c.png" alt="image"></p>
+<p>上述是 background-origin的默认样式效果</p>
+<h4>background-origin: padding-box</h4>
+<p>在上述<code>.test(...)</code>中增加一行<code>background-origin: padding-box;</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44249036-ab379580-a220-11e8-963e-91a835efec7c.png" alt="image"></p>
+<p>可以看到跟默认效果一样，只包含了padding的宽度</p>
+<h4>background-origin: border-box</h4>
+<p>同样的将<code>background-origin</code>的属性值改为<code>border-box</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44249229-8db6fb80-a221-11e8-9f28-7f8255c2edb9.png" alt="image"></p>
+<p>可以看到是包含了boder和padding的宽度的</p>
+<h4>background-origin: content-box</h4>
+<p>同样的将<code>background-origin</code>的属性值改为<code>content-box</code></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44249350-05852600-a222-11e8-92a0-d39e6b928136.png" alt="image"></p>
+<p>可以看到boder和padding都留白出来了</p>
+<p>每种取值的图片效果都不一样，所以具体怎么用，还是得看项目情况了</p>
+<p>先写这么多吧，background-clip这个属性目前用的还是不太多，就不赘述了~~~</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

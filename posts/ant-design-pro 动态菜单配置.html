@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ant-design-pro 动态菜单配置 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">ant-design-pro 动态菜单配置</h1>
+          <p class="post-date">2018-11-23</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>Ant Design Pro 路由及菜单解析</h1>
+<p>我们先看下官网关于<a href="https://pro.ant.design/docs/router-and-nav-cn">路由和菜单</a>的介绍</p>
+<blockquote>
+<p>路由和菜单是组织起一个应用的关键骨架，pro 中的路由为了方便管理，使用了中心化的方式，在 router.config.js 统一配置和管理。</p>
+</blockquote>
+<p>整个路由和菜单的基本结构如官网所述：</p>
+<blockquote>
+<p>路由管理 通过约定的语法根据在 router.config.js 中配置路由。</p>
+</blockquote>
+<blockquote>
+<p>菜单生成 根据路由配置来生成菜单。菜单项名称，嵌套路径与路由高度耦合。</p>
+</blockquote>
+<blockquote>
+<p>面包屑 组件 PageHeader 中内置的面包屑也可由脚手架提供的配置信息自动生成。</p>
+</blockquote>
+<h2>路由</h2>
+<blockquote>
+<p>目前脚手架中所有的路由都通过 router.config.js 来统一管理，在 umi 的配置中我们增加了一些参数，如 name,icon,hideChildrenInMenu,authority，来辅助生成菜单</p>
+</blockquote>
+<h2>菜单</h2>
+<blockquote>
+<p>菜单根据 router.config.js 生成，具体逻辑在 src/layouts/BasicLayout 中的 formatter 方法实现</p>
+</blockquote>
+<h3>动态菜单</h3>
+<p>看过Ant Design Pro 2.0的盆友应该知道，整个页面路由的配置都写在文件router.config.js中了，由于是提前配置再加载，所以它是静态的</p>
+<p>但往往在我们的实际项目中，都存在需要动态配置路由的情况，比如题主最近在公司做的内部系统项目，就需要针对不同管理权限的人提供不同的菜单路由</p>
+<p>在讲解动态菜单生成的具体步骤前，我们先来看下官网对于生成动态菜单方法的介绍</p>
+<blockquote>
+<p>如果你的项目并不需要菜单，你可以直接在 BasicLayout 中删除 SiderMenu 组件的挂载。并在 src/layouts/BasicLayout 中 设置 const MenuData = []。</p>
+</blockquote>
+<p>如果你需要从服务器请求菜单，可以将 menuData 设置为 state，然后通过网络获取来修改了 state。</p>
+<p>这句话到底是什么意思了？接下来跟着具体的实例操作一遍，相信大家就明白了</p>
+<h4>实例介绍</h4>
+<ol>
+<li>
+<p>在<code>config/router.config.js</code>中配置所有页面需要的路由参数</p>
+</li>
+<li>
+<p>在<code>src/layouts/BasicLayout.js</code>中连接model与menuData数据</p>
+</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> connect(<span class="hljs-function">(<span class="hljs-params">{ menuTree, loading, global, setting }</span>) =&gt;</span> ({
+  menuTree, <span class="hljs-comment">// +</span>
+  loading: loading.effects[<span class="hljs-string">'menuTree/getMenu'</span>], <span class="hljs-comment">// +</span>
+  collapsed: global.collapsed,
+  <span class="hljs-attr">layout</span>: setting.layout,
+  ...setting,
+}))(BasicLayout);
+</code></pre>
+<p>请求model中的menuData数据</p>
+<pre class="hljs"><code>componentDidMount() {
+  <span class="hljs-keyword">const</span> { dispatch } = <span class="hljs-keyword">this</span>.props;
+  <span class="hljs-comment">// +</span>
+  dispatch({
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'menuTree/getMenu'</span>
+  })
+  dispatch({
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'user/fetchCurrent'</span>,
+  });
+  dispatch({
+    <span class="hljs-attr">type</span>: <span class="hljs-string">'setting/getSetting'</span>,
+  })
+</code></pre>
+<p>在获取面包屑映射的时候配置states数据</p>
+<pre class="hljs"><code>getBreadcrumbNameMap() {
+  <span class="hljs-keyword">const</span> routerMap = {};
+  <span class="hljs-keyword">const</span> mergeMenuAndRouter = <span class="hljs-function"><span class="hljs-params">data</span> =&gt;</span> {
+    data.forEach(<span class="hljs-function"><span class="hljs-params">menuItem</span> =&gt;</span> {
+      <span class="hljs-keyword">if</span> (menuItem.children) {
+        mergeMenuAndRouter(menuItem.children);
+      }
+      <span class="hljs-comment">// Reduce memory usage</span>
+      routerMap[menuItem.path] = menuItem;
+    });
+  };
+  <span class="hljs-comment">// +</span>
+  <span class="hljs-keyword">const</span> {menuTree} = <span class="hljs-keyword">this</span>.props
+  <span class="hljs-keyword">const</span> {menuData} = menuTree
+  mergeMenuAndRouter(formatter(menuData));
+  <span class="hljs-keyword">return</span> routerMap;
+}
+</code></pre>
+<p>在render中获取到menuData的数据</p>
+<pre class="hljs"><code>render() {
+  <span class="hljs-keyword">const</span> {
+    menuTree, <span class="hljs-comment">// +</span>
+    navTheme,
+    <span class="hljs-attr">layout</span>: PropsLayout,
+    children,
+    <span class="hljs-attr">location</span>: { pathname },
+  } = <span class="hljs-keyword">this</span>.props;
+  <span class="hljs-comment">// +</span>
+  <span class="hljs-keyword">const</span> { isMobile } = <span class="hljs-keyword">this</span>.state;
+  <span class="hljs-keyword">const</span> {menuData} = menuTree
+  <span class="hljs-keyword">const</span> menuList = formatter(menuData)
+  <span class="hljs-keyword">const</span> isTop = PropsLayout === <span class="hljs-string">'topmenu'</span>;
+
+  <span class="hljs-keyword">const</span> layout = (
+    &lt;Layout&gt;
+      {isTop &amp;&amp; !isMobile ? null : (
+        &lt;SiderMenu
+          logo={logo}
+          Authorized={Authorized}
+          theme={navTheme}
+          onCollapse={this.handleMenuCollapse}
+          menuData = {menuList} // +
+          isMobile={isMobile}
+          {...this.props}
+        /&gt;
+      )}
+      &lt;Layout
+        style={{
+          ...this.getLayoutStyle(),
+          minHeight: '100vh',
+        }}
+      &gt;
+        &lt;Header
+          menuData={menuList} // +
+          // ......
+</code></pre>
+<ol start="3">
+<li>在<code>src/models/menuTree.js</code>中更新menuData数据</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { queryMenu } <span class="hljs-keyword">from</span> <span class="hljs-string">'@/services/menuTree'</span>;
+ 
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">namespace</span>: <span class="hljs-string">'menuTree'</span>,
+ 
+  <span class="hljs-attr">state</span>: {
+    <span class="hljs-attr">menuData</span>: [],
+  },
+ 
+  <span class="hljs-attr">effects</span>: {
+    *getMenu(_, { call, put }) {
+      <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">yield</span> call(queryMenu);
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'response'</span>,response)
+      <span class="hljs-keyword">yield</span> put({
+        <span class="hljs-attr">type</span>: <span class="hljs-string">'menuResult'</span>,
+        <span class="hljs-attr">payload</span>: response[<span class="hljs-number">2</span>].routes,
+      });
+    },
+  },
+ 
+  <span class="hljs-attr">reducers</span>: {
+    menuResult(state, action) {
+      <span class="hljs-keyword">return</span> {
+        ...state,
+        <span class="hljs-attr">menuData</span>: action.payload,
+      };
+    },
+  },
+};
+</code></pre>
+<ol start="4">
+<li>在<code>src/services/menuTree.js</code>中请求menuData数据</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> request <span class="hljs-keyword">from</span> <span class="hljs-string">'@/utils/request'</span>;
+ 
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">queryMenu</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> request(<span class="hljs-string">'/menu/getMenuTree'</span>);
+}
+</code></pre>
+<ol start="5">
+<li>我们使用mock数据来模拟请求的路由参数，在<code>mock/menu.js</code>中配置所需要显示的动态路由</li>
+</ol>
+<pre class="hljs"><code><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-string">'GET /menu/getMenuTree'</span>:[
+    <span class="hljs-comment">// user</span>
+    {
+      <span class="hljs-attr">path</span>: <span class="hljs-string">'/user'</span>,
+      <span class="hljs-attr">component</span>: <span class="hljs-string">'../layouts/UserLayout'</span>,
+      <span class="hljs-attr">routes</span>: [
+        { <span class="hljs-attr">path</span>: <span class="hljs-string">'/user'</span>, <span class="hljs-attr">redirect</span>: <span class="hljs-string">'/user/login'</span> },
+        { <span class="hljs-attr">path</span>: <span class="hljs-string">'/user/login'</span>, <span class="hljs-attr">component</span>: <span class="hljs-string">'./User/Login'</span> },
+        { <span class="hljs-attr">path</span>: <span class="hljs-string">'/user/register'</span>, <span class="hljs-attr">component</span>: <span class="hljs-string">'./User/Register'</span> },
+        { <span class="hljs-attr">path</span>: <span class="hljs-string">'/user/register-result'</span>, <span class="hljs-attr">component</span>: <span class="hljs-string">'./User/RegisterResult'</span> },
+      ],
+    },
+    <span class="hljs-comment">// ......</span>
+</code></pre>
+<ol start="6">
+<li>在<code>src/locales/zh-CN.js</code>和<code>src/locales/en-US.js</code>中配置相应路由的显示名称</li>
+</ol>
+<p>以上就是Ant Design Pro 动态菜单的所有步骤了</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

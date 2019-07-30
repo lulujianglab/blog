@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ESLint使用心得 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">ESLint使用心得</h1>
+          <p class="post-date">2018-01-21</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>介绍</h1>
+<p>简单来说,ESLint是一个避免低级错误和统一代码风格的工具.</p>
+<p>比如：在Javascript应用中，我们很难找到多余或者忘记声明的变量和方法,或者少空格,多字符。那怎样才能分析JS代码,找到bug并在一定程度上保证JS语法的正确性和规范性呢?</p>
+<p>已经出现的解决这类问题的工具有很多,这篇文章要介绍的是这类工具中最高大上的---ESLint</p>
+<p>ESLint具有有以下几个特性:</p>
+<ul>
+<li>可插拔--所有的东西都是可以随意关闭的;</li>
+<li>可配置--任意的rule都是独立的,开启后可自定义代码规范,细化配置;</li>
+<li>自由--没有特定的coding style,可以自己配置</li>
+<li>多插件--引用共享配置或自定义规则</li>
+</ul>
+<p>ESLint提供检验的范围:</p>
+<ul>
+<li>语法错误校验</li>
+<li>不重要或丢失的标点符号，如分号</li>
+<li>多写火少些的空格</li>
+<li>没法运行到的代码块</li>
+<li>未被使用的参数提醒</li>
+<li>漏掉的结束符，如}</li>
+<li>检查变量的命名,如是否申明</li>
+</ul>
+<h1>安装</h1>
+<ol>
+<li>进入项目目录中,需要项目中没有package.json文件，需要先创建一个</li>
+</ol>
+<pre class="hljs"><code>npm init
+</code></pre>
+<p>局部安装ESlint</p>
+<pre class="hljs"><code>npm install eslint --save-dev
+</code></pre>
+<ol start="2">
+<li>设置一个配置文件,在回答些许问题之后会生成一个<code>.eslintrc.*</code>文件.<br>
+我一般选用的javascript文件,也就是使用.eslintrc.js文件并导出一个包含配置的对象.</li>
+</ol>
+<pre class="hljs"><code>eslint --init
+</code></pre>
+<p>当询问到代码风格时,通常默认的是standard style</p>
+<ol start="3">
+<li>在项目目录下执行如下命令来使用ESLint</li>
+</ol>
+<pre class="hljs"><code>eslint yourfile.js 
+</code></pre>
+<h1>配置</h1>
+<p>可以被配置的信息主要分为3类:</p>
+<p>-Environments：你的 javascript 脚步将要运行在什么环境（如：nodejs，browser，commonjs等）中</p>
+<p>-Globals：执行代码时脚步需要访问的额外全局变量</p>
+<p>-Rules：开启某些规则，也可以设置规则的等级</p>
+<h2>指定执行环境</h2>
+<p>在配置文件中可自由的指定JS执行环境,如下面的代码表示在浏览器中运行</p>
+<pre class="hljs"><code>env: {
+    browser: <span class="hljs-literal">true</span>,
+  }
+</code></pre>
+<h2>指定全局变量</h2>
+<p>可以在配置文件或注释中指定额外的全局变量</p>
+<pre class="hljs"><code>globals: {
+    <span class="hljs-attr">$</span>: <span class="hljs-literal">true</span>,
+    <span class="hljs-attr">_</span>: <span class="hljs-literal">true</span>
+  }
+</code></pre>
+<h2>指定规则</h2>
+<p>-&quot;off&quot; 或者 0：关闭规则</p>
+<p>-&quot;warn&quot; 或者 1：打开规则，并且作为一个警告</p>
+<p>-&quot;error&quot; 或者 2：打开规则，并且作为一个错误</p>
+<p>配置文件来配置</p>
+<pre class="hljs"><code><span class="hljs-string">'rules'</span>: {
+    <span class="hljs-string">'arrow-parens'</span>: 0,
+    <span class="hljs-string">'generator-star-spacing'</span>: 0,
+    <span class="hljs-string">'no-debugger'</span>: process.env.NODE_ENV === <span class="hljs-string">'production'</span> ? 2 : 0
+  }
+</code></pre>
+<p>注释来配置</p>
+<pre class="hljs"><code>/* eslint-disable no-alert, no-console */
+/* eslint-enable no-alert, no-console */
+</code></pre>
+<h1>使用方法</h1>
+<h2>命令行</h2>
+<pre class="hljs"><code>eslint yourfile.js  
+</code></pre>
+<h2>编辑器</h2>
+<p>在VSCode中配合相应的插件</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35205467-4ad5f842-ff70-11e7-965e-cbf1a272f507.png" alt="image"></p>
+<h2>vue脚手架</h2>
+<p>在package.json的script中添加注释行<br>
+如下代码表示检验src路径下所有带.js .vue扩展名的文件</p>
+<pre class="hljs"><code><span class="hljs-string">"lint"</span>: <span class="hljs-string">"eslint --ext .js,.vue src"</span>
+</code></pre>
+<p>然后命令行运行<code>npm run lint</code>，就会直接显示错误</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35205547-f0cd9a98-ff70-11e7-9f2f-2d1e63f44ba3.png" alt="image"></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

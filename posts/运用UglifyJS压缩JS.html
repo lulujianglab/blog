@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>运用UglifyJS压缩JS - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">运用UglifyJS压缩JS</h1>
+          <p class="post-date">2018-01-23</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>初识UglifyJS</h1>
+<p>JS代码压缩在前端项目优化中是用的比较多的方法，特别是对于大量使用JS的Web应用，代码压缩可以是极大的减少代码的大小，加快传输效率，大大提升用户浏览的体验感</p>
+<p>最近刚好学习了压缩JS文件的方法--<code>UglifyJS</code>，据说其不仅能压缩JS代码，还能优化JS，是基于node的</p>
+<p>而且在所有的压缩工具中，<code>UglifyJS</code>在不改变JS语义的前提下可以提供最好的压缩率</p>
+<p>只需要安装node，然后使用npm安装<code>UglifyJS</code>类库</p>
+<p><a href="http://lisperator.net/uglifyjs/#demo">在线压缩工具</a></p>
+<p>下面我们可以看看具体的实例操作</p>
+<h1>全局安装</h1>
+<pre class="hljs"><code>npm install uglify-js -g
+</code></pre>
+<h1>命令行简单压缩JS文件</h1>
+<p>首先创建一个文件夹，将要压缩的js文件放入文件夹中，然后压缩</p>
+<p>如下，我在<code>demo_uglify</code>项目文件夹中的<code>src</code>文件下压缩<code>compile.js</code>文件，将压缩文件存放到<code>build</code>文件夹下</p>
+<pre class="hljs"><code>uglifyjs src/compile.js -o build/compile-min.js
+</code></pre>
+<p>再运行如下代码，测试-m可选参数</p>
+<pre class="hljs"><code>uglifyjs src/compile.js -m -o  build/compile.min.js
+</code></pre>
+<p>如下截图</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35277473-d7f5c86c-0081-11e8-8e04-db097ff7515a.png" alt="image"></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35277547-15e42ae2-0082-11e8-99eb-4c58515c4140.png" alt="image"></p>
+<p>38k的是没有运行-m参数的，29k的是运行的</p>
+<p>-m参数就是把变量名变成a，b，c，...</p>
+<h1>node实现批量压缩js函数</h1>
+<p>上面是使用的一个简单命令来压缩一个JS文件，接下来以编程的方式来压缩JS文件</p>
+<p>即写一个.js文件，使用node命令执行该文件，.js中的代码需要调用<code>UglifyJS</code>的接口函数来执行压缩任务</p>
+<p>所以需要先到github下载<a href="https://github.com/mishoo/UglifyJS">UglifyJS</a></p>
+<pre class="hljs"><code> git <span class="hljs-built_in">clone</span> git://github.com/mishoo/UglifyJS.git
+</code></pre>
+<p>解压后其目录结构如下</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35274435-033f2eec-0077-11e8-948e-8a5bff193e13.png" alt="image"></p>
+<p>然后将<code>uglify-js.js</code>和<code>lib</code>目录拷贝到前面创建的项目中</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35274755-4a3cdbcc-0078-11e8-92b1-6deb112cefe0.png" alt="image"></p>
+<h2>控制台输出压缩后代码</h2>
+<p>在<code>demo_uglify</code>的<code>src</code>文件中新建一个<code>index.js</code>，内容如下</p>
+<p>取fs模块，fs模块是node的文件模块；接着取<code>UglifyJS</code>的两个模块；然后就是<code>UglifyJS</code>压缩流程</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildOne</span> (<span class="hljs-params">fileIn, fileOut</span>) </span>{
+  <span class="hljs-keyword">var</span> origCode = fs.readFileSync(fileIn, <span class="hljs-string">'utf8'</span>)
+  <span class="hljs-keyword">var</span> ast = jsp.parse(origCode)  
+  ast = pro.ast_mangle(ast)  
+  ast = pro.ast_squeeze(ast)  
+
+  <span class="hljs-keyword">var</span> finalCode = pro.gen_code(ast)
+
+  fs.writeFileSync(fileOut, finalCode, <span class="hljs-string">'utf8'</span>)
+}
+
+buildOne(<span class="hljs-string">'src/index.js'</span>, <span class="hljs-string">'build/index-min.js'</span>)
+</code></pre>
+<p>最后在命令行中执行</p>
+<pre class="hljs"><code>node index.js
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/35274841-9d7faa44-0078-11e8-8606-4dde1f556f85.png" alt="image"></p>
+<h2>单个文件读取压缩输出</h2>
+<p>通过在上述测试，通过node环境可以输出压缩后的代码，那也可以通过函数直接读取源文件，压缩后输出到指定的目录</p>
+<p>在<code>demo_uglify</code>的src文件中新建一个<code>test.js</code>，写入下列代码，将<code>src</code>下的<code>index.js</code>压缩输出到<code>build</code>文件中</p>
+<p>函数封装</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildOne</span> (<span class="hljs-params">fileIn, fileOut</span>) </span>{
+  <span class="hljs-keyword">var</span> origCode = fs.readFileSync(fileIn, <span class="hljs-string">'utf8'</span>)
+  <span class="hljs-keyword">var</span> ast = jsp.parse(origCode)  
+  ast = pro.ast_mangle(ast)  
+  ast = pro.ast_squeeze(ast)  
+
+  <span class="hljs-keyword">var</span> finalCode = pro.gen_code(ast)
+
+  fs.writeFileSync(fileOut, finalCode, <span class="hljs-string">'utf8'</span>)
+}
+
+buildOne(<span class="hljs-string">'src/index.js'</span>, <span class="hljs-string">'build/index-min.js'</span>)
+</code></pre>
+<pre class="hljs"><code>node test.js
+</code></pre>
+<p>这时就会在<code>demo_uglify</code>的<code>build</code>目录中生成一个<code>index-min.js</code></p>
+<h2>批量读取文件压缩输出</h2>
+<p>在上面单个文件读取压缩的代码中稍做修改，如下</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildAll</span> (<span class="hljs-params">fileIn, fileOut</span>) </span>{
+    <span class="hljs-keyword">if</span> (fileIn.length &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">var</span> finalCode = []
+        <span class="hljs-keyword">var</span> origCode = <span class="hljs-string">''</span>
+        <span class="hljs-keyword">var</span> ast = <span class="hljs-string">''</span>
+        
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, len = fileIn.length; i &lt; len; i++) {
+            origCode = fs.readFileSync(fileIn[i], <span class="hljs-string">'utf8'</span>)
+            ast = jsp.parse(origCode)
+            ast = pro.ast_mangle(ast)
+            ast = pro.ast_squeeze(ast)
+
+            finalCode.push(pro.gen_code(ast), <span class="hljs-string">';'</span>)
+        }
+    }
+    fs.writeFileSync(fileOut, finalCode, <span class="hljs-string">'utf8'</span>)
+}
+
+buildAll([<span class="hljs-string">'index.js'</span>, <span class="hljs-string">'compile.js'</span>], <span class="hljs-string">'build.min.js'</span>)
+</code></pre>
+<pre class="hljs"><code>node test.js
+</code></pre>
+<p>这时会在<code>demo_uglify</code>目录中生成一个build.min.js</p>
+<h1>UglifyJS2</h1>
+<p>UglifyJS2是UglifyJS的重写，我们知道UglifyJS是JS开发通用的语法分析、代码压缩、代码优化的一个工具包。而对比UglifyJS，UglifyJS2则是把整个JS压缩过程，做了更进一步的细化</p>
+<h2>安装</h2>
+<pre class="hljs"><code>npm install uglify-js -g
+</code></pre>
+<p>或者通过github下载源代码安装</p>
+<pre class="hljs"><code>git <span class="hljs-built_in">clone</span> git://github.com/mishoo/UglifyJS2.git
+</code></pre>
+<h2>命令操作</h2>
+<p>用UglifyJS2命令进行操作，合并两个文件，对变量名用字母替换，进行压缩，所有代码合并到一个函数</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35319777-4dc45190-011c-11e8-8e01-718d8f9f1e96.png" alt="image"></p>
+<p><a href="https://github.com/lulujianglab/uglifyjs_demo">uglify_demo完整项目</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>css实现自定义复选框样式 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">css实现自定义复选框样式</h1>
+          <p class="post-date">2018-03-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>浏览器自带的checkbox复选框不怎么美观，而且复选框在不同的浏览器上显示的样式又有很大的差异</p>
+<h1>目的</h1>
+<p>用一些css代码来自定义checkbox的显示方式，比如框中的√颜色变为绿色</p>
+<h1>方法</h1>
+<h2>通过appearance去修改css默认样式</h2>
+<pre class="hljs"><code>html:
+&lt;input type=&quot;checkbox&quot; id=&quot;awesome&quot; /&gt;
+&lt;label for=&quot;awesome&quot;&gt;&lt;/label&gt;
+
+css:
+input[type=&quot;checkbox&quot;]{
+  -webkit-appearance: none;
+  top: 5px;
+  float: left;
+  position: relative;
+  vertical-align:middle;
+  margin-top:0;
+  background:#fff;
+  border:#dedede solid 1px;
+  border-radius: 3px;
+  min-height: 14px;
+  min-width: 14px;
+}
+input[type=&quot;checkbox&quot;]:focus {
+  outline: none;
+}
+input[type=checkbox]:checked::after{
+  content: '';
+  top: 1px;
+  left: 1px;
+  position: absolute;
+  vertical-align: middle;
+  margin-top: 0;
+  background: transparent;
+  border: #85de82 solid 2px;
+  border-top: none;
+  border-right: none;
+  height: 4px;
+  width: 8px;
+  -moz-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  -webkit-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+</code></pre>
+<p>原理比较简单，通过css的appearance属性去修改css默认样式</p>
+<p>appearance是css3的新属性，所有主流浏览器都不支持appearance，所以让chrome支持用<code>-webkit-appearance</code></p>
+<ul>
+<li>
+<p>appearance：none为去除浏览器默认checkbox样式。然后再通过border、height、width等属性重绘一个灰色边框</p>
+</li>
+<li>
+<p>去掉input元素获得焦点后的轮廓</p>
+</li>
+<li>
+<p>然后通过伪元素after来模拟选中状态；::after设置在选中input对象后发生的内容，必须和content属性一起使用；通过绝对定位在之前checkbox里生成一个宽8像素高4像素的绿色边框，然后去掉上边框和右边框，再逆时针旋转45度就可以模拟成√的样式</p>
+</li>
+</ul>
+<h2>利用label标签的模拟功能</h2>
+<pre class="hljs"><code>html:
+&lt;input type=&quot;checkbox&quot; id=&quot;awesome&quot; /&gt;
+&lt;label for=&quot;awesome&quot;&gt;&lt;/label&gt;
+
+css:
+input[type=&quot;checkbox&quot;] + label::before {
+  content: ' ';
+  display: inline-block;
+  vertical-align: .2em;
+  width: .8em;
+  height: .8em;
+  margin-right: .2em;
+  border-radius: .2em;
+  background: silver;
+  text-indent: .15em;
+  line-height: .65;
+}
+input[type=&quot;checkbox&quot;]:checked + label::before {
+  content: '\2713';
+  color: #85df82;
+}
+input[type=&quot;checkbox&quot;] {
+  position: absolute;
+  clip: rect(0,0,0,0);
+}
+</code></pre>
+<p>主要思路：</p>
+<p>label的for属性可以关联一个具体的input元素，即使这个input本身不可被用户可见，有个与它对应的label后，我们就可以直接通过和label标签交互来替代原生的input（比如相邻选择符（E+F），伪元素after,before,可以直接利用html的默认checkbox）</p>
+<p>一句话概括就是隐藏原生input，样式定义的过程留给label</p>
+<ul>
+<li>
+<p>通过关系选择符选择紧贴在input元素之后的label元素，然后通过before伪元素设置在label对象前的内容样式（这里自定义一个灰色边框，背景白色，通过inline-block定位来并排显示）</p>
+</li>
+<li>
+<p>然后模拟选中状态，content：‘\2713’是模拟√</p>
+</li>
+<li>
+<p>然后通过css的clip属性裁剪绝对定位的checkbox元素</p>
+</li>
+</ul>
+<h2>使用自定义图片来实现checkbox的显示</h2>
+<pre class="hljs"><code>html:
+        &lt;input  type=&quot;checkbox&quot;  id=&quot;checkbox01&quot; /&gt;
+       &lt;label  for=&quot;checkbox01&quot;&gt;&lt;/label&gt;
+ 
+css:
+/* 隐藏checkbox */
+input[type='checkbox'] {
+display: none;
+}
+/* 对label进添加背景图片*/
+label {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  position: relative;
+  background: url(unchecked.png);
+  background-repeat: no-repeat;
+}
+ input[type='checkbox']:checked + label {
+  width: 60px;
+  height: 60px;
+  position: relative;
+  background: url(checked.png);
+  background-repeat: no-repeat;
+   }
+</code></pre>
+<ul>
+<li>
+<p>首先删除掉input元素</p>
+</li>
+<li>
+<p>然后对label添加背景图片，也就是未选中时呈现的图片</p>
+</li>
+<li>
+<p>再通过关系选择符选择紧贴在checked状态之后的label元素，再添加一张选中状态的背景图片<br>
+(因为label本身是没有点击后被选中的状态的，checkbox被隐藏后，这个状态只能手动模拟)</p>
+</li>
+</ul>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

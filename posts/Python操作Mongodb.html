@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Python操作Mongodb - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Python操作Mongodb</h1>
+          <p class="post-date">2018-08-30</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>MongoDB 是一个基于分布式文件存储的数据库，可以为为WEB 应用提供可扩展的高性能数据存储解决方案</p>
+<p>为了更好熟悉数据库接口数据的存储，我们也需要了解mongodb是存入数据的整体流程</p>
+<h1>安装</h1>
+<p><a href="https://www.mongodb.com/download-center?jmp=nav#community">Mongodb Coummuinity</a></p>
+<p><a href="https://www.jetbrains.com/pycharm/download/#section=windows">PyCharm Coummuinity3.6</a></p>
+<p>Python3.6(mac自带的是2.0版本的)</p>
+<h1>操作</h1>
+<h2>启动MongoDB（macOS）</h2>
+<p>mongoDB的启动需要我们先开启服务器，然后再开启客户端</p>
+<p>开启服务器：终端输入 sudo mongod（如果已经配置了环境可以不用加sudo）</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826000-a373ea00-ac3f-11e8-95b8-bdebe33def7c.png" alt="image"></p>
+<p>开启客户端：在另一个终端中输入sudo mongo</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826070-01a0cd00-ac40-11e8-822b-98e4c40af31a.png" alt="image"></p>
+<p>出现这样的的界面就代表mongodb就启动成功了</p>
+<p>可能启动的时候会报类似于没有权限的错误，可以自行百度，这里我就不加赘述了</p>
+<h2>PyCharm连接mongodb</h2>
+<p>首先在设置里边下载Mongo Explorer插件</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826175-6a884500-ac40-11e8-9fd2-e8fcbc8a5e6d.png" alt="image"></p>
+<p>然后选中如下图红框所示的按钮</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826226-91467b80-ac40-11e8-8d5b-88507e7e6cd4.png" alt="image"></p>
+<p>搜索Mongo Plugin 安装即可</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826284-d7034400-ac40-11e8-835c-80eb4a7ef882.png" alt="image"></p>
+<p>安装好之后我们重新回到图2的界面，可以看到我们已安装好的插件</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826322-0ca82d00-ac41-11e8-8ea3-d7ebb321900e.png" alt="image"></p>
+<p>然后在Pycharm界面就可以查看我们的mongodb数据库了</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826407-6c9ed380-ac41-11e8-9d97-572dfd74cb5e.png" alt="image"></p>
+<p>如上图代码所示，我们新建了一个数据库和表集合</p>
+<p>在已经启动服务的客户端查看如下</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44826448-a7a10700-ac41-11e8-9566-628874874fec.png" alt="image"></p>
+<p>O啦，到此基本的建数据库表流程就跑通了~</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

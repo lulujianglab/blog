@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>谈谈js闭包 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">谈谈js闭包</h1>
+          <p class="post-date">2018-05-16</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>闭包问题一直是面试中提到频率最高的问题，那到底什么是闭包呢，百度一下，我们会看到各种层出不穷的答案</p>
+<p>所以，闭包是什么呢？</p>
+<h2>闭包的定义</h2>
+<ul>
+<li>
+<p>比较权威的答案，在函数内部定义的变量或方法在函数外部被引用时，就形成了闭包</p>
+<p>但这种说法还是比较片面的，比如我们在函数内部定义方法，并在函数内部执行，也会形成闭包</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/57690726-e2828800-7674-11e9-9080-49703456a0a0.png" alt="image"></p>
+</li>
+<li>
+<p>红宝书中的定义，闭包是指有权访问另一个函数作用域中的变量的函数</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/57690694-cda5f480-7674-11e9-8ed5-d14631016cd8.png" alt="image"></p>
+<p>之所以函数能够访问另一个函数作用域中的变量，即使这个内部函数（匿名函数）被返回了，而且是在其他地方被调用了，但它仍然可以访问外部函数中的变量 <code>closure</code>,是因为内部函数的作用域链中包含外部函数的作用域</p>
+<p>当某个函数被调用时，会创建一个执行环境及相应的作用域链</p>
+<blockquote>
+<p>《JavaScript权威指南》有提到，函数的执行依赖于变量作用域，这个作用域是在函数定义时决定的，而不是函数调用时决定的</p>
+</blockquote>
+<p>每个函数都有一个活动对象，在作用域链中，外部函数的活动对象始终处于第二位，外部函数的外部函数的活动对象处于第三位，......直至作为作用域链终点的全局执行环境</p>
+<p>在函数执行过程中，为读取和写入变量的值，就需要在作用域链中查找变量</p>
+<p>但我觉得红宝书中的说法也不完全正确，我们可以看看开发者工具中的执行结果</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/57690646-af3ff900-7674-11e9-8aa9-73f884d2b1c9.png" alt="image"></p>
+<p>所以说，闭包指向的是定义内部函数访问的变量的外部作用域，也可以说，<strong>闭包是代码块（函数）和创建该代码块的上下文中数据的结合</strong></p>
+</li>
+<li>
+<p>官方定义，闭包是一个拥有许多变量和绑定了这些变量的环境的表达式（通常是一个函数），因而这些变量也是该表达式的一部分</p>
+<p>我的理解是函数保留了对外部函数变量的引用，简单说就是引用了外部变量，这个变量没有被GC回收，仍存在于函数的作用域链中，这样的函数，叫做闭包</p>
+</li>
+</ul>
+<h2>创建闭包的方式</h2>
+<p>创建闭包的常见方式，就是在一个函数内部创建另一个函数</p>
+<p>方式有很多种，比如，可以是在函数内部 return 一个函数（如上），也可以是在函数定义一个内部变量函数，并在函数内部执行（如上），或者是定义一个全局变量函数，在全局执行</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/57690816-1b226180-7675-11e9-9f45-483c3a419726.png" alt="image"></p>
+<p>或者是在定义一个对象方法，在外部执行</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/57690858-34c3a900-7675-11e9-93b9-cf7930a00a20.png" alt="image"></p>
+<h2>闭包的作用</h2>
+<p>闭包很好地解决了变量过多的问题</p>
+<p>我们先来看一个例子</p>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>1<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>2<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>3<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+</code></pre>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> buttons = <span class="hljs-built_in">document</span>.querySelectorAll(<span class="hljs-string">'button'</span>)
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; buttons.length; i++) {
+  !<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>)</span>{
+    buttons[i].onclick = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      alert(index + <span class="hljs-number">1</span>)
+    }
+  }(i)
+}
+</code></pre>
+<p>通过立即执行函数形成的闭包很好的解决了button变量的问题，如果没有闭包，我们就需要写多个这样的button点击事件</p>
+<p>而且，如果没有闭包，我们以这种方式来定义点击事件，会出现常见的问题</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> buttons = <span class="hljs-built_in">document</span>.querySelectorAll(<span class="hljs-string">'button'</span>)
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; buttons.length; i++) {
+  buttons[i].onclick = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">console</span>.log(i)
+  }
+}
+</code></pre>
+<p>这样，每个函数打印的i值其实都是3。因为每个函数的作用域链中都保存着全局的活动对象，所以它们引用的都是同一个变量i。当开始执行 <code>onclick</code> 事件时，变量i的值已经是3了，此时每个对象都引用着保存变量i的同一个变量对象，所以在每个函数内部i的值都是3</p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

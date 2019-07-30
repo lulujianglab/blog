@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>关于CSS3动画效果背后的实现 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">关于CSS3动画效果背后的实现</h1>
+          <p class="post-date">2018-08-14</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>我相信很多前端开发人员都有用CSS3写过动画的经历，甚至创建过一些比较复杂的2D或3D动画效果</p>
+<p>在这篇文章，主要通过案例来介绍一些常见的CSS3的动画属性</p>
+<p>先来看下常见的CSS3的动画属性都有哪些</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44100159-fa2fb82c-a016-11e8-8a65-95a9b4bdbe8a.png" alt="image"></p>
+<h2>转换transform</h2>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">background-color</span>: red;
+     <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">translate</span>(400px);
+     <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">rotate</span>(45deg);
+     <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">scale</span>(2);
+}
+<span class="hljs-selector-class">.box</span><span class="hljs-selector-pseudo">:hover</span> {
+     <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">rotate</span>(720deg) <span class="hljs-built_in">scale</span>(2);
+}
+.....
+</code></pre>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"box"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<h2>过渡transition</h2>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">background-color</span>: red;
+     <span class="hljs-attribute">transition-property</span>: all; 
+     <span class="hljs-attribute">transition-delay</span>: <span class="hljs-number">1s</span>;
+     <span class="hljs-attribute">transition-duration</span>: <span class="hljs-number">4s</span>;
+     <span class="hljs-attribute">transition-timing-function</span>: linear;
+     <span class="hljs-comment">/*transition: all 4s 1s linear*/</span>
+}
+<span class="hljs-selector-class">.box</span><span class="hljs-selector-pseudo">:hover</span> {
+     <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">rotate</span>(720deg) <span class="hljs-built_in">scale</span>(2);
+}
+.....
+```<span class="hljs-selector-tag">html</span>
+&lt;<span class="hljs-selector-tag">div</span> <span class="hljs-selector-tag">class</span>="<span class="hljs-selector-tag">box</span>"&gt;&lt;/<span class="hljs-selector-tag">div</span>&gt;
+</code></pre>
+<h2>animation动画</h2>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+     <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">height</span>: <span class="hljs-number">200px</span>;
+     <span class="hljs-attribute">background-color</span>: red;
+     <span class="hljs-attribute">animation-name</span>: box;
+     <span class="hljs-attribute">animation-duration</span>: <span class="hljs-number">4s</span>;
+     <span class="hljs-attribute">animation-delay</span>: <span class="hljs-number">1s</span>;
+     <span class="hljs-attribute">animation-timing-function</span>: linear;
+     <span class="hljs-attribute">animation-iteration-count</span>: <span class="hljs-number">1</span>;
+     <span class="hljs-attribute">animation-fill-mode</span>: both;
+     <span class="hljs-comment">/*animation: box 4s 1s linear 1 both;*/</span>
+}
+@<span class="hljs-keyword">keyframes</span> box {
+     0%{
+         <span class="hljs-attribute">width</span>: <span class="hljs-number">0</span>;
+      }
+      25%{
+          <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>;
+       }
+       50%{
+           <span class="hljs-attribute">width</span>: <span class="hljs-number">400px</span>;
+       }
+       5%{
+           <span class="hljs-attribute">width</span>: <span class="hljs-number">600px</span>;
+        }
+        100%{
+            <span class="hljs-attribute">width</span>: <span class="hljs-number">800px</span>;
+        }
+ }
+<span class="hljs-selector-class">.box</span><span class="hljs-selector-pseudo">:hover</span> {
+     <span class="hljs-attribute">animation-play-state</span>: paused;
+}
+.....
+</code></pre>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"box"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<p>综合案例可以<a href="https://lulujianglab.github.io/animation-keyframes_css/static/">参考demo</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

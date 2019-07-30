@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Electron 快速应用 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">Electron 快速应用</h1>
+          <p class="post-date">2019-07-26</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>最近使用 <code>Electron</code> 开发了一款知识管理客户端应用 - <a href="https://github.com/lulujianglab/pudding">布丁笔记</a>，主要功能是用来管理自己的私人笔记和公开博客，支持一键上传 github，亦可同步 <code>github issues</code></p>
+<p>当然，关于布丁笔记如何实现的，我会在后续的文章中更新，今天主要是来聊一聊如何使用 <code>Electron</code> 快速开发一款客户端应用</p>
+<h2>介绍</h2>
+<p>正如我们使用的 web 技术一样，<code>Electron</code> 也是使用 <code>Javascript</code>、<code>HTML</code> 和 <code>CSS</code> 来快速简便地搭建一个跨平台的客户端应用</p>
+<p>具体来说，<code>Electron</code> 是通过将 <code>Chromium</code> 和 <code>Node.js</code> 合并到同一个运行时环境中，并将其打包为 Mac，Windows 和 Linux 系统下的应用来实现这一目的的</p>
+<p>所以，它可以利用 <code>Chromium</code> 的浏览器引擎来完成 UI 渲染，也可以利用 <code>Node.js</code> 实现服务端 JS 编程并可以直接操作文件和调用系统 API，甚至操作数据库，同时，还可以使用 Node 提供的 <code>request</code> 模块进行网络请求，无需考虑跨域</p>
+<h2>运行原理</h2>
+<h3>Chromium</h3>
+<p>相当于 Chrome 的实验版，新功能会先在 Chromium 上验证，后续才应用在 Chrome 上</p>
+<h3>Node.js</h3>
+<p>Node.js 是非常强大的，既可以写后台的 CRUD，又可以做中间件，现在又可以写前端</p>
+<p>在 <code>Electron</code> 中，主要运用其 <code>Path</code>、<code>fs</code>、<code>Crypto</code> 等模块，操作系统底层 API</p>
+<h3>系统API</h3>
+<p>内置原生应用程序接口，以支持 GUI，调用系统通知、打开系统文件夹等</p>
+<h3>主进程</h3>
+<p><code>Electron</code> 有两种进程：主进程和渲染进程，两者之间可以进行进程间通信</p>
+<p>主进程可以创建多个渲染进程；同时控制整个应用生命周期，包括启动、退出 APP 以及对 APP 做一些监听；主要用来处理原生应用逻辑，调用系统底层功能，可调用 Node API、Electron 主进程 API</p>
+<p>一个 Electron 应用有且只有一个主进程，对应为 <code>package.json</code> 的 <code>main</code> 脚本的进程</p>
+<h3>渲染进程</h3>
+<p>渲染进程负责界面渲染，做一些界面交互，可以创建浏览器窗口，也可以调用 <code>Node API</code>、<code>DOM API</code>、<code>Electron</code> 渲染进程 API</p>
+<p>不妨把渲染进程想像成一个浏览器窗口，它能存在多个并且相互独立，不同的是，它能调用 <code>Node API</code></p>
+<h2>基础</h2>
+<h3>生命周期</h3>
+<p>通过主进程的 <code>app</code> 模块控制整个应用的生命周期</p>
+<p>比如当初始化时完成时触发 <code>ready</code> 事件</p>
+<pre class="hljs"><code>app.on(<span class="hljs-string">'ready'</span>, () =&gt; {
+  <span class="hljs-comment">// 创建窗口、加载页面等操作</span>
+  createWindow()
+})
+</code></pre>
+<p>当所有的窗口都关闭时会触发 <code>window-all-closed</code> 事件</p>
+<pre class="hljs"><code>app.on(<span class="hljs-string">'window-all-closed'</span>, () =&gt; {
+  <span class="hljs-keyword">if</span>(process.platform !== <span class="hljs-string">'darwin'</span>){
+      app.quit();     <span class="hljs-comment">// 退出应用</span>
+  }
+})
+</code></pre>
+<h3>窗口</h3>
+<p><code>Electron</code> 提供了一个 <code>BrowserWindow</code> 模块用于创建和控制浏览器窗口</p>
+<p>通过关键字 <code>new</code> 实例化返回 <code>win</code> 对象</p>
+<pre class="hljs"><code>win = <span class="hljs-keyword">new</span> BrowserWindow({
+  <span class="hljs-attr">width</span>: <span class="hljs-number">1100</span>,         <span class="hljs-comment">// 窗口宽度</span>
+  height: <span class="hljs-number">800</span>,        <span class="hljs-comment">// 窗口高度</span>
+  minWidth: <span class="hljs-number">900</span>,
+  <span class="hljs-attr">minHeight</span>: <span class="hljs-number">600</span>,
+  <span class="hljs-attr">title</span>: <span class="hljs-string">'布丁笔记'</span>,
+  <span class="hljs-attr">fullscreen</span>: <span class="hljs-literal">false</span>,  <span class="hljs-comment">// 不允许全屏</span>
+  resizable: <span class="hljs-literal">false</span>    <span class="hljs-comment">// 不允许改变窗口size，不然布局就乱了啊</span>
+})
+</code></pre>
+<p>窗口创建完是一片空白的，还需要通过 <code>win.loadURL()</code> 来加载要显示的页面</p>
+<pre class="hljs"><code>win.loadURL(<span class="hljs-string">'app://./index.html'</span>)
+</code></pre>
+<h3>shell 模块</h3>
+<p>使用系统默认应用管理文件和 URL，在主进程和渲染进程中都可以用到该模块</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { shell } <span class="hljs-keyword">from</span> <span class="hljs-string">'electron'</span>
+
+shell.moveItemToTrash(fullPath)   <span class="hljs-comment">// 将文件删除至电脑回收站</span>
+shell.openExternal(<span class="hljs-string">`file://<span class="hljs-subst">${postPath}</span>.html`</span>)    <span class="hljs-comment">// 在默认浏览器中打开URL</span>
+</code></pre>
+<h3>打包应用</h3>
+<p><code>electron-builder</code> 是基于 <code>electron-packager</code> 打包出来的程序再做安装处理，将项目打包成安装文件</p>
+<pre class="hljs"><code>npm install electron-builder -S    // 安装
+
+electron-builder --win             // 打包
+</code></pre>
+<h2>进程通信</h2>
+<p>渲染进程如果想进行原生的 GUI 操作，必须和主进程通讯，请求主进程来完成这些操作</p>
+<p>在讲具体的通信过程前，我们先了解下 <code>EventEmitter</code> 类，它是 NodeJS 事件的基础，由 NodeJS 中的 <code>events</code> 模块导出</p>
+<p><code>EventEmitter</code> 的核心就是事件触发与事件监听器功能的封装。它实现了事件模型需要的接口，包括 <code>addListener</code>，<code>removeListener</code>, <code>emit</code> 及其它工具方法. 同原生 JavaScript 事件类似， 采用了发布/订阅(观察者)的方式， 使用内部 <code>_events</code> 列表来记录注册的事件处理器</p>
+<p>接下来提到的 <code>ipcRenderer</code> 和 <code>ipcMain</code> 的 <code>on</code>、<code>send</code> 进行监听和发送消息都是 <code>EventEmitter</code> 定义的相关接口</p>
+<h3>渲染进程向主进程通信</h3>
+<p><code>ipcRenderer</code> 是一个 <code>EventEmitter</code> 的实例，可以使用其 <code>send</code> 或 <code>sendSync</code> 方法发送异步或同步的消息到主进程，同时可以接收主进程回复的消息</p>
+<pre class="hljs"><code><span class="hljs-comment">// 在渲染进程引入ipcRenderer</span>
+<span class="hljs-keyword">import</span> { ipcRenderer } <span class="hljs-keyword">from</span> <span class="hljs-string">'electron'</span>
+ipcRenderer.send(<span class="hljs-string">'sync-render'</span>, <span class="hljs-string">'我是来自渲染进程的异步消息'</span>)
+<span class="hljs-keyword">const</span> msg = ipcRenderer.sendSync(<span class="hljs-string">'async-render'</span>, <span class="hljs-string">'我是来自渲染进程的同步消息'</span>)
+</code></pre>
+<blockquote>
+<p>注意：发送同步消息将会阻塞整个渲染进程，直到收到主进程的响应。所以我们在实际项目开发中应该尽可能的使用异步通信</p>
+</blockquote>
+<p><code>ipcMain</code> 模块也是 <code>EventEmitter</code> 类的一个实例，用于监听渲染进程传过来的消息并处理</p>
+<pre class="hljs"><code>ipcMain.on(<span class="hljs-string">'sync-render'</span>, (event, data) =&gt; {
+  <span class="hljs-built_in">console</span>.log(data);
+})
+</code></pre>
+<h3>主进程向渲染进程通信</h3>
+<p><code>webContents</code> 是一个事件发出者，它负责渲染并控制网页，也是 <code>BrowserWindow</code> 对象的属性</p>
+<p>在 <code>ipcMain</code> 中的 <code>event.sender</code>，返回发送消息的 <code>webContents</code> 对象，所以包含着 <code>send()</code> 方法用于发送消息</p>
+<p>在 <code>ipcMain</code> 接受消息的回调函数中，我们可以回应消息到渲染进程</p>
+<pre class="hljs"><code>ipcMain.on(<span class="hljs-string">'sync-render'</span>, (event, data) =&gt; {
+  <span class="hljs-built_in">console</span>.log(data);
+  event.sender.send(<span class="hljs-string">'main-msg'</span>, <span class="hljs-string">'主进程收到了渲染进程的【异步】消息！'</span>)
+})
+</code></pre>
+<p>渲染进程通过 <code>ipcRenderer.on</code> 监听</p>
+<pre class="hljs"><code>ipcRenderer.on(<span class="hljs-string">'main-msg'</span>, (event, msg) =&gt; {
+  <span class="hljs-built_in">console</span>.log(msg);
+})
+</code></pre>
+<h3>渲染进程间通信</h3>
+<p><code>Electron</code> 并没有提供渲染进程之间相互通信的方式，我们可以在主进程中建立一个消息中转站</p>
+<p>渲染进程之间通信首先发送消息到主进程，主进程的中转站接收到消息后根据条件进行分发</p>
+<h3>remote</h3>
+<p><code>remote</code> 模块为渲染进程和主进程通信提供了一种简单方法</p>
+<p>在 <code>Electron</code> 中，有许多模块只存在主进程中，想要调用这些模块的方法需要通过 <code>ipc</code> 模块向主进程发送消息，让主进程调用这些方法，而使用 <code>remote</code> 模块，可以在渲染进程中调用这些只存在于主进程对象的方法</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { remote } <span class="hljs-keyword">from</span> <span class="hljs-string">'electron'</span>
+
+<span class="hljs-keyword">const</span> BrowserWindow = remote.BrowserWindow      <span class="hljs-comment">// 访问主进程中的BrowserWindow模块</span>
+
+<span class="hljs-keyword">let</span> win = <span class="hljs-keyword">new</span> BrowserWindow()                  <span class="hljs-comment">// 其他的跟主进程的操作都一样</span>
+
+win.setRepresentedFilename(<span class="hljs-keyword">this</span>.post.localPath)
+win.setDocumentEdited(<span class="hljs-literal">true</span>)
+win.setTitle(<span class="hljs-string">'布丁笔记'</span>)
+</code></pre>
+<h3>数据持久存储</h3>
+<p>数据持久化有很多种方案，因为是前端浏览器，我们可以选择 <code>localStorage</code>, <code>Cookie</code>，<code>indexDB</code> 等等</p>
+<p>考虑可靠性，持久化以及存储空间，还可以通过 <code>Electron</code> 写文件的方式，把数据写入到应用路径下</p>
+<p>这样即使 <code>app</code> 被卸载了，只要数据没被清空，用户数据还在</p>
+<p>通过 <code>Electron app getPath</code> 可以获得应用存储路径</p>
+<pre class="hljs"><code><span class="hljs-keyword">import</span> { app } <span class="hljs-keyword">from</span> <span class="hljs-string">'electron'</span>
+app.getPath(<span class="hljs-string">'userData'</span>)
+</code></pre>
+<p>而对于文件是否写入的判断，以及进程间的数据共享，这里我推荐使用开源库 <a href="https://github.com/typicode/lowdb">lowdb</a>，以 <code>key-value</code> 的格式存储 <code>json</code> 文件</p>
+<p><code>lowdb</code> 是一个由 <code>Lodash</code> 支持的小型本地 <code>JSON</code> 数据库（支持 <code>Node</code>，<code>Electron</code> 和浏览器）</p>
+<p><img src="../images/1564284891873.png" alt=""></p>
+<h2>总结</h2>
+<ul>
+<li><code>Electron</code> = <code>Node.js</code> + 谷歌浏览器 + 平常的 JS 代码生成的应用，最终打包成安装包，就是一个完整的客户端应用</li>
+<li><code>Electron</code> 分两个进程，主进程负责原生应用逻辑的创建以及底层功能的调用，渲染进程负责 UI 界面展示</li>
+<li>两个进程间是通过 <code>iPCRender</code> 和 <code>iPCMain</code> 方法，以及 <code>remote</code> 模块通信，前者是是基于发布订阅机制，自定义事件的监听和触发进行进程间通信；后者类似于挂载在全局的属性上进行通信</li>
+<li><code>Electron</code> 相当于给 <code>React</code> 或者 <code>Vue</code> 生成的单页面应用套了一层壳，如果涉及到文件操作这类的复杂功能，就要依靠 <code>Electron</code> 的主进程，因为主进程可以直接调用 <code>Node.js</code> 的 <code>API</code>，还可以调用系统底层功能</li>
+</ul>
+<h2>参考</h2>
+<ul>
+<li><a href="https://github.com/lin-xin/blog/issues/22">https://github.com/lin-xin/blog/issues/22</a></li>
+<li><a href="https://mp.weixin.qq.com/s/4WaUM8iJoEYgrI_HpC5MOQ">https://mp.weixin.qq.com/s/4WaUM8iJoEYgrI_HpC5MOQ</a></li>
+<li><a href="https://mp.weixin.qq.com/s/ncAY8bSXI4VmPBLFV4tK8A">https://mp.weixin.qq.com/s/ncAY8bSXI4VmPBLFV4tK8A</a></li>
+</ul>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>lulujianglab blog</title>
+    <meta charset="utf8">
+    
+      <link href="../assets/common.css" rel="stylesheet"></link>
+      <link href="../assets/font.css" rel="stylesheet"></link>
+    
+  </head>
+  <body>
+    
+    <div style="background-image: url(../assets/images/index-poster.jpg)" class="poster">
+    
+      <div class="mask"></div>
+      <div class="blog-info-wrapper">
+        <p class="blog-title">lulujianglab blog</p>
+        <p class="blog-des">冲鸭 🌈</p>
+        <div class="tag">
+          
+          <a class="tag-item" href="../">首页</a>
+          <a class="tag-item" href="../archive">归档</a>
+          <a class="tag-item" href="../label">标签</a>
+          <a class="tag-item" href="../posts/About">关于</a>
+          
+        </div>
+      </div>
+    </div>
+    <div class="wrapper">
+      
+        
+          <article class="post">
+            <header class="post-header">
+              <h1 class="post-title">
+                
+                  <a href="../posts/简单的 Webpack Plugin 编写" class="post-title-link">简单的 Webpack Plugin 编写</a>
+                
+              </h1>
+              <div class="post-time">2019-01-13</div>
+              
+                <div class="label-list">
+                  
+                    <p class="label-item">Webpack</p>
+                  
+                    <p class="label-item">工程化</p>
+                  
+                </div>
+              
+            </header>
+            <div class="post-body">
+
+            </div>
+          </article>
+        
+      
+        
+          <article class="post">
+            <header class="post-header">
+              <h1 class="post-title">
+                
+                  <a href="../posts/Webpack4 和 Babel 7 全新配置" class="post-title-link">Webpack4 和 Babel 7 全新配置</a>
+                
+              </h1>
+              <div class="post-time">2019-01-10</div>
+              
+                <div class="label-list">
+                  
+                    <p class="label-item">Babel</p>
+                  
+                    <p class="label-item">Webpack</p>
+                  
+                    <p class="label-item">工程化</p>
+                  
+                </div>
+              
+            </header>
+            <div class="post-body">
+
+            </div>
+          </article>
+        
+      
+      <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+      </div>
+      <div class="scroll index-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+      }
+
+      window.onscroll = onScrollToTop
+    </script>
+  </body>
+</html>

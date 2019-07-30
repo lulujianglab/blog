@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PM2—nodejs项目部署 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">PM2—nodejs项目部署</h1>
+          <p class="post-date">2018-01-22</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>背景</h1>
+<p>前段时间做了个生成图片的可视化查询系统，该项目的技术栈是<code>vue+express+nodejs+mysql</code>。目前Nodejs开发中有很多痛点，其中一个是修改完代码以后需要我们重启服务器才能看到效果。</p>
+<p>开发阶段我们使用node file.js来启动Nodejs的单线程，但是任何异常都会导致整个服务中断，那怎样才能在异常后自动重启，保证服务一直在线呢。</p>
+<p>接下来介绍本次在项目部署中用到的nodejs的部署方式-PM2。</p>
+<h1>简介</h1>
+<p>PM2=P(rocess)M(anager)2,是可以用于生产环境的Nodejs的进程管理工具。不仅可以保证服务不会中断一直在线，并且提供0秒reload功能，还有其他一系列进程管理、监控功能等，而且使用非常简单。</p>
+<p>部署项目的目的是为了项目在服务器上持续运行，并且可以实时查看并检查服务器项目的运行情况。</p>
+<p><a href="https://link.jianshu.com/?t=http://pm2.keymetrics.io/docs/usage/quick-start/">PM2官方文档</a></p>
+<h1>实例</h1>
+<h2>前期必备</h2>
+<ul>
+<li>node环境</li>
+<li>npm</li>
+</ul>
+<h2>全局安装</h2>
+<pre class="hljs"><code>npm install -g pm2
+</code></pre>
+<h2>运行</h2>
+<pre class="hljs"><code>pm2 start app.js 
+</code></pre>
+<p>start后的第一个参数，直接是nodejs的主程序即可</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35222352-9a40268a-ffb8-11e7-82d4-d71fd63d657a.png" alt="image"></p>
+<p>箭头处表示已开启的服务进程</p>
+<p>查看应用的运行状态：pm2 list</p>
+<p>查看日志：pm2 logs</p>
+<p>重启应用：pm2 restart appId</p>
+<p>停止应用：pm2 stop appId</p>
+<p>停止所有应用：pm2 stop all</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/35222395-b78c8878-ffb8-11e7-9ff8-9fcf4c9bb6f7.png" alt="image"></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>flex 的 space-between 属性多行等分布局出现空格的友好处理 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">flex 的 space-between 属性多行等分布局出现空格的友好处理</h1>
+          <p class="post-date">2019-01-03</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>经常使用 flex 布局的小伙伴应该遇到过一个问题，就是当我们使用  space-between 属性等分布局时，在多行且不是整数时，中间就会空出一格，比如</p>
+<p>我有一个宽度为 576 px , 有 6 个固定的 item宽为 130，如果等分布局，就会出现下面这种情况</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/50621354-529f3580-0f40-11e9-9cf9-bd16d27b08d5.png" alt="image"></p>
+<p>这种情况应该怎么处理呢？我们可以通过手写一个函数来填充，比如每行有 num 个 item ，始终渲染 num 的整数个 item ，多出的用 null 填充</p>
+<pre class="hljs"><code>handleObj = <span class="hljs-function">(<span class="hljs-params">i</span>) =&gt;</span> (
+    {<span class="hljs-attr">id</span>: i, <span class="hljs-attr">hidden</span>: <span class="hljs-literal">true</span>}
+  )
+
+<span class="hljs-comment">// collection: 原数据list，是个数组 ; num: 每行需要展示的item数</span>
+handleShowContent = <span class="hljs-function">(<span class="hljs-params">collection, num</span>) =&gt;</span> { 
+  <span class="hljs-keyword">const</span> hiddenNum = <span class="hljs-built_in">Math</span>.ceil(collection.length / num) * num - collection.length <span class="hljs-comment">// 行数</span>
+  <span class="hljs-keyword">const</span> newCollection = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">JSON</span>.stringify(collection))
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; hiddenNum; i+=<span class="hljs-number">1</span>) {
+    newCollection.push(<span class="hljs-keyword">this</span>.handleObj(collection[collection.length<span class="hljs-number">-1</span>].id+i+<span class="hljs-number">1</span>))
+  }
+  <span class="hljs-keyword">return</span> newCollection
+}
+</code></pre>
+<pre class="hljs"><code>&lt;div className={styles.list}&gt;
+  {
+    (element || []).map(<span class="hljs-function"><span class="hljs-params">ele</span> =&gt;</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">key</span>=<span class="hljs-string">{ele.id}</span> <span class="hljs-attr">className</span>=<span class="hljs-string">{</span>`${<span class="hljs-attr">styles.item</span>} ${<span class="hljs-attr">ele.hidden</span>? <span class="hljs-attr">styles.show</span> <span class="hljs-attr">:</span> ''}`} /&gt;</span>
+    ))
+  }
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+</code></pre>
+<pre class="hljs"><code><span class="hljs-selector-class">.list</span> {
+  <span class="hljs-attribute">display</span>: flex;
+  <span class="hljs-attribute">flex-wrap</span>: wrap;
+  <span class="hljs-attribute">justify-content</span>: space-between;
+  <span class="hljs-attribute">padding</span>: <span class="hljs-number">12px</span>;
+  <span class="hljs-attribute">height</span>: <span class="hljs-number">200px</span>;
+  <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#fff</span>;
+}
+
+<span class="hljs-selector-class">.show</span> {
+  <span class="hljs-attribute">visibility</span>: hidden;
+}
+
+<span class="hljs-selector-class">.item</span> {
+  <span class="hljs-attribute">border</span>:<span class="hljs-number">1px</span> solid <span class="hljs-number">#e5e5e5</span>;
+  <span class="hljs-attribute">width</span>:<span class="hljs-number">130px</span>;
+  <span class="hljs-attribute">height</span>:<span class="hljs-number">80px</span>;
+}
+</code></pre>
+<p>处理完之后就能得到正常的展示</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/50621695-677cc880-0f42-11e9-9281-996b644b7b67.png" alt="image"></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>循环中的定时器问题 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">循环中的定时器问题</h1>
+          <p class="post-date">2018-05-19</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>通过定时器循环输出不同的值</p>
+<h1>问题</h1>
+<p>一提到循环，理所当然的就想到了for循环</p>
+<p>比如下面的代码</p>
+<pre class="hljs"><code><span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i =<span class="hljs-number">0</span>; i &lt; <span class="hljs-number">3</span>; i++) {   
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-built_in">console</span>.log(i)
+    }, <span class="hljs-number">1000</span>)
+}
+</code></pre>
+<p>怎么才能在每次输出i之后再执行循环呢，因为for循环执行完毕后，才执行定时器，所以结果输出了3个3</p>
+<p>定时器只是定时开启一个新的线程，不会暂停for循环</p>
+<h1>原因</h1>
+<p>JS众所周知是单线程的，可能有人会认为在上面的例子中会先阻塞等待定时器执行完成后再执行后面的循环</p>
+<p>为了解决单线程的缺陷，引入了异步机制</p>
+<p>异步机制主要是利用一个我们平时很少去关注的一个知识点-浏览器的多线程</p>
+<p>可以参考博客第三小节<a href="http://www.jb51.net/article/99174.htm">浏览器的多线程</a></p>
+<p>所以对于上面连续打印3个3的问题，由于变量 i 直接暴露在全局作用域内，当调用 console.log 函数开始输出时，这是循环已经结束</p>
+<h1>方法</h1>
+<p>最简单的，不能用for循环，那就用函数递归</p>
+<pre class="hljs"><code>(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">f</span>(<span class="hljs-params">i</span>) </span>{
+     <span class="hljs-built_in">console</span>.log(i)
+    <span class="hljs-keyword">if</span> (++i&lt;<span class="hljs-number">3</span>)
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)</span>{f(i)}, <span class="hljs-number">1000</span>)
+})(<span class="hljs-number">0</span>)
+</code></pre>
+<p>就可以依次输出出0，1，2</p>
+<p>解决这种setTimeout变量控制的方法有多种，早在stackoverflow上就有大神解释了，可以<a href="https://stackoverflow.com/questions/5226285/settimeout-in-for-loop-does-not-print-consecutive-values">参考</a></p>
+<p>大体方法有三种：</p>
+<h3>第一种是为每个定时器处理函数创建不同的“i”变量副本</h3>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doSetTimeout</span>(<span class="hljs-params">i</span>) </span>{
+  setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{ <span class="hljs-built_in">console</span>.log(i) }, <span class="hljs-number">1000</span>)
+}
+
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">3</span>; i++)
+  doSetTimeout(i)
+</code></pre>
+<p>这里通过定义一个函数来实现中介的作用，从而创建了变量的值的副本</p>
+<p>由于setTimeout()是在该副本的上下文中调用的，所以它每次都有自己的私有的&quot;i&quot;以供使用</p>
+<p>但该方法也有它的缺陷，像上述代码块几乎是同时输出了0，1，2三个值</p>
+<p>因为设立一些时间间隔相同的连续的setTimeout()将导致所有延时处理程序同时被调用，设置timer（对setTimeout()的调用）几乎不消耗时间</p>
+<p>也就是说，告诉系统“请在1000毫秒后调用此函数”将会被立即返回，因为在timer队列中安装延时请求的过程非常快</p>
+<p>可以修改为</p>
+<pre class="hljs"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">doSetTimeout</span>(<span class="hljs-params">i,j</span>) </span>{
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{ <span class="hljs-built_in">console</span>.log(i) }, j*<span class="hljs-number">1000</span>)
+}
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>,j=<span class="hljs-number">1</span>; i &lt; <span class="hljs-number">3</span>; i++,j++)
+doSetTimeout(i,j)
+</code></pre>
+<h3>第二种方法是使用bind方法</h3>
+<pre class="hljs"><code><span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, j = <span class="hljs-number">1</span>; i &lt; <span class="hljs-number">3</span>; i++, j++) {
+    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-keyword">this</span>)
+    }.bind(i), j * <span class="hljs-number">1000</span>)
+}
+</code></pre>
+<p>该方法允许显式地指定函数调用时 this 所指向的值</p>
+<p>bind()的作用类似call和apply，都是修改this指向</p>
+<p>但是call和apply是修改this指向后函数会立即执行，失去了定时器的作用</p>
+<p>而bind则是返回一个新的函数，会创建一个与原来函数主体相同的新函数，新函数中的this指向传入的对象</p>
+<h3>第三种方法是使用立即执行函数给setTimeout创建一个闭包</h3>
+<p>类似于上面提到的函数递归方法</p>
+<pre class="hljs"><code><span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">3</span>; i++) {
+    (<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">index</span>) </span>{
+        setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{<span class="hljs-built_in">console</span>.log(index)}, i * <span class="hljs-number">1000</span>)
+    })(i)
+}
+</code></pre>
+<p>因为 Javascript 只有两种作用域，一是全局作用域，二是函数作用域，它是没有块级作用域的</p>
+<p>所以闭包的出现就相当于利用一个匿名函数的壳模拟出一个块级作用域</p>
+<p>上述代码块往匿名函数内部传的参数将会被拷贝一份，也就是说循环没执行一次就拷贝变量 i 的值到匿名函数内部</p>
+<p>还可以使用es6中的let变量，也是利用的块级作用域原理</p>
+<pre class="hljs"><code><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i =<span class="hljs-number">0</span>,j=<span class="hljs-number">1</span>; i &lt; <span class="hljs-number">3</span>; i++,j++) {   
+   setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+       <span class="hljs-built_in">console</span>.log(i)
+   }, j*<span class="hljs-number">1000</span>)
+}
+</code></pre>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

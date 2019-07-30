@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>关于flex布局我们应该熟悉的 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">关于flex布局我们应该熟悉的</h1>
+          <p class="post-date">2018-08-24</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <h1>前言</h1>
+<p>CSS3最喜欢的新属性之一便是flex布局属性，用六个字概括便是简单、方便、快速</p>
+<p>Flex 是 <strong>Flexible Box</strong> 的缩写，意为&quot;<strong>弹性布局</strong>&quot;</p>
+<p>简单来说，就是通过给元素盒子设置一些属性，让元素盒子具有<strong>伸缩性</strong></p>
+<p>有别于之前的display+position+float布局，flex布局可以简便、完整、响应式地实现各种页面布局</p>
+<h4>设为 Flex 布局以后，<strong>子元素的float、clear和vertical-align属性将失效</strong></h4>
+<h1>概念</h1>
+<p>首先我们来看下下面这张图，这张图我相信了解过flex布局的人都应该见过</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44591288-e3763f80-a7ef-11e8-932f-0f016df84016.png" alt="image"></p>
+<p>采用flex布局的弹性盒子，称为<strong>flex容器</strong>(flex container)，简称“容器”</p>
+<p>盒子里边的子元素称<strong>flex项目</strong>(flex item)，简称“项目”</p>
+<p>上图中我们还能看到容器默认存在两根轴：</p>
+<p>水平的<strong>主轴</strong>（main axis）</p>
+<p>垂直的<strong>交叉轴</strong>（cross axis）</p>
+<p>主轴和交叉轴的位置是可以变换的，依赖于<code>flex-direction</code>，默认方向是row</p>
+<h1>属性</h1>
+<p>flex属性主要基于两块，一块是使用flex布局的盒子容器，另一块是其子元素</p>
+<h2>基于盒子容器</h2>
+<ul>
+<li>
+<h6>flex-direction ：        主轴方向(子项目的排列方向)</h6>
+</li>
+<li>
+<h6>flex-wrap ：               换行  默认nowrap</h6>
+</li>
+<li>
+<h6>flex-flow ：                flex-direction属性和flex-wrap属性的简写   默认row nowrap</h6>
+</li>
+<li>
+<h6>justify-content ：      项目在主轴上的对齐方向</h6>
+</li>
+<li>
+<h6>align-items ：            项目在交叉轴上如何对齐</h6>
+</li>
+<li>
+<h6>align-content ：        多根轴线的对齐方式</h6>
+</li>
+</ul>
+<h2>基于子元素项目</h2>
+<ul>
+<li>
+<h6>order ：                      项目的排列顺序</h6>
+</li>
+<li>
+<h6>flex-grow ：               项目的放大比例</h6>
+</li>
+<li>
+<h6>flex-shrink ：             项目的缩小比例</h6>
+</li>
+<li>
+<h6>flex-basis ：               项目占据的主轴空间</h6>
+</li>
+<li>
+<h6>flex ：                          flex-grow, flex-shrink 和 flex-basis的简写</h6>
+</li>
+<li>
+<h6>align-self ：                单个项目的对齐方式</h6>
+</li>
+</ul>
+<p>接下来的内容主要是针对在项目中使用频率比较高的属性</p>
+<h3>flex-direction     主轴方向(子项目的排列方向)</h3>
+<p>默认值是<strong>row</strong>，<strong>水平</strong>方向，起点在左</p>
+<p>与之相反的就是<strong>column</strong>，<strong>垂直</strong>方向，起点在上</p>
+<p>还有两个属性值为<strong>row-reverse</strong>和<strong>column-reverse</strong>，与row和column的区别就在于在于起点相反</p>
+<p>有点类似于行内元素不换行与块级元素的换行</p>
+<h3>justify-content  项目在主轴上的对齐方向</h3>
+<p>justify-content 是一个非常重要的属性，它的5个属性值都是我们在项目中经常用到的，分别是：</p>
+<ul>
+<li>
+<p><strong>flex-start（默认值）</strong>：左对齐</p>
+</li>
+<li>
+<p><strong>flex-end</strong>：右对齐</p>
+</li>
+<li>
+<p><strong>center</strong>： 居中</p>
+</li>
+<li>
+<p><strong>space-between</strong>：两端对齐，项目之间的间隔都相等</p>
+</li>
+<li>
+<p><strong>space-around</strong>：每个项目两侧的间隔相等</p>
+</li>
+</ul>
+<h3>align-items  项目在交叉轴上如何对齐</h3>
+<p>同justify-content一样，也是非常重要的属性，同样也有5个属性值，分别是：</p>
+<ul>
+<li>
+<p><strong>flex-start</strong>：交叉轴的起点对齐</p>
+</li>
+<li>
+<p><strong>flex-end</strong>：交叉轴的终点对齐</p>
+</li>
+<li>
+<p><strong>center</strong>：交叉轴的中点对齐</p>
+</li>
+<li>
+<p><strong>baseline</strong>: 项目的第一行文字的基线对齐</p>
+</li>
+<li>
+<p><strong>stretch（默认值）</strong>：如果项目未设置高度或设为auto，将占满整个容器的高度</p>
+</li>
+</ul>
+<h4>demo</h4>
+<p>针对于上面的两种属性，写了个简单的demo，我们可以看下效果，也方便添加后面属性的对比</p>
+<h5>html</h5>
+<pre class="hljs"><code><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"box"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"item"</span>&gt;</span>一<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"item"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"item2"</span>&gt;</span>二<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"item"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"item3"</span>&gt;</span>三<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"item"</span>&gt;</span>四<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<h5>css</h5>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">700px</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">400px</span>;
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#EEB4B4</span>;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: space-around;   
+}
+<span class="hljs-selector-class">.item</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">150px</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">150px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">100px</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid green;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: center;
+    <span class="hljs-attribute">align-items</span>: center;
+}
+</code></pre>
+<h5>效果</h5>
+<p><img src="https://user-images.githubusercontent.com/26807227/44616736-bb3a1f80-a887-11e8-8f08-f0d18ce2445a.png" alt="image"></p>
+<h3>flex-grow 项目的放大比例</h3>
+<p>取值大致有三种情况：</p>
+<p><strong>默认值0</strong>，即使还存在剩余空间也不放大</p>
+<p><strong>所有子项目item取值都为1</strong>（或其他相同值），将<strong>等分剩余空间</strong>（如果有的话）</p>
+<p>子项目item取值不相同，比如一个为2，其余都是1，那么属性值为2的item占据的<strong>剩余空间</strong>是属性值为1的2倍</p>
+<h4>demo</h4>
+<p>我们先来设置<code>flex-grow</code>属性值为1，效果如下：</p>
+<pre class="hljs"><code><span class="hljs-selector-class">.item</span>{
+  ...
+  <span class="hljs-attribute">flex-grow</span>: <span class="hljs-number">1</span>;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/44616733-ad849a00-a887-11e8-83fd-2bd10b68ae74.png" alt="image"></p>
+<p>将id为item2和item3的<code>flex-grow</code>属性值设置为2</p>
+<pre class="hljs"><code><span class="hljs-selector-id">#item2</span>,<span class="hljs-selector-id">#item3</span> {
+   <span class="hljs-attribute">flex-grow</span>: <span class="hljs-number">2</span>;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/44616580-e66f3f80-a884-11e8-9d97-07c29e54f175.png" alt="image"></p>
+<h3>flex-shrink 项目的缩小比例</h3>
+<p>这个属性的效果与<code>flex-grow</code>是相反的，取值也有三种情况：</p>
+<p><strong>默认为1</strong>，即如果空间不足，该项目将缩小</p>
+<p><strong>所有项目的flex-shrink属性都为1</strong>，当空间不足时，都将<strong>等比例缩小</strong></p>
+<p>子项目item取值不相同，比如一个项目的flex-shrink属性为0，其他项目都为1，则空间不足时，前者不缩小</p>
+<h4>demo</h4>
+<p>先增加子项目item的数量</p>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+    ...
+    &lt;div class="item"&gt;五&lt;/div&gt;
+    &lt;div class="item"&gt;六&lt;/div&gt;
+     &lt;div class="item"&gt;七&lt;/div&gt;
+}
+</code></pre>
+<p>然后看<code>flex-shrink</code>的默认值，也就是属性值为1的情况，效果如下：</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44616784-ea04c580-a888-11e8-9ea1-83d4fe8f767b.png" alt="image"></p>
+<p>将id为item2和item3的<code>flex-shrink</code>属性值设置为0</p>
+<pre class="hljs"><code><span class="hljs-selector-id">#item2</span>,<span class="hljs-selector-id">#item3</span> {
+   <span class="hljs-attribute">flex-shrink</span>: <span class="hljs-number">0</span>;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/44616798-17517380-a889-11e8-8c22-f03368fb7bd6.png" alt="image"></p>
+<p>所以，从<code>flex-grow</code>和<code>flex-shrink</code>的默认值我们可以知道</p>
+<p><strong>flex弹性盒子在存在剩余空间的情况下是默认不具有伸缩性的，在不存在剩余空间的情况下是默认收缩的</strong></p>
+<h3>flex-basis   定义项目占据的主轴空间（在有剩余空间的情况下）</h3>
+<p><strong>默认值为auto</strong>，项目本身的大小，也就是说<strong>从子项目结束后那个位置开始分配项目空间</strong></p>
+<p><strong>属性值为width或height属性一样的值</strong>（比如350px），代表项目将占据的空间，也就是说<strong>从子项目开始的位置分配项目空间</strong></p>
+<h4>demo</h4>
+<p>再次将子项目item的数量设为四个，基于最上面的样式设置，给第二个item设置<code>width：200px</code>，<code>flex-basis</code>就用默认值</p>
+<pre class="hljs"><code><span class="hljs-selector-id">#item2</span> {
+   <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>;
+   <span class="hljs-attribute">height</span>: <span class="hljs-number">150px</span>;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/44650734-04ba7400-aa1a-11e8-9731-425ace52da50.png" alt="image"></p>
+<p>然后将子项目<code>.item{...}</code>添加样式<code>flex-basis:170px;</code>，设置具体的数值</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44651044-d6896400-aa1a-11e8-9ec9-5bd09a67902a.png" alt="image"></p>
+<p>可以看到是从子项目开始的位置，重新分配项目占据空间</p>
+<h3>flex   flex-grow, flex-shrink 和 flex-basis的简写</h3>
+<p>同样按上面的样式设计，有四种取值情况：</p>
+<p><strong>默认值是0 1 auto</strong>，代表项目在有剩余空间的情况下，不具有伸缩性；在没有剩余空间的情况下，默认压缩，且从<strong>子项目结束后那个位置开始分配项目空间</strong></p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44653457-68946b00-aa21-11e8-9864-1f8735888605.png" alt="image"></p>
+<p><strong>属性值是auto (1 1 auto)</strong> ，从子项目结束的位置分配剩余空间</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44653436-5adee580-aa21-11e8-9dbc-1cba72b36dbc.png" alt="image"></p>
+<p><strong>属性值是none (0 0 auto</strong>)，不分配剩余空间</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44653543-a5f8f880-aa21-11e8-859e-4257728817b0.png" alt="image"></p>
+<p><strong>属性值是数值（比如1）</strong>，这三个值分别是</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44653705-10119d80-aa22-11e8-87d6-a3eaaa0c8f9a.png" alt="image"></p>
+<p>从子项目开始的位置分配剩余空间，同<code>flex-basis:auto</code>的情况相反</p>
+<p><img src="https://user-images.githubusercontent.com/26807227/44653586-c7f27b00-aa21-11e8-97d3-b0288cfc065a.png" alt="image"></p>
+<p>通常在项目中，我们往往是在同级子项目item宽度或高度固定的情况下，让其他子项目占据剩余空间时使用<code>flex:1</code></p>
+<p>比如，在上述情况下我们只取两个子项目item，其中一个item宽度和高度固定，另一个item设置<code>flex:1</code>，如下;</p>
+<h5>html</h5>
+<pre class="hljs"><code>&lt;<span class="hljs-selector-tag">div</span> <span class="hljs-selector-tag">class</span>="<span class="hljs-selector-tag">box</span>"&gt;
+    &lt;<span class="hljs-selector-tag">div</span> <span class="hljs-selector-tag">class</span>="<span class="hljs-selector-tag">item</span>"&gt;一&lt;/<span class="hljs-selector-tag">div</span>&gt;
+    &lt;<span class="hljs-selector-tag">div</span> <span class="hljs-selector-tag">class</span>="<span class="hljs-selector-tag">item</span>" <span class="hljs-selector-tag">id</span>="<span class="hljs-selector-tag">item2</span>"&gt;二&lt;/<span class="hljs-selector-tag">div</span>&gt;
+&lt;/<span class="hljs-selector-tag">div</span>&gt;
+</code></pre>
+<h5>css</h5>
+<pre class="hljs"><code><span class="hljs-selector-class">.box</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">700px</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">400px</span>;
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#EEB4B4</span>;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: center;   
+}
+<span class="hljs-selector-class">.item</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">150px</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">150px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">100px</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid green;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: center;
+    <span class="hljs-attribute">align-items</span>: center;
+}
+<span class="hljs-selector-class">.item2</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;
+}
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/26807227/44761319-33009680-ab75-11e8-85e5-f3e64810bf4b.png" alt="image"><br>
+可以看到设置了<code>flex:1</code>的子项目占据了所有的剩余空间，并始终从头布局（父元素的<code>justify-content: center;</code>可以相当于未生效）</p>
+<h1>封装</h1>
+<p>在项目开发中，我们尽量做到自己封装好flex这些常用的布局方法，比如<strong>封装到一个全局样式中</strong>，然后在之后的页面css中引入全局样式，具体可以查阅我之前用flex实现的<a href="https://github.com/lulujianglab/flex-headerBar_footerBar">H5页面'头尾固定，中间滚动'</a>的项目，在该项目的<a href="https://github.com/lulujianglab/flex-headerBar_footerBar/blob/master/static/css/global.css">global.css</a>中就是我对flex布局常用属性的<strong>兼容性的全局封装</strong></p>
+<pre class="hljs"><code><span class="hljs-selector-class">.flex</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-comment">/* 兼容性 */</span>
+    <span class="hljs-attribute">display</span>:-webkit-box;
+    <span class="hljs-attribute">display</span>: -moz-box;
+    <span class="hljs-attribute">display</span>: -ms-flexbox;
+    <span class="hljs-attribute">display</span>: -webkit-flex;
+}
+
+<span class="hljs-selector-class">.direction-column</span> {
+    <span class="hljs-attribute">-webkit-box-orient</span>:vertical;
+    <span class="hljs-attribute">-webkit-box-direction</span>:normal;
+    <span class="hljs-attribute">-moz-box-orient</span>:vertical;
+    <span class="hljs-attribute">-moz-box-direction</span>:normal;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">-webkit-flex-direction</span>:column;
+}
+</code></pre>
+<p>以上情况的处理往往是我们写单个网页时。在项目中常常用插件来自动实现兼容性的处理</p>
+<p>但是为了方便，在项目中多次用flex布局时，我们也可以对齐进行封装，比如<strong>vue</strong>，可以参考博客<a href="https://github.com/chunpu/blog/issues/92">如果说 Flexbox 之前的布局都是错的...</a></p>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>

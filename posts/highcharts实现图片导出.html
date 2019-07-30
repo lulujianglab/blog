@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>highcharts实现图片导出 - lulujianglab Blog</title>
+    <link href="../assets/common.css" rel="stylesheet"></link>
+    <link href="../assets/hl.css" rel="stylesheet"></link>
+    <link href="../assets/font.css" rel="stylesheet"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="title-wrapper">
+          <h1 class="title">highcharts实现图片导出</h1>
+          <p class="post-date">2018-01-24</p>
+      </div>
+      <div class="content" id="content">
+        <div class="main" id="main">
+          <p>highcharts默认情况下，是支持将图表导出为图片或打印功能的</p>
+<p>在图表的右上角有两个按钮，主要用到的是它的导出属性-exporting</p>
+<p>而highcharts的命令行导出功能--Nodejs 导出服务器，是对于需要自动生成图表、纯后端生成图表图片、批量生成图表的情况</p>
+<p>使用也很方便，只需要安装nodejs导出服务器，有两种方式，分别是</p>
+<p>直接安装npm包</p>
+<pre class="hljs"><code>npm install highcharts-export-server -g 
+</code></pre>
+<p>源代码安装：</p>
+<pre class="hljs"><code>git <span class="hljs-built_in">clone</span> https://github.com/highcharts/node-export-server
+npm install
+npm link
+</code></pre>
+<p>然后命令行导出，nodejs导出服务器运行方法</p>
+<pre class="hljs"><code>highcharts-export-server &lt;arguments&gt;
+</code></pre>
+<p>Nodejs 导出服务器以模块的形式在 Nodejs 程序中使用，简单的示例代码</p>
+<p>加载导出模块</p>
+<pre class="hljs"><code><span class="hljs-keyword">const</span> exporter = <span class="hljs-built_in">require</span>(<span class="hljs-string">'highcharts-export-server'</span>);
+</code></pre>
+<p>导出配置</p>
+<pre class="hljs"><code><span class="hljs-keyword">var</span> exportSettings = {
+  <span class="hljs-attr">type</span>: <span class="hljs-string">'png'</span>,
+  <span class="hljs-attr">options</span>: {
+    <span class="hljs-attr">title</span>: {
+      <span class="hljs-attr">text</span>: <span class="hljs-string">'My Chart'</span>
+    },
+    <span class="hljs-attr">xAxis</span>: {
+      <span class="hljs-attr">categories</span>: [<span class="hljs-string">"Jan"</span>, <span class="hljs-string">"Feb"</span>, <span class="hljs-string">"Mar"</span>, <span class="hljs-string">"Apr"</span>, <span class="hljs-string">"Mar"</span>, <span class="hljs-string">"Jun"</span>, <span class="hljs-string">"Jul"</span>, <span class="hljs-string">"Aug"</span>, <span class="hljs-string">"Sep"</span>, <span class="hljs-string">"Oct"</span>, <span class="hljs-string">"Nov"</span>, <span class="hljs-string">"Dec"</span>]
+    },
+    <span class="hljs-attr">series</span>: [{
+      <span class="hljs-attr">type</span>: <span class="hljs-string">'line'</span>,
+      <span class="hljs-attr">data</span>: [<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>]
+    }, {
+      <span class="hljs-attr">type</span>: <span class="hljs-string">'line'</span>,
+      <span class="hljs-attr">data</span>: [<span class="hljs-number">5</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">2</span>]
+    }]
+  }
+};
+</code></pre>
+<p>启动 Phantomjs 线程池</p>
+<pre class="hljs"><code>exporter.initPool();
+</code></pre>
+<p>执行导出</p>
+<pre class="hljs"><code>exporter.export(exportSettings, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">err, res</span>) </span>{
+  <span class="hljs-comment">//导出的结果包含在 res 中</span>
+  <span class="hljs-comment">//如果导出结果不是 PDF 或 SVG，那么结果是 base64 编码的内容，可以通过 res.data 来获取</span>
+  <span class="hljs-comment">//如果导出结果是 PDF 或 SVG，那么结果是文件名，可以通过 res.filename 来获取</span>
+
+  <span class="hljs-comment">//当所有的操作完毕后，关掉线程池并推出程序</span>
+  exporter.killPool();
+  process.exit(<span class="hljs-number">1</span>);
+});
+</code></pre>
+
+        </div>
+        <div class="footer">
+          Powered by <a href="https://github.com/lulujianglab/pudding/tree/dev">PuddingNote</a>
+        </div>
+      </div>
+      <div class="toc_nav">
+        <div class="article_nav" id="article_nav">
+        </div>
+      </div>
+      <div class="scroll post-top" id="top">
+        <a href="javascript:void(0)" onclick="toBackTop()">
+          <i class="iconfont icon-shangsanjiaoxing"></i>
+        </a>
+      </div>
+      <div class="scroll back">
+        <a href="../../">
+          <i class="iconfont icon-shouye"></i>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function toBackTop(){
+        document.documentElement.scrollTop = 0
+      }
+
+      function onScrollToTop() {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+        // 回到顶部
+        if (scrollTop > 300) {
+          document.getElementById("top").style.display = 'block'
+        } else {
+          document.getElementById("top").style.display = 'none'
+        }
+        // 导航目录
+        if(scrollTop > 100) {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = 'fixed'
+          navNode.style.top = '16px'
+        } else {
+          var navNode = document.querySelector('#article_nav')
+          navNode.style.position = ''
+          navNode.style.top = ''
+        }
+      }
+
+      function addAchor() {
+        var allNodes = document.getElementById('main').childNodes
+        // var nodesH =  [...allNodes].map((item, index) => {
+        //   if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+        //     return item.tagName
+        //   }
+        // })
+        var mapNodes = [...allNodes].forEach((item, index) => {
+          if(item.tagName && item.tagName.substr(0,1).toUpperCase() === "H") {
+            var contentH = item.innerHTML // 标题内容
+            var menuid = "menu-" + item.tagName + "-" + index.toString() // 增加当前元素的id
+            item.setAttribute('id',menuid)
+            var spaceNum = ''
+            if (item.tagName === 'H1') {
+              spaceNum = ''
+            } else if (item.tagName === 'H2') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;'
+            }  else if (item.tagName === 'H3') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H4') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H5') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            } else if (item.tagName === 'H6') {
+              spaceNum = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+            }
+            var node = document.createElement('a')
+            node.setAttribute('href','#' + menuid)
+            node.setAttribute('class', item.tagName)
+            node.innerHTML = spaceNum + contentH
+            document.getElementById('article_nav').appendChild(node) // 将新创建的目录节点插入导航栏
+          }
+        })
+      }
+
+      window.onscroll = onScrollToTop
+
+      window.onload = function() {
+        addAchor()
+      }
+    </script>
+  </body>
+</html>
