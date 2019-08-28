@@ -20,10 +20,6 @@
 
 
 
-* [About](https://lulujianglab.github.io/blog/posts/About.html) 
-
-
-
 * [超级好用的流程库 - ggEditor](https://lulujianglab.github.io/blog/posts/超级好用的流程库%20-%20ggEditor.html)  `可视化` 
 
 
